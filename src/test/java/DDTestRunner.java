@@ -56,6 +56,7 @@ public class DDTestRunner {
    private static Long nReportedSessionSteps = 0L;
    private static boolean shouldQuitTestSession;
    private static Hashtable<String, Object> varsMap;
+   private static Hashtable<String, WebElement> elementsMap;
 
    // The test session variables hashtable is maintained by DDTestRunner instance.
    private static Hashtable<String, TestItem> currentTestItem = new Hashtable<String, TestItem>();
@@ -162,40 +163,60 @@ public class DDTestRunner {
     *
     * @param args [0] = provider type, [1] provider source, [2] test steps container (optional)
     */
-   public static void runOn(String[] args) {
+   public static void runOn(String[] args) throws Throwable {
       // Populate the instance's dictionary with current date variables
       addVariable("datevars", "%date%");
+
+      String[][] testItemStrings = new String[0][0];
+
       try {
-         // Get a test items provider with test items based on these specified in args
-         TestItemsProvider provider = TestItemsProvider.providerWithItems(args);
-         if (provider instanceof TestItemsProvider) {
-            TestItem.TestItems testItems = new TestItem.TestItems();
-            testItems.setItems(provider.getTestItems());
-            DDTestRunner runner = new DDTestRunner();
-            runner.setTestItems(testItems);
-            runner.processTestItems();
-         } else
-            System.out.println("Failed to start with default TestItemsProvider");
+
+         // Test Items Strings provider - String[n][] where each of the n rows is a collection of strings making up a TestItem instance.
+         // stringProviderSpecs contains information about the test item strings provider - err out if it is invalid.
+         TestStringsProviderSpecs stringProviderSpecs = new TestStringsProviderSpecs(args);
+         if (stringProviderSpecs.isSetupValid()) {
+
+            // With valid stringProviderSpecs, attempt to get the strings making up the new test and err out if not successful
+            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().dataFolder());
+            if (testItemStrings.length > 0) {
+               // A new test items aggregate
+               TestItem.TestItems testItems = new TestItem.TestItems();
+               // assemble TestItem[] array in the new aggregate
+               testItems.setItems(TestItem.assembleTestItems(testItemStrings));
+               // start a new test runner instance with the test items aggregate instance
+               DDTestRunner runner = new DDTestRunner();
+               runner.setTestItems(testItems);
+               // let the runner process its test items.
+               runner.processTestItems();
+            } // if some test strings were provided
+            else {
+               System.out.println("Failed to get test item strings from Test Strings Provider!");
+            }
+         } // if valid specs
+         else {
+            System.out.println("Invalid Test Strings Provider - " + stringProviderSpecs.getErrors());
+         }
       }
       catch (Exception e) {
-         System.out.println("Failed to start with default TestItemsProvider " + e.getMessage().toString());
+         System.out.println("Failed to 'runOn' default TestItemsProvider " + e.getMessage().toString());
       }
    }
 
-   public static DDTestRunner invokeDefaults() {
+   /**
+    * Invoke a Test Runner using the defaults specified by the ddt.properties file (or the hard coded defaults)
+    * @return
+    */
+   public static void invokeDefaults() {
       DDTSettings.reset();
-      DDTestRunner inst = new DDTestRunner();
 
       // Use the default test items provider
       try {
-         // Populate the instance's dictionary with current date variables
-         addVariable("datevars", "%date%");
          // Get the initial test items specified in the properties file or the command line
-         String tmp[] = DDTSettings.Settings().inputSpecsArray();
+         String tmp[] = DDTSettings.Settings().inputSpecsArrayWithDataFolder();
          runOn(tmp);
          generateReportIfNeeded();
       }
-      catch (Exception ex) {
+      catch (Throwable ex) {
          System.out.println("Exception encountered running defaults: " + ex.getMessage().toString()) ;
       }
       finally {
@@ -203,7 +224,6 @@ public class DDTestRunner {
             System.out.println("End of Test Session - Closing Driver");
             getDriver().close();
          }
-         return inst;
       }
    }
 
@@ -295,7 +315,53 @@ public class DDTestRunner {
       }
    }
 
-   //public static int nSessionPass, nSessionFail, nSessionDone, nSessionSkip;
+   public static void setElementsMap(Hashtable<String, WebElement> aMap) {
+      elementsMap = aMap;
+   }
+
+   public static Hashtable<String, WebElement> getElementsMap() {
+      if (elementsMap == null)
+         setElementsMap(new Hashtable<String, WebElement>());
+      return elementsMap;
+   }
+
+   public static void addElement(String key, WebElement value) {
+      String result = "";
+      String tmp = key.toLowerCase();
+      try {
+         if ((getElementsMap().get(tmp) != null))
+            getElementsMap().remove(tmp);
+
+         getElementsMap().put(tmp, value);
+            result = "Element " + Util.sq(key.toLowerCase()) + " (re)set in the Elements map to " +
+                  Util.sq(value.toString());
+      }
+      catch (Exception e) {
+         result = e.getCause().toString();
+      }
+      finally {
+         System.out.println(result);
+      }
+   }
+
+   /**
+    * Retrieve a previously stored element from the Elements Map of the test session
+    * @param key
+    * @return Web Element previously stored in the Elements Map
+    */
+   public static WebElement getElement(String key) {
+      WebElement result = null;
+      try {
+         result = getElementsMap().get(key.toLowerCase());
+      }
+      catch (Exception e) {
+         System.out.println("Web Element: " + Util.sq(key) + " not found in the Elements Map.");
+      }
+      finally {
+         return result;
+      }
+   }
+
    public static int nSessionDone() {
       return tsCounters[0];
    }
@@ -691,7 +757,7 @@ public class DDTestRunner {
       // Example 1: File;DDTRoot.xls;Root
       // Example 2: Inline;InputGeneratorClassName;rootMethodName
       if (args.length == 1) {
-         tmp = args[0].split(":");
+         tmp = args[0].split(TestStringsProviderSpecs.SPLITTER);
       }
       else {
          // Use the default input
@@ -699,15 +765,14 @@ public class DDTestRunner {
       }
 
       try {
-         // Populate the instance's dictionary with current date variables
-         addVariable("datevars", "%date%");
          // Get the initial test items specified in the properties file or the command line
          runOn(tmp);
       }
       catch (Exception ex) {
          System.out.println(ex.getMessage().toString()) ;
-      }
-      finally {
+      } catch (Throwable throwable) {
+         throwable.printStackTrace();
+      } finally {
          if (getDriver() instanceof WebDriver) {
             System.out.println("End of Test Session - Closing Driver");
             getDriver().close();

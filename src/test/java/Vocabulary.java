@@ -49,11 +49,12 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * ============|=========|====================================
  * 12/10/13    |Bey      |Initial Version
  * 06/23/14    |Bey      |recommit
+ * 06/28/14    | Bey     |Remove references to getDriverIfNeeded() - moved to TestItem.Initialize()
  * ============|=========|====================================
  */
 public class Vocabulary {
 
-   private static final String uiMethods = ",switchToFrame,handleAlert,";
+   private static final String uiMethods = ",click,clickCell,ensurePageLoaded,findCell,findElement,findOption,handleAlert,maximize,saveElementProperty,selectOption,sendKeys,switchToFrame,takeScreenShot,toggle,verifyOption,verifyWebDriver,";
    public static String getUIMethods() {
       return uiMethods;
    }
@@ -135,11 +136,6 @@ public class Vocabulary {
       // Get a verifier instance from the TestItem instance
       Verifier verifier = Verifier.getVerifier(testItem);
 
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
       WebDriver driver = testItem.getDriver();
 
       try {
@@ -173,13 +169,14 @@ public class Vocabulary {
     * Invoke findElement using the Locator Array so constructed and a WebDriverWait chaining one or more By specs
     */
    public static void findElement(TestItem testItem) throws Exception{
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       By[] chainedSpecs = new By[0];
       String how = testItem.getLocType();
+
+      // Support for saving elements in TestRunner's elements Map
+      String eKey = testItem.getDataProperties().get("saveelementas");
+      if (isBlank(eKey))
+         eKey = "";
 
       /**
        * chainedSpecs (LocatorArray) get created from comma delimited 'How', 'Value' and 'Modifier' specs
@@ -203,10 +200,6 @@ public class Vocabulary {
             return;
          }
 
-         testItem.getDriverIfNeeded();
-         if (testItem.hasErrors())
-            return;
-
          WebDriver driver = testItem.getDriver();
 
          try {
@@ -219,6 +212,9 @@ public class Vocabulary {
                // This is needed to create web elements like Select, etc. once an element was found
                testItem.addComment("Element Found");
                testItem.addInfoEvent("Element Found");
+               // If so indicated, save the element in the DDTestRunner elements Map
+               if (!isBlank(eKey))
+                  DDTestRunner.addElement(eKey, element);
             } else {
                testItem.addError("Web Element not found using 'By' specs of: " + testItem.getLocType() + " / " + testItem.getLocSpecs());
                testItem.addFailEvent("Web Element not found using 'By' specs of: " +  testItem.getLocType() + " / " + testItem.getLocSpecs());
@@ -243,11 +239,6 @@ public class Vocabulary {
     *
     */
    public static void findOption(TestItem testItem) throws Exception {
-
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       // Get a template verifier from the TestItem object
       Verifier verifier = Verifier.getVerifier(testItem);
@@ -361,11 +352,6 @@ public class Vocabulary {
     * Generic click mechanism
     */
    public static void click(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
       try {
          findElement(testItem);
          if (testItem.hasErrors())
@@ -390,11 +376,6 @@ public class Vocabulary {
     * Generic table cell clicking mechanism
     */
    public static void clickCell(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
       try {
          findCell(testItem);
          if (testItem.hasErrors())
@@ -429,7 +410,7 @@ public class Vocabulary {
                } // for alternate element
             }  // else (alternate tag search)
 
-            if (testItem.getElement().isEnabled() && foundElement) {
+            if (foundElement && testItem.getElement().isEnabled()) {
                new Actions(DDTestRunner.getDriver()).moveToElement(testItem.getElement()).build().perform();
                testItem.getElement().click();
                testItem.addComment("Cell Clicked");
@@ -454,11 +435,6 @@ public class Vocabulary {
     */
    public static void selectOption(TestItem testItem) throws Exception {
 
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
       // User can specify either ItemValue or ItemText - ItemText has priority
       String textToSelectBy = testItem.getDataProperties().get("itemtext");
       if (isBlank(textToSelectBy))
@@ -470,13 +446,6 @@ public class Vocabulary {
       // If both, textToSelectBy and valueToSelectBy are present, use textToSelectBy else, use valueToSelectBy if it is not blank.
       // All these shenanigans are meant to support selection of a blank value when needed.
       String selectionValue = (isBlank(valueToSelectBy)) ? textToSelectBy : (isBlank(textToSelectBy) ? valueToSelectBy :textToSelectBy);
-
-      // Determine the type of selection
-      String selectBy = "itemtext";
-      if (isBlank(textToSelectBy) && !isBlank(valueToSelectBy))
-         selectBy = "itemvalue";
-
-      boolean selectByText = (selectBy.equalsIgnoreCase("itemtext"));
 
       try {
          // Successful find of element results in storage of found option in testItem.getElement()
@@ -505,10 +474,6 @@ public class Vocabulary {
     * @param TestItem
     */
    public static void switchToFrame(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       String frameName = testItem.getDataProperties().get("value");
       if (isNotBlank(frameName))
@@ -529,10 +494,6 @@ public class Vocabulary {
     * @throws IOException
     */
    public static void takeScreenShot(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       try {
          String result = Util.takeScreenImage(testItem.getDriver(), "", testItem.getId());
@@ -558,12 +519,7 @@ public class Vocabulary {
     */
 
    public static void toggle(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
-      try {
+       try {
          findElement(testItem);
          if (testItem.hasErrors())
             return;
@@ -611,10 +567,6 @@ public class Vocabulary {
     * @throws Exception
     */
    public static void verifyWebDriver(TestItem testItem) throws Exception {
-      // ensure WebDriver presence
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       try {
 
@@ -733,10 +685,6 @@ public class Vocabulary {
     * @throws Exception
     */
    public static void saveElementProperty(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       try {
          // Find the element to verify based on the locator in TestItem
@@ -784,12 +732,6 @@ public class Vocabulary {
     *
     */
    public static void verifyOption(TestItem testItem) throws Exception {
-
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
-
       // User can specify either ItemValue or ItemText - ItemText has priority
       String textToSelectBy = testItem.getDataProperties().get("itemtext");
       if (isBlank(textToSelectBy))
@@ -836,10 +778,6 @@ public class Vocabulary {
     * @throws Exception
     */
    public static void verifyWebElement(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       try {
          // If requested, find the element to verify based on the locator in TestItem
@@ -905,10 +843,6 @@ public class Vocabulary {
     * @throws Exception
     */
    public static void verifyElementSize(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       try {
          // If requested, find the element to verify based on the locator in TestItem
@@ -987,10 +921,30 @@ public class Vocabulary {
     * @throws Exception
     */
    public static void findCell(TestItem testItem) throws Exception {
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
+
+      String col = "";
+      int colNo = -1;
+      String row = "";
+      int startCol = 0;
+      int startRow = 0;
+      int rowNo = -1;
+      int firstRowToExamine = -1;
+      int lastRowToExamine = -1;
+      int nCellsExamined = 0;
+      int nCellsFound = 0;
+      int nRows = -1;
+      int rowIndex = 0;
+      int colIndex = 0;
+      String alternateTag = "";
+      String rowRange = "";
+      String cellsToFind = "";
+      boolean doneSearching = false;
+      boolean findRange = false;
+      boolean foundCell = false;
+      boolean atRow = false;
+      boolean atCol;
+      int phase = 0;
+      int nCellsToFind = -1;
 
       try {
          // The top element may have already been found by caller(s) such as 'click'
@@ -1001,58 +955,56 @@ public class Vocabulary {
             if (testItem.hasErrors())
                return;
          }
+         phase ++;
 
          boolean reportEachTableCell = DDTSettings.Settings().reportEachTableCell();
          // Get a template verifier
          Verifier verifier = Verifier.getVerifier(testItem);
 
          // Determine the (optionally) requested column in the table to look at
-         String col =  testItem.getDataProperties().get("col");
-         int colNo;
-         if (StringUtils.isBlank(col))
-            colNo = -1;
-         else
+         col =  testItem.getDataProperties().get("col");
+         if (!StringUtils.isBlank(col))
             colNo = Integer.valueOf(col);
 
          // Determine the (optionally) requested row in the table to look at
-         String row =  testItem.getDataProperties().get("row");
-         int rowNo;
-         if (StringUtils.isBlank(row))
-            rowNo = -1;
-         else
+         row =  testItem.getDataProperties().get("row");
+         if (!StringUtils.isBlank(row))
             rowNo = Integer.valueOf(row);
 
          // Get the alternative tag name to look for if the element is to be found on an item other than <tr> / <td> option needed for verification (ignorecase, ...) @TODO See if more needed
-         String alternateTag = testItem.getDataProperties().get("tag"); // use this tag if the element is not found in a cell on the <td> tag
+         alternateTag = testItem.getDataProperties().get("tag"); // use this tag if the element is not found in a cell on the <td> tag
+         if (StringUtils.isBlank(alternateTag))
+            alternateTag = "";
 
-         // Get the number of cells to find requested by the user.
-         String cellsToFind = testItem.getDataProperties().get("cellstofind");
-         int nCellsToFind = -1;
+         // Get the number of cells to find requested by the user - if invalid - set it to 1.
+         cellsToFind = testItem.getDataProperties().get("cellstofind");
+         if (isBlank(cellsToFind))
+            cellsToFind = "";
+
+         phase ++;
          if (!isBlank( cellsToFind)) {
             try {
                nCellsToFind = Integer.valueOf(cellsToFind);
                if (nCellsToFind < 1) {
-                  testItem.addError("Invalid specs: Number of cells to find should be larger than zero.  Cell search aborted.");
-                  return;
+                  nCellsToFind = 0;
+                  testItem.addComment("Invalid specs: Number of cells to find should be larger than zero.  Number of Cells to Find set to 1.");
                }
             }
             catch (Exception e) {
-               throw new VocabularyException(testItem, "Search Cell aborted.");
+               testItem.addComment("Invalid Specs for Number of Cells to Find.  Number of Cells to Find set to 1.");
             }
          }
 
          // Get the specification for range of rows in which to to find cells - if any.
          // A range of rows to examine (may conflict with "row" specs)
 
-         String rowRange = testItem.getDataProperties().get("rowrange");
+         rowRange = testItem.getDataProperties().get("rowrange");
          if (isBlank(rowRange))
             rowRange = "";
 
-         boolean findRange = false;
-
          String[] rowRangeSpecs;
-         int firstRowToExamine = -1;
-         int lastRowToExamine = -1;
+
+         phase ++;
 
          try {
             if (!(isBlank(rowRange)) && rowRange.contains("-")) {
@@ -1065,35 +1017,32 @@ public class Vocabulary {
                      int tmp = firstRowToExamine;
                      lastRowToExamine = firstRowToExamine;
                      firstRowToExamine = tmp;
-                     findRange = true;
                   }
+                  findRange = true;
                } // if valid range specified...
                else {
                   // Give up, user is not following range conventions  - used multiple dashes
-                  testItem.addError("Invalid input ignored - too many dashes in range specification.");
+                  testItem.addError("Invalid input ignored - too many dashes in range specification: " + Util.sq(rowRange));
                   return;
                }
             } // if establishing range of rows to examine
-         }
+         } // Try to convert row range to integers
          catch (Exception e) {
-            throw new VocabularyException(testItem, "Invalid input ignored - invalid or non numeric input in range specification.  Cell search aborted.");
-         } // try getting a valid range of rows.
+            throw new VocabularyException(testItem, "Invalid (row range) input ignored - invalid or non numeric input in Row Range specification: " +  Util.sq(rowRange) + ".  Cell search aborted.");
+         } // catch trying to get a valid range of rows.
 
-         int nCellsExamined = 0;
-         int nRowsFound = 0;
-         int nCellsFound = 0;
-         boolean doneSearching = false;
          if ((testItem.getElement() instanceof WebElement) || testItem.getDriver() instanceof WebDriver) {
+
             // Assume all rows are represented by "tr" tag.
             List<WebElement> rows = testItem.getElement().findElements(By.tagName("tr"));
-            int nRows = rows.size();
+            nRows = rows.size();
             if (nRows > 0)
             {
-               int startCol = (colNo > 0) ? colNo : 0;
-               int startRow = (rowNo > 0) ? rowNo : 0;
+               startCol = (colNo > 0) ? colNo : 0;
+               startRow = (rowNo > 0) ? rowNo : 0;
                if (startRow > 0 && (findRange && firstRowToExamine == lastRowToExamine) && firstRowToExamine != startRow) {
                   // Abandon Search
-                  testItem.addError("Conflicting 'Row' and 'RowRange' specification (Single row-range specified that is different than row to examine).  Search cell aborted.");
+                  testItem.addError("Conflicting 'Row' and 'RowRange' specification (Single row-range specified that is different than row to examine).  Find cell aborted.");
                   return;
                }
 
@@ -1107,26 +1056,13 @@ public class Vocabulary {
                   // A range of rows represented by the formula lastRowToExamine - firstRowToExamine + 1
                   // A specific row - 1 row should be examined
                   // Otherwise, examine all rows.
-                  int nRowsToExamine = 1;  // The default case - looking for exactly one row.
                   if (findRange) {
-                     nRowsToExamine = lastRowToExamine - firstRowToExamine + 1;
-                  }
-                  else if (rowNo < 1) {
-                     nRowsToExamine = nRows;
+                     startRow = firstRowToExamine;
                   }
 
-                  if (nRowsToExamine > nRows) {
-                     testItem.addError("Invalid 'RowRange' specification -  Number of rows to examine exceed number of rows in table.  Search cell aborted.");
-                     return;
-                  }
-
-                  boolean foundCell = false;
-                  boolean atRow = false;
-                  boolean atCol = false;
-                  int rowIndex = 0;
                   for (WebElement theRow : rows) {
                      rowIndex++;
-                     atRow = ((startRow > 0 && rowIndex == startRow) || (startRow == 0));
+                     atRow = atRow || ((startRow > 0 && rowIndex == startRow) || (startRow == 0));
                      // skip rows until the start row - or look at each row - if no row limit specified.
                      if (!atRow && startRow > 0)
                         continue;
@@ -1134,8 +1070,8 @@ public class Vocabulary {
                      // Iterate over the cells of this row, using logic similar to  rows above...
                      List<WebElement> cells = theRow.findElements(By.tagName("td"));
                      int nCols = cells.size();
+                     colIndex = 0;
                      if (startCol <= nCols) {
-                        int colIndex = 0;
                         for (WebElement theCell : cells) {
                            colIndex++;
                            foundCell = false;
@@ -1174,6 +1110,9 @@ public class Vocabulary {
                               } // doneSearching - main logic
                            }  // Verifier.isPass()
                            else {
+                              if (reportEachTableCell) {
+                                 testItem.addComment("Cell Not Found - " + verifier.getErrors() + " - at table cell [" + rowIndex + "," + colIndex + "].");
+                              }
                               // Look for alternate elements 'deeper' in the cell to locate the desired element
                               List<WebElement> alternateElements = theCell.findElements(By.tagName(alternateTag));
                               for (WebElement alternateElement : alternateElements) {
@@ -1210,7 +1149,7 @@ public class Vocabulary {
                         // Handle invalid number of columns in a row.
                         if (nCols > 0) {
                            if (reportEachTableCell)
-                              testItem.addComment("Specified cell number (" + startCol + ") is greater than table's number of columns at row: " + Util.sq(String.valueOf(nCols)) + ". Row skipped, Cell search continued.");
+                              testItem.addComment("Specified cell number (" + startCol + ") is greater than table's number of columns at row: " + rowIndex + ", nCols: " + nCols + ". Row skipped, Cell search continued.");
                            continue;
                         }
                      } // startCol > ncols
@@ -1266,7 +1205,7 @@ public class Vocabulary {
             testItem.addError("Failed to find table Web Element - Cell search aborted.");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Table element Not Found or Verification Failed");
+         throw new VocabularyException(testItem, "Table element Not Found or Verification Failed." + " " + phase +"  cell [" + rowIndex + "," + colIndex + "].");
       }
    }
 
@@ -1300,10 +1239,6 @@ public class Vocabulary {
     * Generic data entry / typing mechanism using sendKeys
     */
    public static void sendKeys(TestItem testItem) throws Exception{
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       String keys = testItem.getDataProperties().get("value");  // The value to enter
       String mode = testItem.getDataProperties().get("append"); // Should data be appended? (default is no)
@@ -1388,10 +1323,6 @@ public class Vocabulary {
     * @param TestItem
     */
    public static void setPageSize(TestItem testItem)  throws Exception {
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors()) {
-         return;
-      }
 
       try {
          String option = testItem.getDataProperties().get("value");
@@ -1419,6 +1350,21 @@ public class Vocabulary {
    }
 
    /**
+    * Maximize the browser display
+    * @param testItem
+    * @throws Exception
+    */
+   public static void maximize(TestItem testItem) throws Exception {
+
+      try {
+         testItem.getDriver().manage().window().maximize();
+      }
+      catch (Exception e) {
+         throw new VocabularyException(testItem, "Failed to Maximize page.");
+      }
+   }
+
+   /**
     * Variable setting mechanism.
     */
    public static void setVars(TestItem testItem) throws Exception {
@@ -1435,6 +1381,11 @@ public class Vocabulary {
       }
    }
 
+   /**
+    *
+    * @param testItem
+    * @throws Exception
+    */
    public static void navigateToPage(TestItem testItem) throws Exception {
       String url = testItem.getDataProperties().get("url");
       if (isBlank(url)) {
@@ -1443,10 +1394,6 @@ public class Vocabulary {
       }
 
       try {
-         testItem.getDriverIfNeeded();
-         if (testItem.hasErrors())
-            return;
-
          testItem.getDriver().navigate().to(url);
       }
       catch (Exception e) {
@@ -1455,47 +1402,54 @@ public class Vocabulary {
    }
 
    /**
-    * Start a new TestRunner instance using the input file indicated in testItem.data
+    * Start a new TestRunner instance using the input specs indicated in testItem.data
     */
    public static void newTest(TestItem testItem) throws Exception {
 
-      String[] args;
+      String[][] testItemStrings;
       String inputSpecs = testItem.getDataProperties().get("inputspecs");
-      args = inputSpecs.split(":");
 
-      if (",file,inline,".contains((args[0]).toLowerCase())) {
-         try {
+      // Test Items Strings provider - String[n][] where each of the n rows is a collection of strings making up a TestItem instance.
+      // stringProviderSpecs contains information about the test item strings provider - err out if it is invalid.
+      TestStringsProviderSpecs stringProviderSpecs = new TestStringsProviderSpecs(inputSpecs);
+      if (!stringProviderSpecs.isSetupValid()) {
+         testItem.addError("Invalid Test Strings Provided - " + stringProviderSpecs.getErrors());
+         return;
+      }
 
+      // With valid stringProviderSpecs, attempt to get the strings making up the new test and err out if not successful
+      testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().dataFolder());
+      if (testItemStrings.length < 1) {
+         testItem.addError("Failed to get test item strings from Test Strings Provider");
+         return;
+      }
+
+      try {
+            // With test item strings provided, start a sub test runner, assemble the test items and have the sub test runner process those.
             DDTestRunner runner = new DDTestRunner();
             runner.setLevel(testItem.getLevel() + 1); // Recursion level propagated
-            // runner.setFileName(file);
 
-            TestItemsProvider provider = TestItemsProvider.providerWithItems(args);
-            if (provider instanceof TestItemsProvider) {
-               TestItem.TestItems testItems = new TestItem.TestItems();
-               testItems.setItems(provider.getTestItems());
-               testItems.setParentItem(testItem);
-               runner.setTestItems(testItems);
-               runner.setParentStepNumber(testItem.getSessionStepNumber());
-               runner.processTestItems();
-               if (runner.failed()) {
-                  String error = (isBlank(testItem.getErrors()) ? "" : testItem.getErrors()) + (" " + runner.getErrors().trim());
-                  if (isBlank(error)) {
-                     error = "Test Case with ID of " + testItem.getId() + " failed";
-                  }
-                  // We do not consider an aggregate test runner step as failure but note there were problems
-                  // (Only if the thing raises exception it is considered as failure)
-                  testItem.addComment(error);
+            TestItem.TestItems testItems = new TestItem.TestItems();
+            testItems.setItems(TestItem.assembleTestItems(testItemStrings));
+            testItems.setParentItem(testItem);
+            runner.setTestItems(testItems);
+            runner.setParentStepNumber(testItem.getSessionStepNumber());
+            runner.processTestItems();
+            if (runner.failed()) {
+               String error = (isBlank(testItem.getErrors()) ? "" : testItem.getErrors()) + (" " + runner.getErrors().trim());
+               if (isBlank(error)) {
+                  error = "Test Case with ID of " + testItem.getId() + " failed";
                }
+               // Do not consider an aggregate test runner step as failure but note there were errors in this 'test case'
+               // (Only if the thing raises exception it is considered as failure)
+               testItem.addComment(error);
             }
-            else
-               testItem.addError("Failed to create TestItemsProvider");
-         }
-         catch (Exception e) {
-            throw new VocabularyException(testItem, "Failure in starting a new TestRunner (General Exception - Check Data in input source)");
-         }
       }
-      else testItem.addError("Invalid Source Type: " + Util.dq(args[0]) + " - Action Failed.");
+      catch (Exception e) {
+         throw new VocabularyException(testItem, "Failure in starting a new TestRunner (General Exception - Check Data in input source)");
+      } catch (Throwable throwable) {
+         throwable.printStackTrace();
+      }
    }
 
    public static void createWebDriver(TestItem testItem) throws Exception {
@@ -1560,11 +1514,6 @@ public class Vocabulary {
     * @param TestItem
     */
    public static void ensurePageLoaded(TestItem testItem) throws Exception{
-
-      // Ensure driver exists
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return;
 
       String searchTitle;
       // Get the function to use in verification

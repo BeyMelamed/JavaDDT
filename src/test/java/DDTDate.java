@@ -138,12 +138,6 @@ public class DDTDate {
       unitType = value;
    }
 
-   public String getUnitType() {
-      if (isBlank(unitType))
-         setUnitType("");
-      return unitType;
-   }
-
    private void setException (Exception e) {
       ex = e;
    }
@@ -320,7 +314,7 @@ public class DDTDate {
                      maintainDateProperties(varsMap);
                   } // Math component
                } // Iterate over components
-            } // Input has proper date token
+            } // Input has proper date token (%date%)
             else
                setDefaultException();
          } // input starts and ends with valid delimiters (@)
@@ -504,8 +498,6 @@ public class DDTDate {
       varsMap.put(tmp, String.valueOf(value));
 
       // Reporting ... @TODO comment out when done testing (thanks) (you are welcome)
-
-
 /*
       if (oldValue == null)
          System.out.println(" key " + Util.sq(key) + " set to " + Util.sq(value.toString()) + " in the variables map.");
@@ -852,16 +844,6 @@ public class DDTDate {
       public DDTDuration() {
          setStartTime();
          setEndTime();
-      }
-
-      public DDTDuration(Date start) {
-         setStartTime(start);
-         setEndTime(new Date());
-      }
-
-      public DDTDuration(Date start, Date end) {
-         setStartTime(start);
-         setEndTime(end);
       }
 
       public void setStartTime(Date value) {

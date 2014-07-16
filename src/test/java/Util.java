@@ -542,9 +542,11 @@ public class Util {
       String functionName;
       String attributeName;
 
+/*
       testItem.getDriverIfNeeded();
       if (testItem.hasErrors())
          return "";
+*/
 
       WebDriver driver = testItem.getDriver();
 
@@ -919,6 +921,14 @@ public class Util {
          result[i] = subFolderName;
       }
       return result;
+   }
+
+   public static boolean isFileOrFolderName(String s) {
+      if (s.contains(DDTSettings.Settings().fileSep()))
+         return true;
+      if (s.contains(":"))
+         return true;
+      return false;
    }
 
 }

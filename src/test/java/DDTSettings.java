@@ -52,12 +52,13 @@ public class DDTSettings {
    private final String ScriptsFolder = ProjectFolder +  "Scripts" + FileSeparator;
    private final String ImagesFolder = ResourcesFolder +  "Images" + FileSeparator;
    private final String ReportsFolder = ResourcesFolder + "Reports" + FileSeparator;
+   private final String ClassLoadFolder = ProjectFolder + "target" + FileSeparator + "classes" + FileSeparator;
    private final String XslFileName = "Automation.Xsl";
    private final String ItemDelim = "char(254)";
    private final String AndDelim = ".and.";
    private final String OrDelim = ".or.";
    private final String ValidDelims = ";~|!@#$%^&*()_+";
-   private final String InputSpecs = "File:DDTRoot.xml:Root";
+   private final String InputSpecs = "File^DDTRoot.xlsx^Root";
    private final String IEDriverFileName = ResourcesFolder+"IEDriverServer.exe";
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
@@ -91,14 +92,14 @@ public class DDTSettings {
    private final String DesiredCapabilityValues = "true,false,true,true,true,false,false,false,true,false,dismiss,true";
    private final boolean StripWhiteSpace = true;
    private final String ReportingStyle = "Default";
-   private final String TestItemsGeneratorClassName = "SampleTestItemsGenerator";
-   private final String TestItemsGeneratorMethod = "root";
+   private final String InlineTestStringsProviders = ",DemoTestStringsGenerator,";
 
    private String resourcesFolder;
    private String imagesFolder;
    private String reportsFolder;
    private String dataFolder;
    private String scriptsFolder;
+   private String classLoadFolder;
    private String xslFileName;
    private String ieDriverFileName;
    private String chromeDriverFileName;
@@ -138,6 +139,7 @@ public class DDTSettings {
    private String desiredCapabilityValues;
    private boolean stripWhiteSpace;
    private String reportingStyle;
+   private String inlineTestStringsProviders;
 
    private static DDTSettings ddtSettings;
 
@@ -187,25 +189,41 @@ public class DDTSettings {
          case "image" : {result = Settings().imagesFolder() + fileName; break;}
          case "data" : {result = Settings().dataFolder() + fileName; break;}
          case "script" : {result = Settings().scriptsFolder() + fileName; break;}
+         case "load" : {result = Settings().classLoadFolder() + fileName; break;}
          default : {result = Settings().resourcesFolder() + fileName;}
       }
       return result;
    }
+
    /**
     * @return a singleton instance of the DDTSettings object - each attribute of which is lazily initialized from a properties file or hard coded value
     */
    public static DDTSettings Settings() {
       if (ddtSettings == null) {
          ddtSettings = new DDTSettings();
-         ddtSettings.setTakeImageOnFailedStep(false); // Turn off when testing
-         ddtSettings.setIsLocal(true); // Turn off when testing remotely
-         initializeFolders(ddtSettings);
-         DDTestRunner.addVariable("$d", ddtSettings.itemDelim()); // Preserved variable representing a primary delimiter (e.g. between tokens in the Data property of TestItem instance)
-         DDTestRunner.addVariable("$and",ddtSettings.andDelim()); // Preserved variable representing "and" delimiter for various validations like comparison mode "between"
-         DDTestRunner.addVariable("$or",ddtSettings.orDelim()); // Preserved variable representing "or" delimiter for various validations like  comparison mode "or", "in"
-
+         initialize();
       }
       return ddtSettings;
+   }
+
+   /**
+    * Initializes various aspects of the project's settings
+    */
+   private static void initialize() {
+      ddtSettings.setTakeImageOnFailedStep(false); // Turn off when testing
+      ddtSettings.setIsLocal(true); // Turn off when testing remotely
+      // Initialize various folders
+      initializeFolders(ddtSettings);
+      // Add global variables
+      DDTestRunner.addVariable("$d", ddtSettings.itemDelim()); // Preserved variable representing a primary delimiter (e.g. between tokens in the Data property of TestItem instance)
+      DDTestRunner.addVariable("$and",ddtSettings.andDelim()); // Preserved variable representing "and" delimiter for various validations like comparison mode "between"
+      DDTestRunner.addVariable("$or",ddtSettings.orDelim()); // Preserved variable representing "or" delimiter for various validations like  comparison mode "or", "in"
+
+      // Set the default class load folder - the folder optionall contains inline test string provider classes
+      // We do this to keep the class 'clean' off of referencing DDT classes.
+      DDTClassLoader.setDefaultLoadFolder(Settings().classLoadFolder());
+      // The loadable inline test strings provider classes are in inlineTestStringsProviders() - now posted to a static property of the class loader
+      DDTClassLoader.setLoadableClassNames(Settings().inlineTestStringsProviders());
    }
 
    /**
@@ -216,7 +234,22 @@ public class DDTSettings {
    }
 
    public String[] inputSpecsArray() {
-      return inputSpecs().split(":");
+      return inputSpecs().split(TestStringsProviderSpecs.SPLITTER);
+   }
+
+   public String[] inputSpecsArrayWithDataFolder() {
+      String[] result = inputSpecsArray();
+      TestStringsProviderSpecs specs = new TestStringsProviderSpecs(inputSpecsArray());
+      if (!specs.isSetupValid())
+         return result;
+
+      specs.ensureFilePathIsValid(dataFolder());
+
+      String file = specs.getFileName();
+      if (!isBlank(file))
+         result[1] = file;
+
+      return result;
    }
 
    /**
@@ -374,6 +407,7 @@ public class DDTSettings {
       s = settings.reportsFolder();
       s = settings.dataFolder();
       s = settings.scriptsFolder();
+      s = settings.classLoadFolder();
    }
 
    /**
@@ -476,6 +510,20 @@ public class DDTSettings {
          setScriptsFolder(s);
       }
       return scriptsFolder;
+   }
+
+   private void setClassLoadFolder(String value) {
+      classLoadFolder = value;
+      DDTestRunner.addVariable("$classLoadDir",value);
+   }
+
+   public String classLoadFolder() {
+      if (isBlank(classLoadFolder)) {
+         String s = getPropertyOrDefaultValue(ClassLoadFolder, "ClassLoadFolder", false);
+         s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
+         setClassLoadFolder(s);
+      }
+      return classLoadFolder;
    }
 
    private void setProjectName(String value) {
@@ -954,6 +1002,18 @@ public class DDTSettings {
          setReportingStyle(s);
       }
       return reportingStyle;
+   }
+
+   private void setInlineTestStringsProviders(String value) {
+      inlineTestStringsProviders = value;
+   }
+
+   public String inlineTestStringsProviders() {
+      if (isBlank(inlineTestStringsProviders)) {
+         String s = getPropertyOrDefaultValue(InlineTestStringsProviders, "setInlineTestStringsProviders", false);
+         setInlineTestStringsProviders(s);
+      }
+      return inlineTestStringsProviders;
    }
 
    public String fileSep() {

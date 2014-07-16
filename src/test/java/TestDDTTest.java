@@ -31,7 +31,7 @@ import org.testng.annotations.Test;
 public class TestDDTTest extends TestCase {
    @Test
    public void testDDT() {
-      DDTestRunner testRunner  = DDTestRunner.invokeDefaults();
+      DDTestRunner.invokeDefaults();
       if (DDTestRunner.getReporter().shouldGenerateReport()) {
          try {
             DDTestRunner.getReporter().generateReport("Final Report", "");
