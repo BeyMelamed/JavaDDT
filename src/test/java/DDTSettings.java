@@ -45,7 +45,7 @@ import static org.apache.commons.lang3.StringUtils.*;
 public class DDTSettings {
    private static Properties properties;
 
-   private final String FileSeparator = System.getProperty("file.separator");
+   private final String FileSeparator = File.separator;
    private final String ProjectFolder = System.getProperty("user.dir") + FileSeparator;
    private final String ResourcesFolder = ProjectFolder +  "src" + FileSeparator + "test" + FileSeparator + "Resources" + FileSeparator;
    private final String DataFolder = ProjectFolder +  "Data" + FileSeparator;
@@ -1014,10 +1014,6 @@ public class DDTSettings {
          setInlineTestStringsProviders(s);
       }
       return inlineTestStringsProviders;
-   }
-
-   public String fileSep() {
-      return FileSeparator;
    }
 
 }

@@ -84,11 +84,13 @@ public class DDTClassLoader extends ClassLoader {
    @Override
    /**
     * This is the overriding method used to load any desired external class
+    * The logic of using this class loader or the parent has to do with the recursive nature of implementing class loader.
+    * This particular class loader should be applied only to external classes whose parent classes exist in this project (not in the project of the external class)
+    * Thus, parent classe(s) are loaded by the parent loader that CAN be recursive in this project
     * @return Class
     */
    public Class loadClass(String name)throws ClassNotFoundException {
       // Check the class name against a list of external classes
-      // @TODO figure out a more reasonable approach (this is set by the DDTSettings initialization process
       if (getLoadableClassNames().contains(name)) {
          // Use external class loader (see below)
          return getClass(name);
@@ -105,12 +107,21 @@ public class DDTClassLoader extends ClassLoader {
     */
    private byte[] loadClassFileData(String name) throws IOException {
 
+      // Ensure proper separator and name extension for the class name to load
+      String tmpName = name;
+      if (tmpName.toLowerCase().endsWith(".class"))
+         tmpName = tmpName.substring(0,tmpName.length()-6);
+      tmpName = tmpName.replace('.', '/') + ".class";
+
+      // Convert the file name to a URL
       URL myUrl;
       try {
-         if (name.toLowerCase().startsWith("http:"))
-            myUrl = new URL(name);
+         if (name.toLowerCase().startsWith("http:")) {
+            tmpName = tmpName.replace(File.separator, "/");
+            myUrl = new URL(tmpName);
+         }
          else
-            myUrl = new URL("file:" + name);
+            myUrl = new URL("file:" + tmpName);
 
          URLConnection connection = myUrl.openConnection();
          InputStream input = connection.getInputStream();

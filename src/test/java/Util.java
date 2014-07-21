@@ -859,7 +859,7 @@ public class Util {
    }
 
    public static File setupReportFolder(String path) {
-      String s = DDTSettings.Settings().fileSep();
+      //String s = File.separator;
       // String ourTestTempPathName = System.getProperty("user.dir") + String.format("%ssrc%stest%sresources%stemp%sscreenshots",s,s,s,s,s);
 
       File testTempDir = new File(path);
@@ -889,7 +889,6 @@ public class Util {
     * @return an array of File objects
     */
    public static String[] setupReportingSessionFolders(String[] folderNames) {
-      String s = DDTSettings.Settings().fileSep();
       String reportsFolder = DDTSettings.Settings().reportsFolder();
       String dailyFolder = new SimpleDateFormat("yyyyMMdd").format(new Date());
       String baseFolder = reportsFolder + dailyFolder; //
@@ -915,7 +914,7 @@ public class Util {
       int n = folderNames.length;
       String[] result = new String[n];
       for (int i = 0; i < n; i++) {
-         String subFolderName = sessionFolderName + s + folderNames[i];
+         String subFolderName = sessionFolderName + File.separator + folderNames[i];
          File subFolder = new File(subFolderName);
          subFolder.mkdirs();
          result[i] = subFolderName;
@@ -924,7 +923,7 @@ public class Util {
    }
 
    public static boolean isFileOrFolderName(String s) {
-      if (s.contains(DDTSettings.Settings().fileSep()))
+      if (s.contains(File.separator))
          return true;
       if (s.contains(":"))
          return true;

@@ -3,6 +3,7 @@ import org.joda.time.Period;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -70,6 +71,7 @@ public class TestItem {
    private String screenShotFileName;        // The name of the Screen Shot file name - if any - taken by the webdriver upon failure
    private Long parentStepNumber;            // The step number of the instance's 'parent'
    private TestItem parentTestItem;          // The instance's parent testItem
+   private TestStringsProviderSpecs providerSpecs;
    DDTDate.DDTDuration duration;
 
    public static final String LevelToken = "level";
@@ -264,10 +266,27 @@ public class TestItem {
 
       savedProperties = new Hashtable<String, String>();
 
+      getDriverIfNeeded();
+
       TestEvent event =  new TestEvent(DDTestRunner.TestEventType.INIT, "Initialized");
       this.addEvent(event);
 
    }
+
+   /**
+    *
+    * @return An array of TestItem[] instances from a provider's list of String[][] array
+    */
+   public static TestItem[]  assembleTestItems(String[][] dataStrings) {
+      int n = dataStrings.length;
+      TestItem[] testItems = new TestItem[n];
+      for (int i = 0; i < n; i++) {
+         String[] thisItem = dataStrings[i];
+         testItems[i] = new TestItem(thisItem[0], thisItem[1], thisItem[2], thisItem[3], thisItem[4], thisItem[5], thisItem[6], thisItem[7]);
+      }
+      return testItems;
+   }
+
 
 // ====================================== Start Setter / Getter Section ================================
 
@@ -589,7 +608,7 @@ public class TestItem {
       sb.append(Util.dq("sessionStepNumber") + ":" + Util.dq(String.valueOf(getSessionStepNumber())) + ",");
       sb.append(Util.dq("inputType") + ":" + Util.dq(getInputType()) + ",");
       sb.append(Util.dq("inputProvider") + ":" + Util.dq(Util.jsonify(getInputProvider())) + ",");
-      sb.append(Util.dq("inputSegment") + ":" + Util.dq(getInputSegment()) + ",");
+      sb.append(Util.dq("inputSegment") + ":" + Util.dq(getItemsContainerName()) + ",");
       sb.append(Util.dq("parentInputProvider") + ":" + Util.dq(Util.jsonify(getParentInputProvider())) + ",");
       sb.append(Util.dq("parentInputSegment") + ":" + Util.dq(Util.jsonify(getParentInputSegment())) + ",");
       sb.append(Util.dq("screenShotFileName") + ":" + Util.dq(Util.jsonify(getScreenShotFileName())));
@@ -639,15 +658,14 @@ public class TestItem {
 
       result += prefix + p.getMillis() + "msec";
       return result;
-      //return p.getHours() +  " " + p.getMinutes() + " " + p.getSeconds() + " " + p.getMillis();
-      //return duration().toString();
-      //return new SimpleDateFormat("HHmmss.SSS").format(duration());
    }
    /**
     * Try to get a driver even if one is not in the instance (it may be in DDTTestRunner from a previous instance)
     * If none found, load an error in testItem instance
     */
    public void getDriverIfNeeded() {
+      if (!isUITest())
+         return;
       driver = ((driver instanceof WebDriver) ? driver : DDTestRunner.getDriver());
       if (!(driver instanceof WebDriver))
          addError("*** Web Driver Not Present ***");
@@ -722,7 +740,7 @@ public class TestItem {
    public String getParentInputSegment() {
       String result = "";
       if (getParentTestItem() instanceof TestItem)
-         result = getParentTestItem().getInputSegment();
+         result = getParentTestItem().getItemsContainerName();
       return result;
    }
 
@@ -878,12 +896,26 @@ public class TestItem {
     * @return String
     */
    public String getInputType() {
-      String specs = getDataProperties().get("inputspecs");
-      if (isBlank(specs))
+      setProviderSpecsIfNeeded();
+      if (!(getProviderSpecs() instanceof TestStringsProviderSpecs) || !getProviderSpecs().isSetupValid())
          return "";
-      String tmp[] = specs.split(":");
-      String result = tmp[0];
-      return result;
+      return getProviderSpecs().getSourceType();
+   }
+
+   private void setProviderSpecsIfNeeded() {
+      String specs = getDataProperties().get("inputspecs");
+      if (!isBlank(specs)) {
+         if (!(getProviderSpecs() instanceof TestStringsProviderSpecs))
+            setProviderSpecs(new TestStringsProviderSpecs(specs));
+      }
+   }
+
+   public void setProviderSpecs(TestStringsProviderSpecs value) {
+      providerSpecs = value;
+   }
+
+   public TestStringsProviderSpecs getProviderSpecs() {
+      return providerSpecs;
    }
 
    /**
@@ -891,15 +923,16 @@ public class TestItem {
     * @return String
     */
    public String getInputProvider() {
-      String specs = getDataProperties().get("inputspecs");
-      if (isBlank(specs))
+      setProviderSpecsIfNeeded();
+      if (!(getProviderSpecs() instanceof TestStringsProviderSpecs) || !getProviderSpecs().isSetupValid())
          return "";
-      String tmp[] = specs.split(":");
-      String result = tmp[1];
+
+      if (getProviderSpecs().getSourceType().equalsIgnoreCase("inline"))
+         return getProviderSpecs().getClassName();
+
+      String result = getProviderSpecs().getFileName();
       if (isBlank(result))
          return "";
-      if (tmp[0].equalsIgnoreCase("inline"))
-         return result;
       result = result.replace("%data%", DDTSettings.Settings().dataFolder());
       if ((indexOf(result,'/') < 0) && (indexOf(result,"\\")) < 0 )
          result = DDTSettings.Settings().dataFolder() + result;
@@ -910,17 +943,13 @@ public class TestItem {
     * Answer the name of the instance's provider segment (WorksheetName  - if any) where 'child' testItems are found
     * @return String - Worksheet name
     */
-   public String getInputSegment() {
-      String specs = getDataProperties().get("inputspecs");
-      if (isBlank(specs))
+   public String getItemsContainerName() {
+      setProviderSpecsIfNeeded();
+      setProviderSpecsIfNeeded();
+      if (!(getProviderSpecs() instanceof TestStringsProviderSpecs) || !getProviderSpecs().isSetupValid())
          return "";
-      String[] tmp =specs.split(":");
-      String result = "";
-      if (tmp.length > 2)
-         result = tmp[2];
-      if (isBlank(result))
-         result = "";
-      return result;
+
+      return getProviderSpecs().getItemsContainerName();
    }
 
    /**
@@ -963,6 +992,10 @@ public class TestItem {
 
       }
 
+      public TestItems(String[][] testStrings) {
+
+      }
+
       public void setItems(TestItem[] items) {
          testItems = items;
       }
@@ -990,7 +1023,7 @@ public class TestItem {
       public String getInputSegment() {
          String result = "";
          if (getParentItem() instanceof TestItem) {
-            result = getParentItem().getInputSegment();
+            result = getParentItem().getItemsContainerName();
          }
          return result;
       }
@@ -1100,7 +1133,7 @@ public class TestItem {
             System.out.println("Test Case Not Reported - Empty File Name Encountered!");
            return;
          }
-         outputFileName = DDTestRunner.getReporter().sessionTestsFolderName() + DDTSettings.Settings().fileSep() + outputFileName;
+         outputFileName = DDTestRunner.getReporter().sessionTestsFolderName() + File.separator + outputFileName;
          Util.fileWrite(outputFileName, jsonRepresentation);
       }
 

@@ -2,6 +2,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 import javax.xml.transform.TransformerException;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Hashtable;
@@ -465,7 +466,7 @@ public class DDTestRunner {
    }
 
    public static void reportSessionSummaryAsJSON() {
-      String fileName = getReporter().sessionTestsFolderName() + DDTSettings.Settings().fileSep() + "sessionSummary.json";
+      String fileName = getReporter().sessionTestsFolderName() + File.separator + "sessionSummary.json";
       Util.fileWrite(fileName, getSessionSummaryAsJSON());
    }
 

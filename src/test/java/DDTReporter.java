@@ -311,7 +311,7 @@ public class DDTReporter {
 
       // Ensure the folder exists - if no exception is thrown, it does!
       File tmp = Util.setupReportFolder(folder);
-      String fileSpecs = folder + settings.fileSep() + fileName;
+      String fileSpecs = folder + File.separator + fileName;
 
       String extraBlurb = "";
       int nReportableSteps = 0;
@@ -433,7 +433,7 @@ public class DDTReporter {
          String htmlFileSpecs = fileSpecs.replace(".xml", ".html");
          String xslFileName = settings.xslFileName();
          String xslFileSpecs = settings.resourcesFolder() + xslFileName;
-         String targetFolder = resultsFolder.endsWith(settings.fileSep()) ? resultsFolder : resultsFolder + settings.fileSep();
+         String targetFolder = resultsFolder.endsWith(File.separator) ? resultsFolder : resultsFolder + File.separator;
 
          StringWriter sw = new StringWriter();
          XSLTProcessor xsltProcessor = new XSLTProcessor();
