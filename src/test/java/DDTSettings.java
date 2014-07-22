@@ -1010,7 +1010,7 @@ public class DDTSettings {
 
    public String inlineTestStringsProviders() {
       if (isBlank(inlineTestStringsProviders)) {
-         String s = getPropertyOrDefaultValue(InlineTestStringsProviders, "setInlineTestStringsProviders", false);
+         String s = getPropertyOrDefaultValue(InlineTestStringsProviders, "InlineTestStringsProviders", false);
          setInlineTestStringsProviders(s);
       }
       return inlineTestStringsProviders;
