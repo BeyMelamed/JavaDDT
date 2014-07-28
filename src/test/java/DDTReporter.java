@@ -62,7 +62,7 @@ public class DDTReporter {
    private DDTSettings settings = DDTSettings.Settings();
    private Long firstReportStep = 0L;
    private Long lastReportStep = 0L;
-   private List<String> failedTestsSummary = new ArrayList<String>(); // Constructed here - will be part of email message body
+   private ArrayList<String> failedTestsSummary = new ArrayList<>(); // Constructed here - will be part of email message body
 
    // These numbers are initialized by the calling TestRunner instance - they represent the processing counters for the current reported section
    // The corresponding numbers on the session level are taken from the DDTestRunner static counters.
@@ -118,7 +118,7 @@ public class DDTReporter {
    }
 
    public void resetFailedSteps () {
-      this.failedTestsSummary = new ArrayList<String>();
+      this.failedTestsSummary = new ArrayList<>();
    }
 
    public String durationString () {

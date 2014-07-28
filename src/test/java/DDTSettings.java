@@ -54,11 +54,11 @@ public class DDTSettings {
    private final String ReportsFolder = ResourcesFolder + "Reports" + FileSeparator;
    private final String ClassLoadFolder = ProjectFolder + "target" + FileSeparator + "classes" + FileSeparator;
    private final String XslFileName = "Automation.Xsl";
-   private final String ItemDelim = "char(254)";
+   private final String ItemDelim = ";";
    private final String AndDelim = ".and.";
    private final String OrDelim = ".or.";
    private final String ValidDelims = ";~|!@#$%^&*()_+";
-   private final String InputSpecs = "File^DDTRoot.xlsx^Root";
+   private final String InputSpecs = "File!DDTRoot.xlsx!Root";
    private final String IEDriverFileName = ResourcesFolder+"IEDriverServer.exe";
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
@@ -92,7 +92,6 @@ public class DDTSettings {
    private final String DesiredCapabilityValues = "true,false,true,true,true,false,false,false,true,false,dismiss,true";
    private final boolean StripWhiteSpace = true;
    private final String ReportingStyle = "Default";
-   private final String InlineTestStringsProviders = ",DemoTestStringsGenerator,";
 
    private String resourcesFolder;
    private String imagesFolder;
@@ -139,7 +138,6 @@ public class DDTSettings {
    private String desiredCapabilityValues;
    private boolean stripWhiteSpace;
    private String reportingStyle;
-   private String inlineTestStringsProviders;
 
    private static DDTSettings ddtSettings;
 
@@ -150,13 +148,16 @@ public class DDTSettings {
    private  void loadProperties() {
       properties = new Properties();
       InputStream is = null;
+      String blurb = "";
 
       String propsFileName = ResourcesFolder + "ddt.properties";
       try {
          File f = new File(propsFileName);
          is = new FileInputStream( f );
       }
-      catch ( Exception e ) { is = null; }
+      catch ( Exception e ) {
+         is = null;
+      }
 
       try {
          if ( is == null ) {
@@ -165,9 +166,13 @@ public class DDTSettings {
          }
          // Try loading properties from the file (if found)
          properties.load( is );
+         blurb = "Properties loaded from ddt.Properties file";
       }
       catch ( Exception e ) {
-         System.out.println("Properties file missing\n" + e.getCause().toString());
+         blurb = "Properties file missing - Using Defaults!";
+      }
+      finally {
+         System.out.println(blurb);
       }
    }
 
@@ -222,8 +227,6 @@ public class DDTSettings {
       // Set the default class load folder - the folder optionall contains inline test string provider classes
       // We do this to keep the class 'clean' off of referencing DDT classes.
       DDTClassLoader.setDefaultLoadFolder(Settings().classLoadFolder());
-      // The loadable inline test strings provider classes are in inlineTestStringsProviders() - now posted to a static property of the class loader
-      DDTClassLoader.setLoadableClassNames(Settings().inlineTestStringsProviders());
    }
 
    /**
@@ -1002,18 +1005,6 @@ public class DDTSettings {
          setReportingStyle(s);
       }
       return reportingStyle;
-   }
-
-   private void setInlineTestStringsProviders(String value) {
-      inlineTestStringsProviders = value;
-   }
-
-   public String inlineTestStringsProviders() {
-      if (isBlank(inlineTestStringsProviders)) {
-         String s = getPropertyOrDefaultValue(InlineTestStringsProviders, "InlineTestStringsProviders", false);
-         setInlineTestStringsProviders(s);
-      }
-      return inlineTestStringsProviders;
    }
 
 }

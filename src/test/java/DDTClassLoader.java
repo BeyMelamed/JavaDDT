@@ -1,7 +1,4 @@
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -77,8 +74,40 @@ public class DDTClassLoader extends ClassLoader {
 
    public static String getLoadableClassNames() {
       if (isBlank(loadableClassNames))
-         setLoadableClassNames("");
+         setLoadableClassNames(findLoadableClassNames());
       return loadableClassNames;
+   }
+
+   /**
+    * Get the loadable classes from the default class load folder
+    * The folder is a folder where java .class files exist
+    *
+    * @return a String of class files delimited by "," and enclosed in "," (or an empty string) - if any, the base classes and other invalid ones for the purpose are ignored.
+    */
+   public static String findLoadableClassNames() {
+      String loadFromFolder = getDefaultLoadFolder();
+      String result = "";
+      String excludedClassNames = ",TestStringsProvider.class,InlineTestStringsProvider.class,DDTClassLoader.class,TestStringsProviderSpecs.class,".toLowerCase();
+      File loadFromFolderFile = new File(loadFromFolder);
+      if (loadFromFolderFile.exists()) {
+         File[] fileList = loadFromFolderFile.listFiles();
+         int size = fileList.length;
+         if (size > 0) {
+            for (int i = 0; i < size; i++) {
+               File theFile = fileList[i];
+               String theName = theFile.getName();
+               if (theName.toLowerCase().endsWith(".class")) {
+                  if (!excludedClassNames.contains(theName.toLowerCase())) {
+                     result += theName + ",";
+                  }
+               }
+            }
+            if (!isBlank(result)) {
+               result = "," + result;
+            }
+         }
+      }
+      return result;
    }
 
    @Override

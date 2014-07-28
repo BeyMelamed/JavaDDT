@@ -780,7 +780,7 @@ public class Util {
       public Exception exception;
       public int count = 0;
 
-      @SuppressWarnings({ "unchecked", "null" })
+      @SuppressWarnings( "unchecked")
       public List<TestItem> readTestItems(String inputFile) {
          List<TestItem> items = new ArrayList<TestItem>();
          try {

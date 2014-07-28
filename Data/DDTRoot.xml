@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <TestCase Description="This is a POC for DDT XML Test - 01">
-  <TestItem Id="DDTXMLDemo01" Action="newTest" Active="" Data="InputSpecs=File:DDTRoot.xlsx:Calculate" Description="Launch the Calculator Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo02" Action="newTest" Active="" Data="InputSpecs=File:DDTRoot.xlsx:ChainingFinders" Description="Launch the Chaining Finders Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo03" Action="newTest" Active="" Data="InputSpecs=File:DDTRoot.xlsx:CssFinders" Description="Launch the Css Finders Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo04" Action="newTest" Active="" Data="InputSpecs=File:DDTRoot.xlsx:FrameSwitching" Description="Launch the Frame Switching Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo01" Action="newTest" Active="" Data="InputSpecs=File!DDTRoot.xlsx!Calculate" Description="Launch the Calculator Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo02" Action="newTest" Active="" Data="InputSpecs=File!DDTRoot.xlsx!ChainingFinders" Description="Launch the Chaining Finders Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo03" Action="newTest" Active="" Data="InputSpecs=File!DDTRoot.xlsx!CssFinders" Description="Launch the Css Finders Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo04" Action="newTest" Active="" Data="InputSpecs=File!DDTRoot.xlsx!FrameSwitching" Description="Launch the Frame Switching Test Case"></TestItem>
   <TestItem Id="DDTXMLDemo05" Action="generateReport" Data="Description=Test XML Demo Results" Description="Report results of this session"></TestItem>
 </TestCase>

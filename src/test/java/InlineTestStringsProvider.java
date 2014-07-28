@@ -102,6 +102,7 @@ public class InlineTestStringsProvider extends TestStringsProvider {
       return null;
    }
 
+   @SuppressWarnings("unchecked")
    @Override
    void provideStrings() throws Exception {
 
@@ -118,7 +119,7 @@ public class InlineTestStringsProvider extends TestStringsProvider {
          Class c = loadInlineClassIfNeeded(testItemsGeneratorClassName);
          try {
             Object o = c.newInstance();
-            ArrayList<String[]> testData = new ArrayList <String[]>();
+            ArrayList<String[]> testData = new ArrayList <>();
             Method m = c.getDeclaredMethod(testItemsGeneratorMethod, testData.getClass());
             m.setAccessible(true);
             // Invoke the method on the instance with testData as a parameter to be created and returned

@@ -82,11 +82,15 @@ public class Vocabulary {
          m.invoke(new Vocabulary(), testItem);
       }
       catch (IllegalAccessException e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
       catch (Exception e) {
          if (StringUtils.isBlank(testItem.getErrors()))
-            throw new VocabularyException(testItem, "Unknown Method Invocation exception ");
+            // Do not overwrite previous exceptions!
+            if (!testItem.hasException())
+               throw new VocabularyException(testItem, "Unknown Method Invocation exception ");
       }
    }
 
@@ -158,7 +162,9 @@ public class Vocabulary {
             alert.dismiss();
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -221,7 +227,9 @@ public class Vocabulary {
             }
          }
          catch (Exception e) {
-            throw new VocabularyException(testItem, "");
+            // Do not overwrite previous exceptions!
+            if (!testItem.hasException())
+               throw new VocabularyException(testItem, "");
          }
       }
       else {
@@ -344,7 +352,9 @@ public class Vocabulary {
             testItem.addError("Failed to find web element");
       } //Try finding the element and processing it
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -368,7 +378,9 @@ public class Vocabulary {
          else testItem.addError("Failed to find Web Element - Element not clicked!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Element not found or not visible");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Element not found or not visible");
       }
    }
 
@@ -421,7 +433,9 @@ public class Vocabulary {
          else testItem.addError("Failed to find (cell) Web Element - Element not clicked!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Element not found or not visible");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Element not found or not visible");
       }
    }
 
@@ -465,7 +479,9 @@ public class Vocabulary {
             testItem.addError("Failed to find Web Element - Option not selected!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Element not visible (not found) - Options not selected");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Element not visible (not found) - Options not selected");
       }
    }
 
@@ -482,7 +498,9 @@ public class Vocabulary {
             testItem.getDriver().switchTo().frame(frameName);
          }
          catch (Exception e) {
-            throw new VocabularyException(testItem, "Frame switching failed.");
+            // Do not overwrite previous exceptions!
+            if (!testItem.hasException())
+               throw new VocabularyException(testItem, "Frame switching failed.");
          }
       }
    }
@@ -507,7 +525,9 @@ public class Vocabulary {
          }
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Screen shot not taken.");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Screen shot not taken.");
       }
    }
 
@@ -553,7 +573,9 @@ public class Vocabulary {
          else testItem.addError("Failed to find Web Element - Element not toggled!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Element not visible (not found) - Toggle failed");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Element not visible (not found) - Toggle failed");
       }
    }
 
@@ -590,7 +612,9 @@ public class Vocabulary {
          else testItem.addError(verifier.getErrors());
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Webdriver verification failed");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Webdriver verification failed");
       }
    }
 
@@ -604,7 +628,9 @@ public class Vocabulary {
          testItem.addComment("Settings Reset");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Settings not refreshed.");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Settings not refreshed.");
       }
    }
 
@@ -675,7 +701,9 @@ public class Vocabulary {
             wait(testItem);
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "in running a command - Check command file and arguments: "  + execAndArgs.toString());
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "in running a command - Check command file and arguments: "  + execAndArgs.toString());
       }
    }
 
@@ -719,7 +747,9 @@ public class Vocabulary {
             testItem.addError("Failed to find Web Element - verifyProperty failed!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Web Element verification failed.");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Web Element verification failed.");
       }
    }
 
@@ -768,7 +798,9 @@ public class Vocabulary {
             testItem.addError("Failed to find Selection Element - Option not found!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Web Element not found or not visible - Option not verified.");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Web Element not found or not visible - Option not verified.");
       }
    }
 
@@ -811,7 +843,9 @@ public class Vocabulary {
          else testItem.addError("Failed to find Web Element - verifyProperty failed!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -833,7 +867,9 @@ public class Vocabulary {
          else
             testItem.addError(verifier.getErrors());
       } catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -905,7 +941,9 @@ public class Vocabulary {
             testItem.addError("Failed to find Web Element - verifySize failed!");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -1028,7 +1066,9 @@ public class Vocabulary {
             } // if establishing range of rows to examine
          } // Try to convert row range to integers
          catch (Exception e) {
-            throw new VocabularyException(testItem, "Invalid (row range) input ignored - invalid or non numeric input in Row Range specification: " +  Util.sq(rowRange) + ".  Cell search aborted.");
+            // Do not overwrite previous exceptions!
+            if (!testItem.hasException())
+               throw new VocabularyException(testItem, "Invalid (row range) input ignored - invalid or non numeric input in Row Range specification: " +  Util.sq(rowRange) + ".  Cell search aborted.");
          } // catch trying to get a valid range of rows.
 
          if ((testItem.getElement() instanceof WebElement) || testItem.getDriver() instanceof WebDriver) {
@@ -1205,7 +1245,9 @@ public class Vocabulary {
             testItem.addError("Failed to find table Web Element - Cell search aborted.");
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "Table element Not Found or Verification Failed." + " " + phase +"  cell [" + rowIndex + "," + colIndex + "].");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "Table element Not Found or Verification Failed." + " " + phase +"  cell [" + rowIndex + "," + colIndex + "].");
       }
    }
 
@@ -1227,7 +1269,9 @@ public class Vocabulary {
             }
          }
          catch (Exception e) {
-            throw new VocabularyException(testItem, "");
+            // Do not overwrite previous exceptions!
+            if (!testItem.hasException())
+               throw new VocabularyException(testItem, "");
          }
          finally {
             DDTestRunner.setDriver(null);
@@ -1277,7 +1321,9 @@ public class Vocabulary {
          }
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -1295,7 +1341,9 @@ public class Vocabulary {
          DDTestRunner.generateReport(description, emailBody);
       }
       catch (IOException e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
       finally {
          DDTestRunner.resetRptCounters();
@@ -1345,7 +1393,9 @@ public class Vocabulary {
          }
       }
       catch(Exception e){
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
 
@@ -1547,7 +1597,9 @@ public class Vocabulary {
          }
       }
       catch (Exception e) {
-         throw new VocabularyException(testItem, "");
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "");
       }
    }
    /**

@@ -216,15 +216,13 @@ public class DDTestRunner {
          String tmp[] = DDTSettings.Settings().inputSpecsArrayWithDataFolder();
          runOn(tmp);
          generateReportIfNeeded();
-      }
-      catch (Throwable ex) {
-         System.out.println("Exception encountered running defaults: " + ex.getMessage().toString()) ;
-      }
-      finally {
-         if (getDriver() instanceof WebDriver) {
+         if (getDriver() != null && (getDriver() instanceof WebDriver)) {
             System.out.println("End of Test Session - Closing Driver");
             getDriver().close();
          }
+      }
+      catch (Throwable ex) {
+         System.out.println("Exception encountered running defaults: " + ex.getMessage().toString()) ;
       }
    }
 
