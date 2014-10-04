@@ -15,7 +15,7 @@
                 <table align="center" width="100%" height="10%" border="0" cellspacing="1" bgcolor="#000000" id="alternate">
                   <tr>
                     <td width="50" bgcolor="#011414">
-                      <img width="100" src="http://github.com/BeyMelamed/ddt/blob/master/TestRunnerCrown.png?raw=true" alt="https://github.com/BeyMelamed/ddt/blob/master/TestRunnerCrown.png?raw=true"></img>
+                      <img width="100" src="https://github.com/BeyMelamed/JavaDDT/blob/master/src/test/resources/Images/Crown.png?raw=true" alt="https://github.com/BeyMelamed/JavaDDT/blob/master/src/test/resources/Images/Crown.png?raw=true"></img>
                     </td>
                     <td width="100%" height="100%">
                       <table align="center" width="100%" height="100%" border="0" cellspacing="0" bgcolor="#000000" id="alternate">
