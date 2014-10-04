@@ -581,10 +581,16 @@ public class DDTestRunner {
       boolean shouldQuitTestCase = false;
       String pad = "";
       String quitBlurb = "";
+      int stepNo = 0;
+      // testItem's PostTestPolicy may set stepsToSkip to a positive number of steps to skip (
+      // when a test fails, passes or when skipping steps unconditionally)
+      int stepsToSkip=0;
 
       if (testItems != null && nItems() > 0) {
          for (TestItem testItem : testItems.getItems())
          {
+            stepNo++;
+
             // Skip empty rows in the data source
             if ((testItem == null) || testItem.isEmpty())
                continue;
@@ -601,11 +607,12 @@ public class DDTestRunner {
             testItem.setParentStepNumber(getParentStepNumber());
             testItem.setParentTestItem(testItems.getParentItem());
 
-            testItem.initialize();
+            testItem.initialize(stepNo);
 
-            // Maintain the current test item table
+            // Maintain the current test item list
             maintainCurrentTestItem(testItem, "add");
 
+            // potentially, set the MostRecentlyUsed element
             if (mrElement instanceof WebElement)
                testItem.setMrElement(mrElement);
 
@@ -619,6 +626,14 @@ public class DDTestRunner {
                if (getReporter().firstReportStep() < 1L)
                   getReporter().setFirstReportStep(currentReportedSessionStep());  // Done only once - reported steps
                getReporter().setLastReportStep(currentReportedSessionStep());      // Keeps incrementing - reported steps
+            }
+
+            // If any steps to skip (due to some prior test item's PostTestPolicy) - set the step to non-active and add a comment to this effect.
+            if (stepsToSkip > 0) {
+               testItem.setActive("no");
+               stepsToSkip--;
+               testItem.addComment("Skipped due to PostTestPolicy of prior step "+ stepsToSkip + " more steps to skip." );
+               System.out.println("Skipping Item Id: " + testItem.getId() + ", Description: " + testItem.getDescription() + " (Skipped due to PostTestPolicy of prior step - " + stepsToSkip + " more steps to skip.)");
             }
 
             // Process active or inactive steps as needed
@@ -650,8 +665,8 @@ public class DDTestRunner {
                         String imageFileOrError = Util.takeScreenImage(testItem.getDriver(), "", testItem.getId());
                         if (!(imageFileOrError.toLowerCase().contains("error:"))) {
                            // Add it to the error - not Comments as error has occured
-                           testItem.addError("Screen Image " + Util.sq(imageFileOrError) + " taken!");
                            testItem.setScreenShotFileName(imageFileOrError);
+                           testItem.addError("Screen Image " + testItem.getScreenShotFileNameAsHtml() + " taken!");
                         }
                      }
                      else
@@ -673,6 +688,7 @@ public class DDTestRunner {
                // Consider Test and Session termination
                shouldQuitTestCase |= testItem.shouldQuitTestCase();
                shouldQuitTestSession |= testItem.shouldQuitTestSession();
+               stepsToSkip = testItem.getStepsToSkip();
             }  // if testItem.active
             else {
                testItem.addSkipEvent("Step Skipped");

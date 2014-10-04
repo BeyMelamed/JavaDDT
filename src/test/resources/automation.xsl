@@ -167,7 +167,7 @@
                           <td>
                             <b>
                               <font face="verdana" size="2">
-                                <xsl:value-of select="@Name" />
+                                <xsl:value-of select="@Name"  disable-output-escaping="yes"/>
                               </font>
                             </b>
                           </td>

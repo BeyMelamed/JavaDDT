@@ -51,6 +51,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * When        |Who      |What
  * ============|=========|====================================
  * 12/31/13    |Bey      |Initial Version
+ * 10/01/14    |Bey      |Cleanup - remove unused methods
  * ============|=========|====================================
  */
 public class Util {
@@ -73,13 +74,58 @@ public class Util {
       }
    }
 
+   /**
+    * Return the string true or false based on the boolean value of predicate.
+    * @param predicate
+    * @return
+    */
    public static String booleanString(boolean predicate) {
       return predicate ? "true" : "false";
    }
 
-   //public static boolean notBlank(String str) {
-   //   return !isBlank(str);
-   //}
+   /**
+    * Creates an html element from the tag, properties and contents strings
+    * Example: tag = div, properties = "", contents = "Title" will return <div>Title</div>
+    * Example: tag = a, properties = href='file:///C:\myfile.pdf' title='Click to view', contents = myfile.pdf will return:
+    *                <a href='file:///C:\myfile.pdf' title='Click to view'>Title</a>
+    * @param tag
+    * @param properties
+    * @param contents
+    * @return
+    */
+   public static String makeHtmlElement(String tag, String properties, String contents) {
+      if (isBlank(tag))
+          return "";
+      return "<" + tag + (isBlank(properties) ? "" : " " + properties)  + ">" + contents + "</" + tag + ">";
+   }
+
+   /**
+    * Replaces a string with xml special characters converted to their corresponding code
+    * @param text
+    * @return a string with xml special characters converted to their corresponding code
+    */
+   public static String EncodeHtmlString(String text) {
+      String result="";
+      if (isBlank(text))
+         return result;
+
+      StringBuilder sb = new StringBuilder("");
+      int len = text.length();
+      Character c = null;
+      for (int i = 0; i < len; i++) {
+         c = text.charAt(i);
+         switch (String.valueOf(c)) {
+            case "&": sb.append("&amp;"); break;
+            case "<": sb.append("&lt;"); break;
+            case ">": sb.append("&gt;"); break;
+            case "'": sb.append("&apos;"); break;
+            case "\"" : sb.append("&quot;"); break;
+            default: sb.append(c);
+         }
+      }
+      result = sb.toString();
+      return result;
+   }
 
    public static String append(String strOld, String strNew, String strSep){
       String result = "";
@@ -88,38 +134,6 @@ public class Util {
       if (strOld == null || strOld.isEmpty())  return strNew;
 
       return strOld + strSep + strNew;
-   }
-
-   /**
-    * Removes empty cells from a string array (input)
-    * @param input
-    * @return
-    */
-   public static String[] removeEmptyCells(String[] input) {
-      if (!(input instanceof String[]))
-         return new String[0];
-
-      int size = 0;
-      // Find the number of non empty elements
-      for (int i = 0; i < input.length; i++) {
-         if (!isBlank(input[i]))
-            size++;
-      }
-      String[] result = new String[size];
-      if (size < 1)
-         return result;
-
-      int j = 0;
-      for (int i = 0; i < input.length; i++) {
-         if (!isBlank(input[i]))
-         {
-            result[j] = input[i];
-            j++;
-         }
-      }
-
-      return result;
-
    }
 
    /**
@@ -248,7 +262,6 @@ public class Util {
       }
       return sb.toString();
    }
-
 
    /**
     * Parses a string with multiple instances of <key> '=' <value> - delimited by one of the valid delimiters to a hash table
@@ -388,13 +401,15 @@ public class Util {
 
    public static By[] createLocatorArray(TestItem testItem) throws NullPointerException, InvalidPropertiesFormatException {
       By bySpecs;
-      By[] chainedSpecs; // gets created from comma delimited 'How' and bar delimited 'Value' specs
+      By[] chainedSpecs = new By[0]; // gets created from comma delimited 'How' and bar delimited 'Value' specs
       String searchValue;
       searchValue = testItem.getLocSpecs();
       String how = testItem.getLocType();
 
-      if (isBlank(how))
-         throw new InvalidPropertiesFormatException("'How' search property is null!");
+      if (isBlank(how)) {
+         testItem.addError("Setup Error: 'LocType' property is null!");
+         return chainedSpecs;
+      }
 
       /**
        * Implement a version of Chaining by parsing the 'how' and 'searchValue' to sub elements and feeding forward
@@ -467,163 +482,6 @@ public class Util {
 
       return chainedSpecs;
 
-   }
-
-   public static String queryElement(TestItem testItem) {
-      String functionName;
-      String queryParam = testItem.getQueryParam();
-      WebElement element = testItem.getElement();
-
-      String result = "";
-
-      if (!(element instanceof WebElement)) {
-         testItem.addError("Invalid web element for interrogation");
-         return result;
-      }
-
-      functionName = testItem.getQryFunction();
-      boolean bool;
-
-      if (isBlank(functionName) ){
-         testItem.addError("Invalid (empty) specs for functionName - this may NOT be empty");
-         return result;
-      }
-      try {
-         switch (functionName.toLowerCase()) {
-            case "gettext" : result = element.getText(); break;
-            case "isenabled" : bool = element.isEnabled(); result = (bool) ? "true" : "false"; break;
-            case "isdisplayed" : bool = element.isDisplayed(); result = (bool) ? "true" : "false"; break;
-            case "isselected" : bool = element.isSelected(); result = (bool) ? "true" : "false"; break;
-            case "getlocation" : result = element.getLocation().toString(); break;
-            case "getsize" : result = element.getSize().toString(); break;
-            case "gettagname" : result = element.getTagName(); break;
-            case "getclass" : result = element.getClass().toString(); break;
-            case "getcssvalue" : {
-               if (isBlank(queryParam)) {
-                  testItem.addError("Invalid (empty) specs for Property Name (queryParam) provided for web element 'getCssValue' interrogation - this is required.");
-               }
-               else
-                  result = element.getCssValue(queryParam);
-               break;
-            }
-            case "getattribute" : {
-               if (isBlank(queryParam)) {
-                  testItem.addError("Invalid (empty) specs for Attribute Name (queryParam)provided for web element 'getAttribute' interrogation - this is required.");
-               }
-               else
-                  result = element.getAttribute(queryParam);
-               break;
-            }
-
-            default :
-               testItem.addError("Invalid 'interrogation' function found: " + Util.sq(functionName) + " - element interrogation failed.");
-         }
-      }
-      catch (Exception e)  {
-         testItem.addError("Invalid function ("+ Util.sq(functionName) + ") specs for web element 'getAttribute' interrogation - applying function generated exception");
-      }
-      finally {
-         if (!testItem.isFailure()) {
-            String varName = testItem.getSaveAs();
-            if (isNotBlank(varName)) {
-               // test item may have a variable saving request in form of "saveas" variable name... - if so, add variables so named with the result
-               if (isBlank(result))
-                  result = "";  // Avoid null result!
-               testItem.addSavedProperty(varName, result);
-               testItem.saveProperties();
-            }
-         }
-
-         return result;
-      }
-   }
-
-   public static String queryDriver(TestItem testItem) {
-      String functionName;
-      String attributeName;
-
-/*
-      testItem.getDriverIfNeeded();
-      if (testItem.hasErrors())
-         return "";
-*/
-
-      WebDriver driver = testItem.getDriver();
-
-      String result = "";
-
-      functionName = testItem.getQryFunction();
-
-      if (isBlank(functionName)){
-         testItem.addError("Invalid (empty) specs for functionName and attributeName for web element interrogation - one, but not both, may be empty");
-         return result;
-      }
-      try {
-         switch (functionName.toLowerCase()) {
-            case "gettitle" : return driver.getTitle();
-            case "getcurrenturl" : return driver.getCurrentUrl();
-            case "getpagesource" : return driver.getPageSource();
-            case "getwindowhandle" : return driver.getWindowHandle().toString();
-
-            default : {
-               testItem.addError("Invalid 'interrogation' function found: " + Util.sq(functionName) + " - element interrogation failed.");
-               return result;
-            }
-         }
-      }
-      catch (Exception e)  {
-         testItem.addError("Invalid function ("+ Util.sq(functionName) + " specs for web element 'getAttribute' interrogation - applying function generated exception");
-         return result;
-      }
-
-   }
-
-   public static TestItem[] getExcelTestItems(String workbookName, String worksheetName)
-         throws java.io.IOException, jxl.read.biff.BiffException, ArrayIndexOutOfBoundsException  {
-
-      TestItem[] testItems = null;
-
-      int size = 0;
-      String inputFile = workbookName;
-      if (isNotBlank(inputFile) && isNotBlank(worksheetName))    {
-         if (!inputFile.contains("/") && !inputFile.contains("\\")) {
-            inputFile = DDTSettings.prefixFileNameWithPath(inputFile, "Data");}
-         File inputWorkbook = new File(inputFile);
-
-         Workbook w = Workbook.getWorkbook(inputWorkbook);
-         Sheet sheet = w.getSheet(worksheetName);
-         size = sheet.getRows()-1; // Consider rows 2 and on - the first one is column titles
-         testItems = new TestItem[size];
-         //System.out.println("\nTest Items Source: " + inputWorkbook.toString() + ", Worksheet: " + worksheetName + "\n");
-
-         // Start from second row (leaving first row for column headers)
-         // For now - hard-coded order of fields
-         //@TODO - enable user's choice of column order in spreadsheet based on first row.
-         for (int row = 1; row < sheet.getRows(); row++) {
-            TestItem testItem = new TestItem(
-                  sheet.getCell(0, row).getContents(),  /* id            */
-                  sheet.getCell(1, row).getContents(),  /* action        */
-                  sheet.getCell(2, row).getContents(),  /* locType       */
-                  sheet.getCell(3, row).getContents(),  /* LocSpecs      */
-                  sheet.getCell(4, row).getContents(),  /* active        */
-                  sheet.getCell(5, row).getContents(),  /* qryFunction   */
-                  sheet.getCell(6, row).getContents(),  /* data          */
-                  sheet.getCell(7, row).getContents()); /* description   */
-
-            testItems[row-1] = testItem; // Origin 0, therefore -1
-         }
-      }
-      else {
-         System.out.println("Either File or Worksheet name(s) is / are empty - please explore");
-      }
-      return testItems;
-   }
-
-   public static TestItem[] getXMLTestItems(String fileName)
-         throws XMLStreamException, FileNotFoundException  {
-      XMLTestItemProvider provider = new XMLTestItemProvider(fileName);
-      TestItem[] items = provider.getassembleTestItems();
-      return items;
    }
 
    /**
@@ -720,41 +578,6 @@ public class Util {
       return result;
    }
 
-   public static class XMLTestItemProvider {
-      public String fileName;
-      public Exception exception;
-
-      public XMLTestItemProvider(String xmlFileName) {
-         String tmpFileName = xmlFileName;
-         if (!tmpFileName.contains("/") && !tmpFileName.contains("\\")) {
-            tmpFileName = DDTSettings.prefixFileNameWithPath(tmpFileName, "Data");}
-         fileName = tmpFileName;
-      }
-
-      public TestItem[] getassembleTestItems() {
-         TestItem[] testItems = null;
-         if (isBlank(fileName)) {
-            return testItems;
-         }
-
-         DDTestParser reader = new DDTestParser();
-         List<TestItem> readTestItems = reader.readTestItems(fileName);
-         exception = reader.exception;
-
-         if (exception instanceof Exception)
-            return testItems;
-
-         testItems = new TestItem[reader.count] ;
-         int i = 0;
-         for (TestItem testItem : readTestItems) {
-            //testItem.initialize();
-            testItems[i] = testItem;
-            i++;
-         }
-         return testItems;
-      }
-   }
-
    public static void fileWrite(String fileName, String text) {
       File output = new File (fileName);
       try {
@@ -763,77 +586,6 @@ public class Util {
          fw.close();
       } catch (IOException e) {
          e.printStackTrace();
-      }
-   }
-
-   public static class DDTestParser {
-      static final String TESTITEM = "TestItem";
-      static final String ID = "Id";
-      static final String ACTION = "Action";
-      static final String LOCTYPE = "LocType";
-      static final String LOCSPECS = "LocSpecs";
-      static final String QRYFUNCTION = "QryFunction";
-      static final String ACTIVE = "Active";
-      static final String DATA = "Data";
-      static final String DESCRIPTION = "Description";
-
-      public Exception exception;
-      public int count = 0;
-
-      @SuppressWarnings( "unchecked")
-      public List<TestItem> readTestItems(String inputFile) {
-         List<TestItem> items = new ArrayList<TestItem>();
-         try {
-            // First, create a new XMLInputFactory
-            XMLInputFactory inputFactory = XMLInputFactory.newInstance();
-            // Setup a new eventReader
-            InputStream in = new FileInputStream(inputFile);
-            XMLEventReader eventReader = inputFactory.createXMLEventReader(in);
-            // read the XML document
-            TestItem item = null;
-
-            while (eventReader.hasNext()) {
-               XMLEvent event = eventReader.nextEvent();
-
-               if (event.isStartElement()) {
-                  StartElement startElement = event.asStartElement();
-                  // If we have an item element, we create a new item
-                  if (startElement.getName().getLocalPart() == (TESTITEM)) {
-                     item = new TestItem();
-                     // We read the attributes from this tag and add the date
-                     // attribute to our object
-                     Iterator<Attribute> attributes = startElement.getAttributes();
-                     while (attributes.hasNext()) {
-                        Attribute attribute = attributes.next();
-                        switch (attribute.getName().toString()) {
-                           case ID : item.setId(attribute.getValue()) ; break;
-                           case ACTION : item.setAction(attribute.getValue()) ; break;
-                           case LOCTYPE : item.setLocType(attribute.getValue()) ; break;
-                           case LOCSPECS : item.setLocSpecs(attribute.getValue()) ; break;
-                           case QRYFUNCTION : item.setQryFunction(attribute.getValue()) ; break;
-                           case ACTIVE: item.setActive(attribute.getValue()) ; break;
-                           case DATA : item.setData(attribute.getValue()) ; break;
-                           case DESCRIPTION : item.setDescription(attribute.getValue()) ; break;
-                        }
-                     }
-                     items.add(item);
-                     count++;
-                  }
-                  else
-                     continue;
-               }
-               // If we reach the end of an item - skip to the next
-               if (event.isEndElement()) {
-                  EndElement endElement = event.asEndElement();
-               }
-
-            }
-         } catch (FileNotFoundException e) {
-            exception = e;
-         } catch (XMLStreamException e) {
-            exception = e;
-         }
-         return items;
       }
    }
 
@@ -920,14 +672,6 @@ public class Util {
          result[i] = subFolderName;
       }
       return result;
-   }
-
-   public static boolean isFileOrFolderName(String s) {
-      if (s.contains(File.separator))
-         return true;
-      if (s.contains(":"))
-         return true;
-      return false;
    }
 
 }

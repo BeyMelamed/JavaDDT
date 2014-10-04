@@ -54,7 +54,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  */
 public class Vocabulary {
 
-   private static final String uiMethods = ",click,clickCell,ensurePageLoaded,findCell,findElement,findOption,handleAlert,maximize,saveElementProperty,selectOption,sendKeys,switchToFrame,takeScreenShot,toggle,verifyOption,verifyWebDriver,";
+   private static final String uiMethods = ",click,clickCell,ensurePageLoaded,findCell,findElement,findOption,handleAlert,maximize,saveElementProperty,scrollWebPage,selectOption,sendKeys,switchToFrame,takeScreenShot,toggle,verifyOption,verifyWebDriver,";
    public static String getUIMethods() {
       return uiMethods;
    }
@@ -407,7 +407,8 @@ public class Vocabulary {
                foundElement = false;
                for (WebElement alternateElement : alternateElements) {
                   testItem.setElement(alternateElement);
-                  actualValue = Util.queryElement(testItem);
+                  UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+                  actualValue = weq.query(testItem);
                   if (testItem.hasErrors()) {
                      continue;
                   }
@@ -549,7 +550,8 @@ public class Vocabulary {
 
                boolean shouldBeToggled = isBlank(toggleSpecs) ? true : Util.asBoolean(toggleSpecs);
                // The user should have indicated  attribute of 'checked' or 'selected' or whatever is appropriate
-               String actualValue = Util.queryElement(testItem);
+               UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+               String actualValue = weq.query(testItem);
                if (testItem.hasErrors())
                   return;
 
@@ -602,7 +604,8 @@ public class Vocabulary {
          // AttributeName - Used when the actual value is obtained by the getAttribute function
          // PropertyName - Used when the function is getCssValue to get the value of the css property
 
-         String actualValue = Util.queryDriver(testItem);
+         UIQuery.WebDriverQuery wdq = new UIQuery.WebDriverQuery();
+         String actualValue = wdq.query(testItem);
          if (testItem.hasErrors()) return;
 
          verifier.setAv(actualValue);
@@ -733,7 +736,8 @@ public class Vocabulary {
             // Attribute - Used when the actual value is obtained by the getAttribute function
             // Property - Used when the function is getCssValue to get the value of the css property
 
-            String actualValue = Util.queryElement(testItem);
+            UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+            String actualValue = weq.query(testItem);
             if (testItem.hasErrors()) {
                testItem.addError("Property not saved.");
                return;
@@ -750,6 +754,118 @@ public class Vocabulary {
          // Do not overwrite previous exceptions!
          if (!testItem.hasException())
             throw new VocabularyException(testItem, "Web Element verification failed.");
+      }
+   }
+
+   /**
+    * Scrolls the web page as per the parameters indicated in testItem.cataProperties
+    * Type - Type=ScrollTo; x={pixels}; y={pixels} (x, y are absolute pixels or the string 'max')
+    *      - Type=ScrollBy; x={pixels}; y={pixels} (x, y are offset pixels)
+    *      - Type=IntoView; must have element finding params.
+    * NOTE - Selenium has no Scrolling functionality - thus, a JavaScript Executing Driver is used to run snippets of JavaScript
+    *        The assumption is that javascript can be executed by the deriver.
+    * Based on the type of scrolling definition - java script snippets are created, the driver is cast to JavascriptExecutor driver
+    * @param TestItem
+    * @throws Exception
+    */
+   public static void scrollWebPage(TestItem testItem) throws Exception {
+
+      if (testItem.getDriver() == null) {
+         testItem.addError("Setup Error: WebDriver not present but is required!");
+         return;
+      }
+
+      try {
+
+         String scrollType = testItem.getDataProperties().get("type");
+         if (StringUtils.isBlank(scrollType) ) {
+            testItem.addError("Setup Error: ScrollType is missing!");
+            return;
+         }
+
+         String x = testItem.getDataProperties().get("x");
+         if (isBlank(x))
+            x = "";
+
+         String y = testItem.getDataProperties().get("y");
+         if (isBlank(y))
+            y = "";
+
+         // Verify the scroll type definition is appropriate - X and Y components are present, are integer and are not 'max'
+         if (!scrollType.toLowerCase().equals("scrollintoview")) {
+            if (isBlank(x))
+               testItem.addError("X (pixels) parameter is mandatory for this scroll type but is missing.");
+            if (isBlank(y))
+               testItem.addError("Y (pixels) parameter is mandatory for this scroll type but is missing.");
+            if (testItem.hasErrors())
+               return;
+         }
+
+         // Create a Java Executor Driver from the testItem.getDriver()
+         JavascriptExecutor jsDriver = ((JavascriptExecutor) testItem.getDriver());
+
+         switch (scrollType.toLowerCase()) {
+            case "scrollby" : {
+               // Both x and y must be numeric.
+               try {
+                  int intX = Integer.valueOf(x) + 0;
+                  int intY = Integer.valueOf(y) + 0;
+               }
+               catch (Exception ex) {
+                  testItem.addError("Setup Error: X parameter and Y parameters must be numeric but either or both are not!");
+                  return;
+               }
+
+               // Execute the scrollBy specified by the user
+               jsDriver.executeScript("javascript:window.scrollBy(" + x + "," + y + ");");
+               break;
+            }
+            case "scrollto" : {
+               // Consider user indicated scrolling to 'max' - either width or height.
+               // ("window.scrollTo(0,Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,document.documentElement.clientHeight));"
+
+               String xExpression = "";
+               if (x.equalsIgnoreCase("max"))
+                  xExpression = "Math.max(document.documentElement.scrollWidth,document.body.scrollWidth,document.documentElement.clientWidth)";
+               else
+                  xExpression = x;
+
+               String yExpression = "";
+               if (y.equalsIgnoreCase("max"))
+                  yExpression = "Math.max(document.documentElement.scrollHeight,document.body.scrollHeight,document.documentElement.clientHeight)";
+               else
+                  yExpression = y;
+
+               // Execute the scrollTo specified by the user
+               jsDriver.executeScript("window.scrollTo(" + xExpression + "," + yExpression + ");");
+               break;
+            }
+            case "scrollintoview" : {
+              if (testItem.isUITest()) {
+                 findElement(testItem);
+                 if (testItem.hasErrors())
+                    return;
+
+                 // Execute the scrollIntoView specified by the user to the found element
+                 jsDriver.executeScript("arguments[0].scrollIntoView(true);", testItem.getElement());
+              }
+               else {
+                 testItem.addError("TestDriver Error: Test Item expected to be a UI item but is not.  Contact technician.");
+                 return;
+              }
+              break;
+            }
+
+            default: {
+               testItem.addError("Setup Error: Invalid Scroll Type: " + Util.sq(scrollType) + " encountered.  Valid types are: 'ScrollBy', 'ScrollTo' or 'ScrollIntoView'.");
+               return;
+            }
+         }
+      }
+      catch (Exception e) {
+         // Do not overwrite previous exceptions!
+         if (!testItem.hasException())
+            throw new VocabularyException(testItem, "ScrollWebPage failed.");
       }
    }
 
@@ -829,7 +945,8 @@ public class Vocabulary {
             // Attribute - Used when the actual value is obtained by the getAttribute function
             // Property - Used when the function is getCssValue to get the value of the css property
 
-            String actualValue = Util.queryElement(testItem);
+            UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+            String actualValue = weq.query(testItem);
             if (testItem.hasErrors())
                return;
 
@@ -900,7 +1017,8 @@ public class Vocabulary {
             // Attribute - Used when the actual value is obtained by the getAttribute function
             // Property - Used when the function is getCssValue to get the value of the css property
 
-            String actualValue = Util.queryElement(testItem);
+            UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+            String actualValue = weq.query(testItem);
             if (testItem.hasErrors())
                return;
 
@@ -1128,7 +1246,8 @@ public class Vocabulary {
                            nCellsExamined++;
                            testItem.setElement(theCell);
 
-                           String actualValue = Util.queryElement(testItem);
+                           UIQuery.WebElementQuery weq = new UIQuery.WebElementQuery();
+                           String actualValue = weq.query(testItem);
                            if (testItem.hasErrors()) {
                               testItem.addError(" - Table Cell [" + rowIndex + "," + colIndex + "]. Cell search aborted." );
                               return;
@@ -1157,7 +1276,7 @@ public class Vocabulary {
                               List<WebElement> alternateElements = theCell.findElements(By.tagName(alternateTag));
                               for (WebElement alternateElement : alternateElements) {
                                  testItem.setElement(alternateElement);
-                                 actualValue = Util.queryElement(testItem);
+                                 actualValue = weq.query(testItem);
                                  if (testItem.hasErrors()) {
                                     testItem.addError(" - Table Cell (Alternate Search) [" + rowIndex + "," + colIndex + "]");
                                     return;

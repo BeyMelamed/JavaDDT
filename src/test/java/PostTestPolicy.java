@@ -31,7 +31,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * ==========|===============|========================================================
  */
 public class PostTestPolicy {
-   private final String ValidTokens = "QSU,QTU,QTOF,QTOP,QSOF,QTOF,SOF,SOP";
+   private final String ValidTokens = "QSU,QTU,QTOF,QTOP,QSOF,QTOF,SOF,SOP,SUN";
    private String actionEvent; // The event upon which the policy acts (PASS, FAIL, ANY)
    private String quitUnit;   // Applicable to quitting policy (as opposed to skipping policy) - Either TES_TCASE or TEST_SESSION
    private int stepsToSkip; // Number of steps to skip (applies to a skipping policy)

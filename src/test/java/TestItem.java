@@ -35,9 +35,10 @@ import static org.apache.commons.lang.StringUtils.*;
  * Description
  * History
  * When        |Who      |What
- * ============|=========|====================================
+ * ============|=========|============================================================================================================
  * 03/14/14    |Bey      |Initial Version
- * ============|=========|====================================
+ * 09/19/14    |Bey      |Added automatic step ID numeric suffix generation - initialize(int stepNo) when step id ends with '#'
+ * ============|=========|============================================================================================================
  */
 public class TestItem {
 
@@ -147,7 +148,7 @@ public class TestItem {
 
             case "screenshotfilename" :
             {
-               if (isNotBlank(item.getScreenShotFileName())) value = "ScreenShot: " + item.getScreenShotFileName() ; break;
+               if (isNotBlank(item.getScreenShotFileName())) value = "ScreenShot: " + item.getScreenShotFileNameAsHtml() ; break;
             }
 
             case "duration" :
@@ -225,13 +226,17 @@ public class TestItem {
     * - Duration aspects
     * - Setting of the step number within the session
     */
-   public void initialize() {
+   public void initialize(int stepNo) {
 
       // Setup the duration for this test item
       initDuration();
 
       // Substitute variables in the basic strings on the data source - each property may have substitution value in runner's dictionary
       id = Util.substituteVariables(id, DDTestRunner.getVarsMap());
+      if (id.endsWith("#")) {
+         // Generate a numeric suffix using stepNo
+         id = replace(id, "#","") + "." + String.format("%03d", stepNo);
+      }
       action = Util.substituteVariables(action, DDTestRunner.getVarsMap());
       locType = Util.substituteVariables(locType, DDTestRunner.getVarsMap());
       locSpecs = Util.substituteVariables(locSpecs, DDTestRunner.getVarsMap());
@@ -754,25 +759,25 @@ public class TestItem {
       return screenShotFileName;
    }
 
-   public String getScreenShotFileNameAsImgHtml() {
+   /**
+    *
+    * @return A string formatted as an html link to view the screen shot file
+    * example: If getScreenShotFileName is c:\data\reports\images\myfile.png this will return:
+    * <a href='file:///c:\data\reports\images\myfile.png' title='Click to View Screen Shot'>c:\data\reports\images\myfile.png</a>
+    */
+   public String getScreenShotFileNameAsHtml() {
       if (isBlank(getScreenShotFileName()))
          return "";
-      return "<img width=" +
-            Util.dq("1000") +
-            " src=" +
-            Util.dq(getScreenShotFileName() +
-            " ?raw=true") +
-            " alt=" +
-            Util.dq(getScreenShotFileName() +
-            " ?raw=true") +
-            ">";
+      //'file:///C:\myfile.pdf' title='Click to view'>LF - 2014 signed grant summary pg1-4.pdf
+      return
+            Util.makeHtmlElement("a", " href=" + Util.sq("File:///" + getScreenShotFileName()) +  " title='Click to View Screen Shot'", getScreenShotFileName());
             //<img alt="filename.png?raw=true" src="filename.png?raw=true" width="100">
-
    }
 
    public boolean shouldDebug() {
       return getDescription().toLowerCase().contains(":debug:");
    }
+
    public String errorsAsHtml() {
 
       if (this.hasErrors()) {
