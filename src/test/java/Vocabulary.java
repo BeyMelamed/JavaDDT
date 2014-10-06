@@ -2,7 +2,6 @@ import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.pagefactory.ByChained;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -169,78 +168,27 @@ public class Vocabulary {
    }
 
    /**
-    * Main find element logic
-    * Verify search criteria,
-    * Construct a Locator Array (of By objects),
-    * Invoke findElement using the Locator Array so constructed and a WebDriverWait chaining one or more By specs
+    * Main find element logic using the context set in testItem
     */
    public static void findElement(TestItem testItem) throws Exception{
 
-      By[] chainedSpecs = new By[0];
-      String how = testItem.getLocType();
+      UILocator.WebUILocator locator = new UILocator.WebUILocator();
+      locator.locate(testItem);
+      if (testItem.hasErrors())
+         return;
+
+      testItem.addComment("Element Found");
+      testItem.addInfoEvent("Element Found");
 
       // Support for saving elements in TestRunner's elements Map
       String eKey = testItem.getDataProperties().get("saveelementas");
-      if (isBlank(eKey))
-         eKey = "";
-
-      /**
-       * chainedSpecs (LocatorArray) get created from comma delimited 'How', 'Value' and 'Modifier' specs
-       */
-      try {
-         chainedSpecs = Util.createLocatorArray(testItem);
-      }
-      catch (Exception e) {
-         testItem.setException(e);
-         testItem.addError("Exception generated in createLocateArray method.");
-         return;
-      }
-
-      if (chainedSpecs.length > 0 && !testItem.hasErrors()) {
-         long waitInSeconds = testItem.getWaitTime();
-         int waitIntervalMillis = testItem.getWaitInterval();
-         WebElement element;
-
-         if (isBlank(how)) {
-            testItem.addError("'How' search property is null!");
-            return;
-         }
-
-         WebDriver driver = testItem.getDriver();
-
-         try {
-            // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
-            element = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
-                  visibilityOfElementLocated(new ByChained(chainedSpecs)));
-
-            if ((element instanceof WebElement)) {
-               testItem.setElement(element);
-               // This is needed to create web elements like Select, etc. once an element was found
-               testItem.addComment("Element Found");
-               testItem.addInfoEvent("Element Found");
-               // If so indicated, save the element in the DDTestRunner elements Map
-               if (!isBlank(eKey))
-                  DDTestRunner.addElement(eKey, element);
-            } else {
-               testItem.addError("Web Element not found using 'By' specs of: " + testItem.getLocType() + " / " + testItem.getLocSpecs());
-               testItem.addFailEvent("Web Element not found using 'By' specs of: " +  testItem.getLocType() + " / " + testItem.getLocSpecs());
-            }
-         }
-         catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!testItem.hasException())
-               throw new VocabularyException(testItem, "");
-         }
-      }
-      else {
-         // Should never get here...
-         testItem.addError("Action " + Util.sq(testItem.getAction()) + " Failed to obtain 'By' specs - Action failed");
-      }
+      if (!isBlank(eKey))
+         DDTestRunner.addElement(eKey, testItem.getElement());
    }
 
    /**
     * Find an option descendant off of an element with list of <option></option>.
-    * The locator points to the parent.
+    * The locator (testItem.locSpecs) points to the parent.
     * testItem.getDataProperties() indicates what and how to find a given option
     * @param TestItem
     * @throws java.security.Exception
