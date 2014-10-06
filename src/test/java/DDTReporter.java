@@ -301,7 +301,7 @@ public class DDTReporter {
 
       String underscore = "<br>==================<br>"; // Assuming html contents of email message
 
-      String emailSubject = "Test Results for Project: " + projectName + ", Section: " + moduleName + " - " + summary;
+      String emailSubject = "Test Results for Project: " + projectName + ", Section: " + moduleName;
       summary += rangeClause;
 
       summary += " - Only test items with status of: " + settings.statusToReport().replace(",", ", ") + " are included (un-reported action steps not counted.)";
