@@ -1,3 +1,4 @@
 C:\
-copy /y %1 %2
-exit
+echo on
+;copy /y %1 %2 > my.txt
+pause
