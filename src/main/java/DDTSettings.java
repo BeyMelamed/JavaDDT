@@ -70,7 +70,7 @@ public class DDTSettings {
    private final String ProjectName = "Selenium Based DDT Automation";
    private final String EmailSender = "retsettdd@gmail.com";
    private final String EmailPassword = "Kishkes01";
-   private final String EmailRecipients = "beymelamed01@optimum.net,bmelamed@microedge.com";
+   private final String EmailRecipients = "beymelamed01@optimum.net";
    private final String EmailHost = "smtp.gmail.com";
    private final String EmailPort = "587";
    private final boolean EmailAuthenticationRequired = true;
@@ -78,10 +78,9 @@ public class DDTSettings {
    private final boolean TakeImageOnFailedStep = true;
    private final boolean ReportEachTableCell = false;
    private final boolean TabOut = true;
-   private final String EventsToReport = "SKIP,INFO,FAIL";
    private final String StatusToReport = "PASS,FAIL,SKIP";
    private final String DontReportActions = "NewTest,GenerateReport,InitializeReport";
-   private final String ReportElements = "status,action,locType,qryFunction,description,active,data,comments,errors,exceptionStack,exceptionCause,duration,events,screenShotFileName";
+   private final String ReportElements = "status,action,locType,qryFunction,description,active,data,comments,errors,exceptionStack,exceptionCause,duration,screenShotFileName";
    private final String DefaultComparison = "Equals";
    private final String TestItemReportTemplate = "{id}{status}{active}{action}{loctype}{locspecs}{qryfunction}{data}{comments}{description}{screenShotFileName} \n {errors}";
    private final String TestItemJSONTemplate = "{id}{status}{active}{action}{loctype}{locspecs}{qryfunction}{data}{comments}{description}{errors}{screenShotFileName}";
@@ -124,7 +123,6 @@ public class DDTSettings {
    private String emailHost;
    private String emailPort;
    private boolean emailAuthenticationRequired;
-   private String eventsToReport;
    private String statusToReport;
    private String dontReportActions;
    private String reportElements;
@@ -869,18 +867,6 @@ public class DDTSettings {
          setEmailPort(s);
       }
       return emailPort;
-   }
-
-   private void setEventsToReport(String value) {
-      eventsToReport = value;
-   }
-
-   public String eventsToReport() {
-      if (isBlank(eventsToReport)) {
-         String s = getPropertyOrDefaultValue(EventsToReport, "EventsToReport", false);
-         setEventsToReport(s);
-      }
-      return eventsToReport;
    }
 
    private void setStatusToReport(String value) {

@@ -364,20 +364,6 @@ public class DDTReporter {
                failedTestsSummary.add(failureBlurb + t.toString() + "<p>Errors:</p>" + t.errorsAsHtml() + "<br>");
             }
 
-            // If step has any events to report - list those
-            if (t.hasEventsToReport()) {
-               String eventsToReport = settings.eventsToReport();
-               writeStartElement(writer, "Events");
-               for (TestEvent e : t.getEvents())
-               {
-                  if (eventsToReport.contains(e.getType().toString()))  {
-                     writeStartElement(writer, "Event", new String[] {"name"}, new String[] {e.toString()});
-                     writeEndElement(writer);
-                  }
-               }
-               writeEndElement(writer); // step's events
-            }
-
             writeEndElement(writer); // step
             nReportableSteps++;
          }

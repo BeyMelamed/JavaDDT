@@ -60,7 +60,6 @@ public class TestItem extends DDTBase{
    private WebElement mrElement;              // The Most Recent web element used in previous step - used as 'anchor' element in actions requiring 'anchor' element
    private Date startTime;                    // The time this step was launched
    private Date currTime;                     // The time this step was done
-   private List<TestEvent> testEvents;        // List of events that took place during execution of this step.
    private DDTTestContext dataProperties;
    private DDTTestContext savedProperties;
    private PostTestPolicy ptp;               // Post Test Policy indicating what, if anything, should be done after test item instance was executed
@@ -265,9 +264,6 @@ public class TestItem extends DDTBase{
 
       savedProperties = new DDTTestContext();
 
-      TestEvent event =  new TestEvent(DDTTestRunner.TestEventType.INIT, "Initialized");
-      this.addEvent(event);
-
    }
 
    /**
@@ -433,21 +429,7 @@ public class TestItem extends DDTBase{
       return result;
    }
 
-   public List<TestEvent> getEvents() {
-      if (testEvents == null)
-         testEvents = new ArrayList<TestEvent>();
-      return testEvents;
-   }
-
-   public void addEvent(TestEvent event) {
-      // This is where the event id is set up to be formatted like the padded step number "." {next event number}
-      String id = paddedReportedStepNumber() + "." + (getEvents().size() + 1);
-      event.setId(id);
-      getEvents().add(event);
-      setCurrTime();
-   }
-
-   public void setLevel(int aNumber) {
+      public void setLevel(int aNumber) {
       level = aNumber;
    }
 
@@ -461,36 +443,6 @@ public class TestItem extends DDTBase{
             savedProperties.remove(key);
          savedProperties.put(key, propertyValue);
       }
-   }
-
-   public void addInfoEvent(String txt) {
-      TestEvent event = new TestEvent(DDTTestRunner.TestEventType.INFO, txt);
-      addEvent(event);
-   }
-
-   public void addPassEvent(String txt) {
-      TestEvent event = new TestEvent(DDTTestRunner.TestEventType.PASS, txt);
-      addEvent(event);
-   }
-
-   public void addFailEvent(String txt) {
-      TestEvent event = new TestEvent(DDTTestRunner.TestEventType.FAIL, txt);
-      addEvent(event);
-   }
-
-   public void addSkipEvent(String txt) {
-      TestEvent event = new TestEvent(DDTTestRunner.TestEventType.SKIP, txt);
-      addEvent(event);
-   }
-
-   public int nEvents() {
-      Iterator itr = getEvents().iterator();
-      int i = 0;
-      while (itr.hasNext())  {
-         itr.next();
-         i++;
-      }
-      return i;
    }
 
    private void initDuration() {
@@ -514,11 +466,7 @@ public class TestItem extends DDTBase{
     * @return  String indicating the status of the instance
     */
    public String getStatus() {
-      String result = "INIT";
-      if (nEvents() > 0 ) {
-         result = (isFailure()) ? "FAIL" : (isActive() ? "PASS" : "SKIP");
-      }
-      return result;
+      return (isFailure()) ? "FAIL" : (isActive() ? "PASS" : "SKIP");
    }
    /**
     * Sets this session's and instances next session and next session reported step number(s)
@@ -542,7 +490,7 @@ public class TestItem extends DDTBase{
          return true;
       if (!(isBlank(locType + locSpecs + qryFunction)))
          return true;
-      return Vocabulary.getUIMethods().contains(","+getAction()+",");
+      return Verb.isUIVerb(getAction());
    }
 
    private void setPostTestPolicy(PostTestPolicy policy) {
@@ -823,21 +771,6 @@ public class TestItem extends DDTBase{
       return result;
    }
 
-   // Based on the settings and the instance's events, indicate whether or not there are any events to report
-   public boolean hasEventsToReport() {
-      boolean result = false;
-      String eventsToReport = DDTSettings.Settings().eventsToReport().toUpperCase();
-      if (!isBlank(eventsToReport)) {
-         for (int i = 0; i<testEvents.size();i++) {
-            if (eventsToReport.contains(testEvents.get(i).getType().toString())) {
-               result = true;
-               break;
-            }
-         }
-      }
-
-      return result;
-   }
    public void setCurrTime() {
       this.currTime = new Date();
    }

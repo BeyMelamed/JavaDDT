@@ -7,6 +7,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 import static org.apache.commons.lang.StringUtils.isBlank;
@@ -58,8 +59,169 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public abstract class Verb extends DDTBase {
 
+   private static Hashtable<String, Verb> verbs;
+
    private DDTTestContext testContext = null;
    private String id;
+
+   private static Hashtable<String, Verb> getVerbs() {
+      if (verbs == null)
+         initializeVerbs();
+      return verbs;
+   }
+
+   /**
+    * Initialize the verbs structure - need to be modified when a new verb is introduced.
+    */
+   private static void initializeVerbs() {
+      verbs = new Hashtable<String, Verb>();
+      verbs.put("click", new Click());
+      verbs.put("clickCell", new ClickCell());
+      verbs.put("createWebDriver", new CreateWebDriver());
+      verbs.put("ensurePageLoaded", new EnsurePageLoaded());
+      verbs.put("findCell", new FindCell());
+      verbs.put("findElement", new FindElement());
+      verbs.put("findOption", new FindOption());
+      verbs.put("generateReport", new GenerateReport());
+      verbs.put("handleAlert", new HandleAlert());
+      verbs.put("maximize", new Maximize());
+      verbs.put("navigateToPage", new NavigateToPage());
+      verbs.put("newTest", new NewTest());
+      verbs.put("notImplemented", new NotImplemented());
+      verbs.put("refreshSettings", new RefreshSettings());
+      verbs.put("quit", new Quit());
+      verbs.put("runCommand", new RunCommand());
+      verbs.put("runJS", new RunJS());
+      verbs.put("saveElementProperty", new SaveElementProperty());
+      verbs.put("scrollWebPage", new ScrollWebPage());
+      verbs.put("selectOption", new SelectOption());
+      verbs.put("sendKeys", new TypeKeys()); // *** Note Exception in verb name ***
+      verbs.put("setPageSize", new SetPageSize());
+      verbs.put("setVars", new SetVars());
+      verbs.put("switchToFrame", new SwitchToFrame());
+      verbs.put("takeScreenShot", new TakeScreenShot());
+      verbs.put("toggle", new Toggle());
+      verbs.put("verify", new Verify());
+      verbs.put("verifyElementSize", new VerifyElementSize());
+      verbs.put("verifyOption", new VerifyOption());
+      verbs.put("verifyWebDriver", new VerifyWebDriver());
+      verbs.put("verifyWebElement", new VerifyWebElement());
+      verbs.put("wait", new Wait());
+   }
+
+   public static void invokeForTestItem(TestItem testItem) {
+      // Ensure testItem's action is not blank
+      if(testItem.getAction().isEmpty()) {
+         testItem.addError("Invalid TestItem - 'Action' is required but is blank!");
+         return;
+      }
+
+      // Ensure testItem's action is represented in the getVerbs() hashMap
+      if (!getVerbs().containsKey(testItem.getAction())) {
+         testItem.addError("Invalid TestItem - 'Action' ('" + testItem.getAction() + "') is not implemented yet!");
+         return;
+      }
+
+      // Ensure testItem's action is indeed, a valid Verb
+      // It is OK to check for null as the hashtable's values are Verb instances.
+      if ((getVerbs().get(testItem.getAction()) == null)) {
+         testItem.addError("Invalid TestItem - 'Action' ('" + testItem.getAction() + "') does not correspond to a valid 'Verb'");
+         return;
+      }
+
+      // invoke this verb - basicDoIt catches errors too
+      try {
+         getVerbs().get(testItem.getAction()).basicDoIt(testItem);
+      }
+      catch (Exception e) {
+         if (!testItem.hasErrors())
+            testItem.addError("Exception encountered in Action '" + testItem.getAction() + "'.");
+         testItem.setException(e);
+      }
+   }
+
+   /**
+    * Indicates whether the verb keys by the action string is a UI verb.
+    * @param action
+    * @return
+    */
+   public static boolean isUIVerb(String action) {
+      try {
+         return getVerbs().get(action).isUIVerb();
+      }
+      catch (Exception e) {
+         return false;
+      }
+   }
+
+   /**
+    * Indicate whether the verb is a UI verb or not.
+    */
+
+   public abstract boolean isUIVerb();
+
+   public void clear() {
+      super.clear();
+      setContext(null);
+      setElement(null);
+   }
+
+   /**
+    * Initialize the instance from a TestItem instance
+    * @param testItem
+    */
+   public void initializeFromTestItem(TestItem testItem) {
+      setContext(testItem.getDataProperties());
+      getContext().setProperty("stepId", testItem.getId());
+      getContext().setProperty("locType", testItem.getLocType());
+      getContext().setProperty("locSpecs", testItem.getLocSpecs());
+      getContext().setProperty("qryFunction", testItem.getQryFunction());
+      getContext().setProperty("Description", testItem.getDescription());
+      String active = testItem.getStatus(); // PASS, FAIL, SKIP - we are just initializing - no room for FAIL yet, so, really, SKIP (inactive) or PASS (active)
+      getContext().setProperty("isActive", (active == "SKIP"));
+
+      if (getContext().getString("Description").toLowerCase().contains(":debug:"))
+         getContext().setProperty("debug", true);
+      if (testItem.getElement() instanceof WebElement)
+         getContext().setProperty("element", testItem.getElement());
+      getContext().setProperty("testItem", testItem);
+
+   }
+
+   /**
+    * Perform the action implied and pass the results to the corresponding testItem instance.
+    * @param testItem
+    * @throws VerbException
+    */
+   public void basicDoIt(TestItem testItem) throws VerbException{
+      clear();
+      initializeFromTestItem(testItem);
+
+      try {
+         doIt();
+      }
+      catch (VerbException e) {
+         Verb.basicAddError(this, "Error encountered during 'doIt' method");
+         setException(e);
+      }
+      catch (Exception e) {
+         Verb.basicAddError(this, "Error encountered during 'doIt' method");
+         setException(e);
+      }
+
+      if (hasComments()) {
+         testItem.addComment(getComments());
+      }
+
+      if (hasErrors())
+         testItem.addError(getErrors());
+
+      if (hasException())
+         testItem.setException(getException());
+
+      if (getElement() instanceof WebElement)
+         testItem.setElement(getElement());
+   }
 
    public void setContext(DDTTestContext value) {
       testContext = value;
@@ -82,7 +244,7 @@ public abstract class Verb extends DDTBase {
    private static void debug(Verb verb) {
       boolean shouldDebug = verb.getContext().getBoolean("Debug");
       if (shouldDebug) {
-         String pleaseNote = "This is a debugging spot for all of us, Verbs - Just keep clicking F8 and you will be at Verbs' territory :-)";
+         String pleaseNote = "This is a debugging spot for all of us, Verbs - Just keep debugging...";
       }
    }
 
@@ -101,9 +263,17 @@ public abstract class Verb extends DDTBase {
       return sb.toString();
    }
 
+   public boolean isActive() {
+      if (getContext().containsKey("isActive"))
+         return getContext().getBoolean("isActive");
+      return false;
+   }
+
    public String getStatus() {
       if (hasErrors() || hasException())
          return "FAIL";
+      if (!isActive())
+         return "SKIP";
       return "PASS";
    }
 
@@ -185,7 +355,7 @@ public abstract class Verb extends DDTBase {
 
    // ====================================================================================================
    // ======================================     VERBS     ===============================================
-   // ====================== Various implementations of the abstract doIt() method =======================
+   // ======================== Various implementations of the abstract methods ===========================
    // ====================================================================================================
 
    /**
@@ -200,6 +370,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class Click extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -242,6 +414,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class ClickCell extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -312,6 +486,8 @@ public abstract class Verb extends DDTBase {
 
    public static class CreateWebDriver extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -346,6 +522,9 @@ public abstract class Verb extends DDTBase {
          } catch (Exception e) {
             setException(e);
          }
+         catch (Throwable e) {
+            setException(e);
+         }
 
       }
    }
@@ -370,6 +549,9 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class FindCell extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
 
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
@@ -693,6 +875,8 @@ public abstract class Verb extends DDTBase {
 
    public static class FindElement extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
        * In such cases a clone (provided by this method) is used to handle the recursion
@@ -759,6 +943,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class FindOption extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
@@ -913,6 +1099,8 @@ public abstract class Verb extends DDTBase {
 
    public static class EnsurePageLoaded extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
        * In such cases a clone (provided by this method) is used to handle the recursion
@@ -1001,6 +1189,8 @@ public abstract class Verb extends DDTBase {
 
    public static class GenerateReport extends Verb {
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt() throws VerbException{
 
          debug(this);
@@ -1041,6 +1231,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class HandleAlert extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException{
 
@@ -1113,6 +1305,8 @@ public abstract class Verb extends DDTBase {
 
    public static class Maximize extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException{
 
          debug(this);
@@ -1144,6 +1338,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class NavigateToPage extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException{
 
@@ -1183,6 +1379,8 @@ public abstract class Verb extends DDTBase {
 
    public static class NewTest extends Verb {
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt() throws VerbException{
 
          debug(this);
@@ -1195,6 +1393,8 @@ public abstract class Verb extends DDTBase {
             TestItem testItem = (TestItem) getContext().getProperty("testItem");
             String[][] testItemStrings;
             String inputSpecs = getContext().getString("InputSpecs");
+            if (!getContext().containsKey("level"))
+               getContext().put("level", 1);
             int level = getContext().getInt("Level");
 
             // Test Items Strings provider - String[n][] where each of the n rows is a collection of strings making up a TestItem instance.
@@ -1254,6 +1454,8 @@ public abstract class Verb extends DDTBase {
 
    public static class NotImplemented extends Verb{
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt()  throws VerbException {
          basicValidation(this, false);
          if (this.hasErrors())
@@ -1276,6 +1478,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class Quit extends Verb {
+
+      public boolean isUIVerb() { return false;}
 
       public void doIt() throws VerbException {
 
@@ -1312,6 +1516,8 @@ public abstract class Verb extends DDTBase {
 
    public static class RefreshSettings extends Verb {
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -1344,6 +1550,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class RunCommand extends Verb{
+
+      public boolean isUIVerb() { return false;}
 
       public void doIt()  throws VerbException {
 
@@ -1442,6 +1650,8 @@ public abstract class Verb extends DDTBase {
 
    public static class RunJS extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
        * In such cases a clone (provided by this method) is used to handle the recursion
@@ -1520,6 +1730,8 @@ public abstract class Verb extends DDTBase {
 
    public static class SaveElementProperty extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -1583,6 +1795,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class ScrollWebPage extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -1704,6 +1918,8 @@ public abstract class Verb extends DDTBase {
 
    public static class SelectOption extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -1763,6 +1979,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class TypeKeys extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -1832,6 +2050,8 @@ public abstract class Verb extends DDTBase {
 
    public static class SetPageSize extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -1884,7 +2104,9 @@ public abstract class Verb extends DDTBase {
 
    public static class SetVars extends Verb {
 
-      public void doIt() throws VerbException{
+         public boolean isUIVerb() { return false;}
+
+         public void doIt() throws VerbException{
 
          debug(this);
 
@@ -1916,6 +2138,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class SwitchToFrame extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException{
 
@@ -1962,6 +2186,8 @@ public abstract class Verb extends DDTBase {
 
    public static class TakeScreenShot extends Verb {
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -2005,6 +2231,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class Toggle extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -2074,6 +2302,8 @@ public abstract class Verb extends DDTBase {
 
    public static class Verify extends Verb {
 
+      public boolean isUIVerb() { return false;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -2112,6 +2342,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class VerifyElementSize extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 
@@ -2207,6 +2439,8 @@ public abstract class Verb extends DDTBase {
 
    public static class VerifyOption extends Verb {
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -2236,6 +2470,8 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class VerifyWebElement extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
@@ -2322,6 +2558,8 @@ public abstract class Verb extends DDTBase {
    public static class VerifyWebDriver extends Verb {
 
 
+      public boolean isUIVerb() { return true;}
+
       public void doIt() throws VerbException {
 
          debug(this);
@@ -2373,6 +2611,8 @@ public abstract class Verb extends DDTBase {
      */
 
    public static class Wait extends Verb {
+
+      public boolean isUIVerb() { return true;}
 
       public void doIt() throws VerbException {
 

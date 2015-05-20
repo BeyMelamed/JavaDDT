@@ -47,8 +47,6 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  */
 public class DDTTestRunner {
 
-   public enum TestEventType {INIT, INFO, PASS, FAIL, SKIP}
-
    // ======================================= Class properties section =====================================
    private static DDTReporter reporter;
    private static Long nSessionSteps = 0L;
@@ -56,6 +54,7 @@ public class DDTTestRunner {
    private static boolean shouldQuitTestSession;
    private static DDTTestContext varsMap;
    private static Hashtable<String, WebElement> elementsMap;
+   private static Hashtable<String, Verb> verbs;
 
    // The test session variables hashtable is maintained by DDTTestRunner instance.
    private static Hashtable<String, TestItem> currentTestItem = new Hashtable<String, TestItem>();
@@ -619,7 +618,8 @@ public class DDTTestRunner {
             // Process active or inactive steps as needed
             if (testItem.isActive()) {
                try {
-                  Vocabulary.invoke(testItem);
+                  //Vocabulary.invoke(testItem);
+                  Verb.invokeForTestItem(testItem);
                }
                catch (NullPointerException e) {
                   if (!testItem.hasException())
@@ -650,7 +650,7 @@ public class DDTTestRunner {
 
                if (testItem.isFailure()) {
                   incrementFail();
-                  testItem.addFailEvent("Step Failed");
+
                   // Handle screen shots based on settings - but only if this is a UI test
                   if (testItem.isUITest()) {
                      if (DDTSettings.Settings().takeImageOnFailedStep() && Driver.isInitialized()) {
@@ -666,7 +666,6 @@ public class DDTTestRunner {
                   }
                }
                else {
-                  testItem.addPassEvent("Step Passed");
                   incrementPass();
                   if (testItem.getElement() instanceof WebElement) {
                      // Preserve the most recent web element
@@ -683,7 +682,6 @@ public class DDTTestRunner {
                stepsToSkip = testItem.getStepsToSkip();
             }  // if testItem.active
             else {
-               testItem.addSkipEvent("Step Skipped");
                incrementSkip();
             }
             // Consider Termination at the test case or test session level

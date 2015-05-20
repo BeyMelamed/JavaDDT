@@ -35,7 +35,6 @@ import static org.apache.commons.lang.StringUtils.isBlank;
  */
 public class DDTReportItem extends DDTBase {
    private String userReport;
-   private List<TestEvent> testEvents = null;
    private String status;
    private Long sessionStepNumber = 0L;
    private DDTTestContext testContext = null;
@@ -51,7 +50,6 @@ public class DDTReportItem extends DDTBase {
    public DDTReportItem(TestItem testItem) {
       setUserReport(testItem.getUserReport());
       setStatus(testItem.getStatus());
-      testEvents = testItem.getEvents();
       addError(testItem.getErrors());
       addComment(testItem.getComments());
       setSessionStepNumber(testItem.getSessionStepNumber());
@@ -133,16 +131,6 @@ public class DDTReportItem extends DDTBase {
 
    public String getUserReport() {
       return userReport;
-   }
-
-   public List<TestEvent> getEvents() {
-      if (testEvents == null)
-         testEvents = new ArrayList<>();
-      return testEvents;
-   }
-
-   public boolean hasEventsToReport() {
-      return (getEvents().size() > 0);
    }
 
    public void setTestContext(DDTTestContext tc) {

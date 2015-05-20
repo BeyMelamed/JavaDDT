@@ -132,86 +132,98 @@ public class Driver extends Thread{
          Hashtable<String, Object> desiredCapabilities;
          Set<Map.Entry<String, Object>> entries;
 
-         switch (useThisDriver) {
-            case FIREFOX:
-               FirefoxProfile profile = new FirefoxProfile();
-               profile.setEnableNativeEvents(true);
+         try {
+            switch (useThisDriver) {
+               case FIREFOX:
+                  //System.setProperty("webdriver.firefox.bin", "C:\\Program Files (x86)\\Mozilla Firefox\\Firefox.exe");
+                  FirefoxProfile profile = new FirefoxProfile();
+                  profile.setEnableNativeEvents(true);
 
-               aDriver = new FirefoxDriver();//profile);
-               currentDriver = BrowserName.FIREFOX;
-               break;
+                  try {
+                     aDriver = new FirefoxDriver();
+                     currentDriver = BrowserName.FIREFOX;
+                  }
+                  catch (Throwable e ) {
+                     e.printStackTrace();
+                     System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
+                  }
+                  break;
 
-            case OPERA:
+               case OPERA:
 
-               aDriver = new OperaDriver();
-               currentDriver = BrowserName.OPERA;
-               break;
+                  aDriver = new OperaDriver();
+                  currentDriver = BrowserName.OPERA;
+                  break;
 
-            case HTMLUNIT:
+               case HTMLUNIT:
 
-               capabilities = new DesiredCapabilities();
-               desiredCapabilities = DDTSettings.Settings().getDesiredCapabilities();
-               entries = desiredCapabilities.entrySet();
-               for (Map.Entry<String, Object> entry : entries) {
-                  capabilities.setCapability(entry.getKey(), entry.getValue());
-               }
-               aDriver = new HtmlUnitDriver(capabilities);
-               currentDriver = BrowserName.HTMLUNIT;
-               break;
+                  capabilities = new DesiredCapabilities();
+                  desiredCapabilities = DDTSettings.Settings().getDesiredCapabilities();
+                  entries = desiredCapabilities.entrySet();
+                  for (Map.Entry<String, Object> entry : entries) {
+                     capabilities.setCapability(entry.getKey(), entry.getValue());
+                  }
+                  aDriver = new HtmlUnitDriver(capabilities);
+                  currentDriver = BrowserName.HTMLUNIT;
+                  break;
 
-            case HEADLESS:
+               case HEADLESS:
 
-               capabilities = new DesiredCapabilities();
-               desiredCapabilities = DDTSettings.Settings().getDesiredCapabilities();
-               entries = desiredCapabilities.entrySet();
-               for (Map.Entry<String, Object> entry : entries) {
-                 capabilities.setCapability(entry.getKey(), entry.getValue());
-               }
-               capabilities.setCapability(
-                     PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY,
-                     DDTSettings.Settings().resourcesFolder() + "phantomjs.exe");
+                  capabilities = new DesiredCapabilities();
+                  desiredCapabilities = DDTSettings.Settings().getDesiredCapabilities();
+                  entries = desiredCapabilities.entrySet();
+                  for (Map.Entry<String, Object> entry : entries) {
+                     capabilities.setCapability(entry.getKey(), entry.getValue());
+                  }
+                  capabilities.setCapability(
+                        PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY,
+                        DDTSettings.Settings().resourcesFolder() + "phantomjs.exe");
 
-               // Launch driver (will take care and ownership of the phantomjs process)
-               aDriver = new PhantomJSDriver(capabilities);
-               currentDriver = BrowserName.HEADLESS;
-               break;
+                  // Launch driver (will take care and ownership of the phantomjs process)
+                  aDriver = new PhantomJSDriver(capabilities);
+                  currentDriver = BrowserName.HEADLESS;
+                  break;
 
-            case IE:
+               case IE:
 
-               setDriverPropertyIfNecessary(BrowserName.IE);
+                  setDriverPropertyIfNecessary(BrowserName.IE);
 
-               aDriver = new InternetExplorerDriver();
-               currentDriver = BrowserName.IE;
-               break;
+                  aDriver = new InternetExplorerDriver();
+                  currentDriver = BrowserName.IE;
+                  break;
 
-            case GOOGLECHROME:
+               case GOOGLECHROME:
 
-               setDriverPropertyIfNecessary(BrowserName.GOOGLECHROME);
+                  setDriverPropertyIfNecessary(BrowserName.GOOGLECHROME);
 
-               ChromeOptions options = new ChromeOptions();
-               options.addArguments("disable-plugins");
-               options.addArguments("disable-extensions");
+                  ChromeOptions options = new ChromeOptions();
+                  options.addArguments("disable-plugins");
+                  options.addArguments("disable-extensions");
 
-               aDriver = new ChromeDriver(options);
-               currentDriver = BrowserName.GOOGLECHROME;
-               break;
+                  aDriver = new ChromeDriver(options);
+                  currentDriver = BrowserName.GOOGLECHROME;
+                  break;
 
-            case SAUCELABS:
+               case SAUCELABS:
 
-               capabilities = DesiredCapabilities.firefox();
-               capabilities.setCapability("version", "5");
-               capabilities.setCapability("platform", Platform.XP);
-               try {
-                  // add url to environment variables to avoid releasing with source
-                  String sauceURL = System.getenv("SAUCELABS_URL");
-                  aDriver = new RemoteWebDriver(
-                        new URL(sauceURL),
-                        capabilities);
-               } catch (MalformedURLException e) {
-                  e.printStackTrace();
-               }
-               currentDriver = BrowserName.SAUCELABS;
-               break;
+                  capabilities = DesiredCapabilities.firefox();
+                  capabilities.setCapability("version", "5");
+                  capabilities.setCapability("platform", Platform.XP);
+                  try {
+                     // add url to environment variables to avoid releasing with source
+                     String sauceURL = System.getenv("SAUCELABS_URL");
+                     aDriver = new RemoteWebDriver(
+                           new URL(sauceURL),
+                           capabilities);
+                  } catch (MalformedURLException e) {
+                     e.printStackTrace();
+                  }
+                  currentDriver = BrowserName.SAUCELABS;
+                  break;
+            }
+         } catch (Exception e ) {
+            e.printStackTrace();
+            System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
          }
 
 
