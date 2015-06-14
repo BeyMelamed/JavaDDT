@@ -47,6 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * When        |Who      |What
  * ============|=========|====================================
  * 12/30/13    |Bey      |Initial Version
+ * 06/13/15    |Bey      |Add top of email message - same structure as the email header
  * ============|=========|====================================
  */
 public class DDTReporter {
@@ -278,8 +279,6 @@ public class DDTReporter {
          return;
       }
 
-      String extraEmailBody = (isBlank(emailBody) ? "" : "<br>" + emailBody) + "</br>";
-
       // Create the values for the various top sections of the report
       // Project, Module, Mode, Summary
       String[][] environmentItems = getEnvironmentItems();
@@ -315,7 +314,8 @@ public class DDTReporter {
       String emailSubject = "Test Results for Project: " + projectName + ", Section: " + moduleName;
       summary += rangeClause;
 
-      summary += " - Item status included: " + settings.statusToReport().replace(",", ", ") + " (un-reported action steps not counted.)";
+      summary += " - Item status included: " + settings.statusToReport() + " (un-reported action steps not counted.)";
+      summary = summary.replaceAll(", , ", ", ");
 
       String fileName = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS").format(new Date()) + ".xml";
       String folder = settings.reportsFolder() + Util.asSafePathString(description);
@@ -325,6 +325,7 @@ public class DDTReporter {
       String fileSpecs = folder + File.separator + DDTSettings.asValidOSPath(fileName, true);
 
       String extraBlurb = "";
+
       int nReportableSteps = 0;
       XMLOutputFactory factory      = XMLOutputFactory.newInstance();
 
@@ -336,6 +337,7 @@ public class DDTReporter {
          writer.writeCharacters("\n");
 
          // build the xml hierarchy - the innermost portion of it are the steps (see below)
+         // In parallel, build the top portion of the email body.
          writeStartElement(writer, "Project", new String[] {"name"}, new String[] {projectName});
          writeStartElement(writer, "Module", new String[] {"name"}, new String[] {moduleName});
          writeStartElement(writer, "Mode", new String[] {"name"}, new String[] {mode});
@@ -354,14 +356,17 @@ public class DDTReporter {
             if (!(settings.statusToReport().contains(t.getStatus())))
                continue;
             String[] attributes =   new String[] {"Id", "Name", "Status", "ErrDesc"};
-            String[] values = new String[] {t.paddedReportedStepNumber(), t.getUserReport(), t.getStatus(), t.getErrors()};
+            String xmlItem = Util.xmlize(t.getUserReport());
+            if (xmlItem != t.getUserReport())
+               System.out.println("Original: " + t.getUserReport() + "\nAfter: " + xmlItem);
+            String[] values = new String[] {t.paddedReportedStepNumber(), xmlItem, t.getStatus(), t.getErrors()};
             writeStartElement(writer, "Step",attributes, values);
 
             // If step failed, add its description to the failedTestsSummary.
             if (t.hasErrors()) {
                nFailures++;
                String failureBlurb = underscore + "Failure " + nFailures + " - Step: " + t.paddedReportedStepNumber() + underscore;
-               failedTestsSummary.add(failureBlurb + t.toString() + "<p>Errors:</p>" + t.errorsAsHtml() + "<br>");
+               failedTestsSummary.add(failureBlurb + t.reportSummary() + "<p>Errors:</p>" + t.errorsAsHtml() + "<br>");
             }
 
             writeEndElement(writer); // step
@@ -414,6 +419,19 @@ public class DDTReporter {
          e.printStackTrace();
          return;
       }
+
+      String topBlurb =
+            "<b>PROJECT:</b>      " + projectName + "<br>" +
+            "<b>MODULE</b>:       " + moduleName + "<br>" +
+            "<b>SECTION</b>:      " + mode + "<br>" +
+            "<b>OS</b>:           " + osInfo + "<br>" +
+            "<b>ENVIRONMENT</b>:  " + envInfo +  "<br>" +
+            "<b>JAVA</b>:         " + javaInfo + "<br>" +
+            "<b>USER</b>:         " + userInfo + "<br>" +
+            "<b>STATUS</b>:       " + summary + "<br>";
+
+      String extraEmailBody = (isBlank(emailBody) ? "<br>" + topBlurb : "<br>" + topBlurb + "<br>" + emailBody) + "</br>";
+
 
       if (isBlank(settings.emailRecipients())) {
          System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");

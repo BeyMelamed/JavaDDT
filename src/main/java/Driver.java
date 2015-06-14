@@ -58,10 +58,15 @@ public class Driver extends Thread{
    private static boolean avoidRecursiveCall=false;
    public static final String BROWSER_PROPERTY_NAME = "Driver";
    public enum BrowserName{FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, HTMLUNIT, HEADLESS}
+   private static String driverName;
 
    public static BrowserName currentDriver;
 
    private static BrowserName useThisDriver = null;
+
+   public static String getDriverName() {
+      return driverName;
+   }
 
    // default for browsermob localhost:8080
    // default for fiddler: localhost:8888
@@ -69,6 +74,17 @@ public class Driver extends Thread{
 
    public static WebDriver getDriver() {
       return aDriver;
+   }
+
+   public static void refresh(int delaySeconds) {
+      if (isInitialized()) {
+         try {
+            KeyboardEmulator.f5();
+            Thread.sleep(delaySeconds * 1000);
+         }
+         catch (Exception e) {
+         }
+      }
    }
 
    public static boolean isInitialized() {
@@ -87,6 +103,7 @@ public class Driver extends Thread{
 
    public static BrowserName asBrowserName(String browserName) {
       BrowserName result = null;
+      driverName = browserName.toUpperCase();
       switch (browserName.toUpperCase()){
          case "FIREFOX":
             result = BrowserName.FIREFOX;

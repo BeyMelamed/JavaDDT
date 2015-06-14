@@ -6,12 +6,16 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.split;
 
 /**
  * Created with IntelliJ IDEA.
@@ -54,6 +58,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * When        |Who      |What
  * ============|=========|====================================
  * 10/29/14    |Bey      |Initial Version
+ * 06/06/15    |Bey      |Introduce WaitUntio and BranchOnValue, verb names are now case-insensitive
  * ============|=========|====================================
  */
 
@@ -71,42 +76,48 @@ public abstract class Verb extends DDTBase {
    }
 
    /**
+    * @TODO - Use reflection to discover all Verb subclasses instead of hard code those
     * Initialize the verbs structure - need to be modified when a new verb is introduced.
     */
    private static void initializeVerbs() {
+      //Class<?>[] subClasses = Verb.class.getDeclaredClasses();
       verbs = new Hashtable<String, Verb>();
-      verbs.put("click", new Click());
-      verbs.put("clickCell", new ClickCell());
-      verbs.put("createWebDriver", new CreateWebDriver());
-      verbs.put("ensurePageLoaded", new EnsurePageLoaded());
-      verbs.put("findCell", new FindCell());
-      verbs.put("findElement", new FindElement());
-      verbs.put("findOption", new FindOption());
-      verbs.put("generateReport", new GenerateReport());
-      verbs.put("handleAlert", new HandleAlert());
-      verbs.put("maximize", new Maximize());
-      verbs.put("navigateToPage", new NavigateToPage());
-      verbs.put("newTest", new NewTest());
-      verbs.put("notImplemented", new NotImplemented());
-      verbs.put("refreshSettings", new RefreshSettings());
-      verbs.put("quit", new Quit());
-      verbs.put("runCommand", new RunCommand());
-      verbs.put("runJS", new RunJS());
-      verbs.put("saveElementProperty", new SaveElementProperty());
-      verbs.put("scrollWebPage", new ScrollWebPage());
-      verbs.put("selectOption", new SelectOption());
-      verbs.put("sendKeys", new TypeKeys()); // *** Note Exception in verb name ***
-      verbs.put("setPageSize", new SetPageSize());
-      verbs.put("setVars", new SetVars());
-      verbs.put("switchToFrame", new SwitchToFrame());
-      verbs.put("takeScreenShot", new TakeScreenShot());
-      verbs.put("toggle", new Toggle());
-      verbs.put("verify", new Verify());
-      verbs.put("verifyElementSize", new VerifyElementSize());
-      verbs.put("verifyOption", new VerifyOption());
-      verbs.put("verifyWebDriver", new VerifyWebDriver());
-      verbs.put("verifyWebElement", new VerifyWebElement());
-      verbs.put("wait", new Wait());
+      verbs.put("branchOnElementValue".toLowerCase(), new BranchOnElementValue());
+      verbs.put("click".toLowerCase(), new Click());
+      verbs.put("clickCell.toLowerCase()", new ClickCell());
+      verbs.put("createWebDriver".toLowerCase(), new CreateWebDriver());
+      verbs.put("ensurePageLoaded".toLowerCase(), new EnsurePageLoaded());
+      verbs.put("findCell".toLowerCase(), new FindCell());
+      verbs.put("findElement".toLowerCase(), new FindElement());
+      verbs.put("findOption".toLowerCase(), new FindOption());
+      verbs.put("generateReport".toLowerCase(), new GenerateReport());
+      verbs.put("handleAlert".toLowerCase(), new HandleAlert());
+      verbs.put("maximize".toLowerCase(), new Maximize());
+      verbs.put("navigateToPage".toLowerCase(), new NavigateToPage());
+      verbs.put("newTest".toLowerCase(), new NewTest());
+      verbs.put("notImplemented".toLowerCase(), new NotImplemented());
+      verbs.put("refreshSettings".toLowerCase(), new RefreshSettings());
+      verbs.put("quit".toLowerCase(), new Quit());
+      verbs.put("runCommand".toLowerCase(), new RunCommand());
+      verbs.put("runJS".toLowerCase(), new RunJS());
+      verbs.put("saveElementProperty".toLowerCase(), new SaveElementProperty());
+      verbs.put("saveWebDriverProperty".toLowerCase(), new SaveWebDriverProperty());
+      verbs.put("scrollWebPage".toLowerCase(), new ScrollWebPage());
+      verbs.put("selectOption".toLowerCase(), new SelectOption());
+      //verbs.put("searchByTags".toLowerCase(), new SearchByTags());
+      verbs.put("sendKeys".toLowerCase(), new TypeKeys()); // *** Note Exception in verb name ***
+      verbs.put("setPageSize".toLowerCase(), new SetPageSize());
+      verbs.put("setVars".toLowerCase(), new SetVars());
+      verbs.put("switchTo".toLowerCase(), new SwitchTo());
+      verbs.put("takeScreenShot".toLowerCase(), new TakeScreenShot());
+      verbs.put("toggle".toLowerCase(), new Toggle());
+      verbs.put("verify".toLowerCase(), new Verify());
+      verbs.put("verifyElementSize".toLowerCase(), new VerifyElementSize());
+      verbs.put("verifyOption".toLowerCase(), new VerifyOption());
+      verbs.put("verifyWebDriver".toLowerCase(), new VerifyWebDriver());
+      verbs.put("verifyWebElement".toLowerCase(), new VerifyWebElement());
+      verbs.put("wait".toLowerCase(), new Wait());
+      verbs.put("waitUntil".toLowerCase(), new WaitUntil());
    }
 
    public static void invokeForTestItem(TestItem testItem) {
@@ -117,21 +128,21 @@ public abstract class Verb extends DDTBase {
       }
 
       // Ensure testItem's action is represented in the getVerbs() hashMap
-      if (!getVerbs().containsKey(testItem.getAction())) {
+      if (!getVerbs().containsKey(testItem.getAction().toLowerCase())) {
          testItem.addError("Invalid TestItem - 'Action' ('" + testItem.getAction() + "') is not implemented yet!");
          return;
       }
 
       // Ensure testItem's action is indeed, a valid Verb
       // It is OK to check for null as the hashtable's values are Verb instances.
-      if ((getVerbs().get(testItem.getAction()) == null)) {
+      if ((getVerbs().get(testItem.getAction().toLowerCase()) == null)) {
          testItem.addError("Invalid TestItem - 'Action' ('" + testItem.getAction() + "') does not correspond to a valid 'Verb'");
          return;
       }
 
       // invoke this verb - basicDoIt catches errors too
       try {
-         getVerbs().get(testItem.getAction()).basicDoIt(testItem);
+         getVerbs().get(testItem.getAction().toLowerCase()).basicDoIt(testItem);
       }
       catch (Exception e) {
          if (!testItem.hasErrors())
@@ -147,7 +158,7 @@ public abstract class Verb extends DDTBase {
     */
    public static boolean isUIVerb(String action) {
       try {
-         return getVerbs().get(action).isUIVerb();
+         return getVerbs().get(action.toLowerCase()).isUIVerb();
       }
       catch (Exception e) {
          return false;
@@ -164,6 +175,7 @@ public abstract class Verb extends DDTBase {
       super.clear();
       setContext(null);
       setElement(null);
+      getContext().removeErrors();
    }
 
    /**
@@ -195,6 +207,7 @@ public abstract class Verb extends DDTBase {
     */
    public void basicDoIt(TestItem testItem) throws VerbException{
       clear();
+      getContext().removeErrors();
       initializeFromTestItem(testItem);
 
       try {
@@ -330,6 +343,11 @@ public abstract class Verb extends DDTBase {
       }
 
       if (requiresDriver) {
+         WebDriver d = Driver.getDriver();
+         if (!(d instanceof WebDriver)) {
+            Verb.basicAddError(verb, "Web Driver is required but absent!");
+            return;
+         }
          if (!Driver.isInitialized()) {
             Verb.basicAddError(verb, "Action requires Web Driver - but it is not initialized.  Action Failed");
          }
@@ -357,6 +375,256 @@ public abstract class Verb extends DDTBase {
    // ======================================     VERBS     ===============================================
    // ======================== Various implementations of the abstract methods ===========================
    // ====================================================================================================
+
+   /**
+    * Description
+    * BranchOnValue is used in scenarios where one needs to branch to various portions of a given test harness based on several different values in a given web element.
+    * An example is a carouselle like web page that rotates values in a particular element
+    * The logic requires presence of a WebDriver instance.
+    *
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 06/06/15    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class BranchOnElementValue extends Verb {
+
+      public boolean isUIVerb() { return true;}
+      private String[] branches;
+      private String[] values;
+      private String[] queries;
+      private String[] params;
+      private String[] comparisons;
+      private String[] classes;
+      private int iterations;
+
+      private int nBranches = 1;
+
+      /**
+       * Overrides the super classes' basic validation.
+       * Validate this instance's Context and construct the needed arrays for the branching logic.
+       * The context map should have:
+       * Values           - values to branch on
+       * Tags         - InputSpecs to be invoked based on values
+       * Queries          - Query functions to be used by WebQuery
+       * Params           - Query parameter to be used by WebQuery
+       * Compares         - comparison methods to be used by WebQuery
+       * Classses         - object class to be used by Verifier
+       * These are strings delimited by "|" (vertical bars.
+       *
+       * @param verb
+       */
+      private void basicValidation(BranchOnElementValue verb) {
+         super.basicValidation(verb, true);
+         if (this.hasErrors())
+            return;
+
+         // Determine the number of times to try the logic
+         iterations = getContext().getInt("iterations");
+         if (iterations < 1)
+            iterations = 1;
+
+         // Discover the size of branches array - this size will be used by all arrays
+         // Assume the maximum size is MaxBranches for now (@TODO - Parameterize it - @LATER)
+         // Since branch values must exist for all instances, use this to drive the logic.
+
+         String tmp = getContext().getString("Branches");
+         if (isBlank(tmp)) {
+            Verb.basicAddError(this, "Setup error:  Must have at least two branches for this verb to work!");
+            return;
+         }
+
+         branches = split(tmp.toString(), "|");
+         if (branches.length < 2) {
+            Verb.basicAddError(this, "Setup error:  Must have at least two branches for this verb to work!");
+            return;
+         }
+
+         tmp = getContext().getString("Queries");
+         if (isBlank(tmp)) {
+            Verb.basicAddError(this, "Setup error:  Must have at least two queires for this verb to work!");
+            return;
+         }
+
+         queries = split(tmp.toString(), "|");
+         if (queries.length < 2) {
+            Verb.basicAddError(this, "Setup error:  Must have at least two query settings for this verb to work!");
+            return;
+         }
+
+         if (queries.length != branches.length) {
+            Verb.basicAddError(this, "Setup error:  Must have the same number of branches and queries for this verb to work!");
+            return;
+         }
+
+         nBranches = branches.length;
+
+         // Verify there are no blank values in either branches or queries arrays
+
+         String errors = "";
+         String prefix = "";
+         for (int i = 0; i < nBranches; i++) {
+            if (isBlank(branches[i])) {
+              errors += prefix + "Branches no: " + i + " is blank!";
+              prefix = ", ";
+            }
+            if (isBlank(queries[i])) {
+               errors += prefix + "Query no: " + i + " is blank!";
+               prefix = ", ";
+            }
+         }
+
+         if (isNotBlank(errors)) {
+            Verb.basicAddError(this, "Setup Errors encountered: " + errors);
+            return;
+         }
+
+         String key = "";
+         String value = "";
+
+         // Reasonable validations carried, fill up the other arrays
+         // Knowing the number of parameters' array size - create those arrays and fill them with the appropriate values (or blanks)
+
+         values = new String[nBranches];
+         params = new String[nBranches];
+         classes = new String[nBranches];
+         comparisons = new String[nBranches];
+
+         for (int i = 0; i < nBranches; i++) {
+            values[i] = "";
+            params[i] = "";
+            classes[i] = "";
+            comparisons[i] = "";
+         }
+
+         String[] tmpValues = split(getContext().getString("Values"), "|");
+         if (tmpValues == null || tmpValues.length == 0)
+            tmpValues = new String[]{"","","","","","","","","",""};
+         String[] tmpParams = split(getContext().getString("Params"), "|");
+         if (tmpParams == null || tmpParams.length == 0)
+            tmpParams = new String[]{"","","","","","","","","",""};
+         String[] tmpClasses = split(getContext().getString("Classes"), "|");
+         if (tmpClasses == null || tmpClasses.length == 0)
+            tmpClasses = new String[]{"","","","","","","","","",""};
+         String[] tmpCompares = split(getContext().getString("Comparisons"), "|");
+         if (tmpCompares == null || tmpCompares.length == 0)
+            tmpCompares = new String[]{"","","","","","","","","",""};
+
+         // Fill all defined values in each of the emaining parameter arrays ensuring only relevant values within the appropriate size are used.
+         // Branches and Queries have already been handled
+
+         for (int i = 0; i < nBranches; i++) {
+            if (i < tmpValues.length && isNotBlank(tmpValues[i]))
+               values[i] = tmpValues[i].toUpperCase().equals("@BLANK@") ? "" : tmpValues[i];
+            if (i < tmpParams.length && isNotBlank(tmpParams[i]))
+               params[i] = tmpParams[i].toUpperCase().equals("@BLANK@") ? "" : tmpParams[i];
+            if (i < tmpClasses.length && isNotBlank(tmpClasses[i]))
+               classes[i] = tmpClasses[i].toUpperCase().equals("@BLANK@") ? "" : tmpClasses[i];
+            if (i < tmpCompares.length && isNotBlank(tmpCompares[i]))
+               comparisons[i] = tmpCompares[i].toUpperCase().equals("@BLANK@") ? "" : tmpCompares[i];
+         }
+      }
+
+      /**
+       * Following initialization, perform this logic:
+       * 1. Find WebElement - if element not found, quit with error.
+       * 2. Query the WebElement and get actual value
+       * 3. Iterating over the parameeter arrays, verify each instance - the first instance to match - perform the branch to it!
+       *    If none of the parameter sets were sucessfully verified, return with an error.
+       *
+       * @throws VerbException
+       */
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this);
+         if (this.hasErrors())
+            return;
+
+         // Upon return from the basic validation method, the arrays for driving the logic are set up correctly.
+         // Branches and Queries array have values at each index, other arrays may have blanks
+
+         // Iterate {iterations} times over the logic
+         for(int iteration = 1; iteration <= iterations; iteration++) {
+            try {
+
+               clearErrors();
+
+               FindElement.findElement(this);
+               if (hasErrors()) {
+                  clearErrors();
+               }
+               else {
+                  String thisBranch = "";
+                  String thisQuery = "";
+                  String thisParam = "";
+                  String thisComparison = "";
+                  String thisValue = "";
+                  String thisClass = "";
+
+                  boolean found = false;
+                  for (int i = 0; i < nBranches; i++) {
+
+                     thisBranch = branches[i];
+                     thisQuery = queries[i];
+                     thisComparison = comparisons[i];
+                     thisValue = values[i];
+                     thisClass = classes[i];
+
+                     // Reconstruct the test context of the instance in order to carry interrogation of the element, verifications and branching
+                     this.getContext().setProperty("InputSpecs", thisBranch);
+                     this.getContext().setProperty("qryFunction", thisQuery);
+                     this.getContext().setProperty("qryParam", thisParam);
+                     this.getContext().setProperty("Value", thisValue);
+                     this.getContext().setProperty("CompareMode", thisComparison);
+                     this.getContext().setProperty("Class", thisClass);
+
+                     //Verifier verifier = Verifier.getVerifier(getContext());
+                     VerifyWebElement.verifyWebElement(this);
+                     if (isPass()) {
+                        // Upon successful verification results in creation of a new test case...
+                        found = true;
+                        try {
+                           NewTest branch = new NewTest();
+                           branch.getContext().setProperty("InputSpecs", thisBranch);
+                           TestItem testItem = new TestItem("BranchOnElementValue.001", "newTest", "", "", "", "", "InputSpecs=" + thisBranch, "Branching via " + Util.sq(thisBranch) + ", Iteration: " + iteration);
+                           testItem.initialize(1);
+                           branch.getContext().setProperty("TestItem", testItem);
+                           int thisLevel = this.getContext().getInt("level") + 1;
+                           branch.getContext().setProperty("level", thisLevel);
+                           System.out.println("Verification succeeded for option no: " + (i + 1) + ", branching using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration);
+                           NewTest.newTest(branch);
+                           break;
+                        } catch (Throwable e) {
+                           Verb.basicAddComment(this, "Verification succeeded for option no: " + (i + 1) + ", but branching using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration + " FAILED!");
+                           System.out.println(this.getComments());
+                        }
+                     } else
+                        System.out.println("Did not match option no: " + (i + 1) + ", Branch: " + thisBranch + ", Iteration: " + iteration);
+
+                     // Reset errors from verifications, etc. as this is just a relay mechanism, not an application testing mechanism
+                     clearErrors();
+                     if (found) {
+
+                        Verb.basicAddComment(this, "Branching via: " + thisBranch + ",  Iteration: " + iteration);
+                        break;
+                     } else
+                        Verb.basicAddComment(this, "None of the " + nBranches + " were matched! Testing commences.  Iteration: " + iteration);
+
+
+                  }
+               }
+            } catch (Exception e) {
+               setException(e);
+               Verb.basicAddError(this, "Errors encountered in branching logic.  Iteration: " + iteration);
+            }
+         }
+      }
+
+   }
 
    /**
     * Description
@@ -1334,6 +1602,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 06/11/15    |Bey      |Implement Back, Forward, Refresh
     * ============|=========|====================================
     */
 
@@ -1355,8 +1624,16 @@ public abstract class Verb extends DDTBase {
             return;
          }
 
+         WebDriver driver = Driver.getDriver();
+
          try {
-            Driver.getDriver().navigate().to(url);
+            // Determine where user wants to navigate to...
+            switch(url.toLowerCase()) {
+               case "back" : driver.navigate().back();
+               case "forward" : driver.navigate().forward();
+               case "refresh" : driver.navigate().refresh();
+               default:      driver.navigate().to(url);
+            }
             Verb.basicAddComment(this, "Navigated to " + Util.sq(url));
          }
          catch (Exception e) {
@@ -1374,12 +1651,39 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 10/30/14    |Bey      |Initial Version
+    * 06/06/15    |Bey      |Added recursion mechanism (newTest and copy)
     * ============|=========|====================================
     */
 
    public static class NewTest extends Verb {
 
       public boolean isUIVerb() { return false;}
+
+      /**
+       * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param original  - the original FindElement verb
+       * @return
+       */
+      public static NewTest copy(Verb original) {
+         NewTest copy = new NewTest();
+         copy.setContext(original.getContext());
+         return copy;
+      }
+
+      /**
+       * newTest is used mainly for handling the recursive nature of this product where recursion to new test is needed.
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param verb the parent NewTest for which to run on some  input specs
+       * @throws VerbException
+       */
+      public static void newTest(Verb verb) throws VerbException{
+         NewTest actor = NewTest.copy(verb);
+         actor.doIt();
+         verb.addComment(actor.getComments());
+         verb.addError(actor.getErrors());
+         verb.setException(actor.getException());
+      }
 
       public void doIt() throws VerbException{
 
@@ -1786,6 +2090,63 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
+    * SaveWebPageProperty saves the value of some property in a web page to the variables hashtable of the JavaDDT
+    * The test item instance's test context has the details of the property to save and the key to the hashtable.
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 06/12/15    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class SaveWebDriverProperty extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this, true);
+         if (this.hasErrors())
+            return;
+
+         try {
+
+            // Get the name of the variable to save element property in the test context
+            String varName = getContext().getString("SaveAs");
+            if (isBlank(varName)) {
+               Verb.basicAddError(this, "Setup Problem: 'SaveAs' (required) property is missing from the test context!");
+               return;
+            }
+
+            // Interrogate the web driver based on the data properties structure that contain any of:
+            // Function - e.g. GetTTitle, GetCurrentURL, etc.
+            // The UIQuery object 'knows' to save the property if it is found...
+
+            UIQuery.WebDriverQuery weq = new UIQuery.WebDriverQuery();
+            String actualValue = weq.query(getContext());
+
+            if (hasErrors() || weq.hasErrors()) {
+               Verb.basicAddError(this, weq.getErrors() + " - Action Failed");
+               return;
+            }
+
+            Verb.basicAddComment(this, "Query results (" + Util.sq(actualValue) + ") Saved as variable named " + Util.sq(getContext().getString("SaveAs")));
+
+         }
+         catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!hasException())
+               setException(e);
+            Verb.basicAddError(this, "Web Driver verification failed.");
+         }
+
+      }
+   }
+
+   /**
+    * Description
     * ScrollWebPage implements several types of scrolling - page and object into view
     * History
     * When        |Who      |What
@@ -1993,16 +2354,40 @@ public abstract class Verb extends DDTBase {
          String keys = getContext().getString("value");  // The value to enter
          String origKeys = keys;
          boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
-         String shouldTabOut = getContext().getString("tabout");
+         boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
+         boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
+
+         boolean clipboardSpecified = isNotBlank(getContext().getString("clipboard"));
+         String clipboardAction = clipboardSpecified ? getContext().getString("clipboard") : "";
+
+         if (clipboardSpecified) {
+            switch (clipboardAction.toLowerCase()) {
+               case "copy" : KeyboardEmulator.copyToClipboard(); break;
+               case "paste" : KeyboardEmulator.pasteFromClipboard();  break;
+               default: {
+                  Verb.basicAddComment(this, "Faulty setup: Invalid clipboard choice: " + Util.sq(clipboardAction));
+               }
+            }
+            return;
+         }
 
          boolean tabOut;
-         if (StringUtils.isBlank(shouldTabOut))
+         if (!tabOutSpecified)
             tabOut = DDTSettings.Settings().tabOut();
          else
-            tabOut = Util.asBoolean(shouldTabOut);
+            tabOut = getContext().getStringAsBoolean("tabout");
 
          if (tabOut)
             keys += "\t";
+
+         if (enter)
+            keys += "\n";
+
+         /* switch (clipboardAction.toLowerCase()) {
+            case "copy" : keys = Keys.CONTROL('a') + keys = Keys.chord(keys.control, 'c');
+            case "paste" : keys = Keys.chord(keys. .control, 'v') ;
+            default: {}
+         }  */
 
          try {
             if (isNotBlank(getContext().getString("LocSpecs"))) {
@@ -2022,7 +2407,8 @@ public abstract class Verb extends DDTBase {
             }
             else
             {
-               String typedKeys = KeyboardEmulator.type(keys, true);
+               // Special keys ... CTRLA, CTRLV
+               String typedKeys = KeyboardEmulator.type(keys, enter);
                if (keys.equals(typedKeys)) {
                   Verb.basicAddComment(this, "Typed: " + Util.sq(typedKeys));
                }
@@ -2128,20 +2514,25 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
-    * SwitchToFrame instances switch to the specified frame of the current web driver
+    * SwitchTo instances switch to the specified frame or window off the current web driver window
     * The instance's DDTTestContext contains the necessary information
+    * Type        Designates the type of item to switch to (Frame or Window) - Window handles forms or other targets
+    * ItemNo      Designates the (1 based) window / frame number (if known)
+    * Value       A string indicating the name of the window or frame.
+    * If Type is provided, default to a Frame and the logic becomes: find the first one (if any) as though ItemNo=1 was used.
     * History
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 06/10/15    |Bey      |Renamed method and generalized it to frame or window
     * ============|=========|====================================
     */
 
-   public static class SwitchToFrame extends Verb {
+   public static class SwitchTo extends Verb {
 
       public boolean isUIVerb() { return true;}
 
-      public void doIt() throws VerbException{
+      public void doIt() throws VerbException {
 
          debug(this);
 
@@ -2154,24 +2545,124 @@ public abstract class Verb extends DDTBase {
             return;
          }
 
-         WebDriver driver = Driver.getDriver();
+         WebDriver driver = Driver.get();
 
-         String frameName = getContext().getString("value");
-         if (isNotBlank(frameName))
-         {
+         String itemType = getContext().getString("type").toLowerCase();
+         if (isBlank(itemType))
+            itemType = "frame";
+
+         int itemNo = this.getContext().getInt("ItemNo");
+         if (itemNo == 0)
+            itemNo = -1; // this indicates user did not (should have not) indicate frame number.
+
+         // If exists, itemName is used to qualify one of many
+         String itemName = getContext().getString("value");
+         if (isBlank(itemName))
+            itemName = "";
+         if (itemType == "frame")
+            switchFrames(driver, itemName);
+         else
+            switchWindows(driver, itemName);
+      }
+
+      /**
+       * Try to find a frame by its name, number or both
+       * @param driver
+       * @param name
+       * @param item
+       */
+      private void switchFrames(WebDriver driver, String name) {
+         // Try to switch to the named frame - only if item is 0
+
+         if (isNotBlank(name)) {
             try {
-               driver.switchTo().frame(frameName);
-               Verb.basicAddComment(this, "Switched to frame: " + Util.sq(frameName));
-            }
-            catch (Exception e) {
+               driver.switchTo().frame(name);
+               Verb.basicAddComment(this, "Switched to frame: " + Util.sq(name));
+            } catch (Exception e) {
                // Do not overwrite previous exceptions!
+               Verb.basicAddError(this, "Error encountered trying to switch to frame named: " + Util.sq(name));
                if (!hasException())
                   setException(e);
             }
+         } else {
+            try {
+               // Try locating frame by its name
+               WebElement page = driver.findElement(By.xpath("/html"));
+               List<WebElement> elements = page.findElements(By.tagName("iframe"));
+               int nTried = 0;
+               if (elements.size() > 0) {
+                  int index = 1;
+                  String tmpName = name.toLowerCase();
+                  for (WebElement element : elements) {
+                     String itemName = element.getText();
+                     String checkName = itemName.toLowerCase();
+                     if (isNotBlank(checkName) && isNotBlank(tmpName) && checkName.contains(tmpName)) {
+                        try {
+                           driver.switchTo().frame(itemName);
+                           break;
+                        } catch (Exception e) {
+                           Verb.basicAddError(this, "Failed to switch to frame named: " + Util.sq(name));
+                           setException(e);
+                        }
+                     }
+                     nTried += 1;
+                  }
+                  // If we made it here - no frames were found but some existed...
+                  Verb.basicAddError(this, "Failed to switch to frame named: " + Util.sq(name) + " (tried " + nTried + ").");
+
+               } else {
+                  Verb.basicAddError(this, "Current page has no frame items!");
+               }
+            } catch (Exception e) {
+               Verb.basicAddError(this, "Failed to find any target items off of current page.");
+            }
          }
-         else
-            Verb.basicAddError(this, "Frame to switch to is blank.  Action failed");
       }
+
+      /**
+       * Try to find a window by its name or number
+       * @param driver
+       * @param name
+       */
+      private void switchWindows(WebDriver driver, String name) {
+         String parentWindow = driver.getWindowHandle();
+         Set<String> handles = driver.getWindowHandles();
+         int nTried = 0;
+
+         for (String windowHandle : handles) {
+            if (!windowHandle.equals(parentWindow)) {
+               try {
+                  driver.switchTo().window(windowHandle);
+                  String title = driver.getTitle().toLowerCase();
+                  boolean verified = (isBlank(title) || isBlank(name) || title.toLowerCase().contains(name));
+                  if ( verified ) {
+                     break;
+                  }
+                  nTried += 1;
+               }
+               catch (Exception e) {
+                  Verb.basicAddError(this, "Exception while switching Windows!");
+                  setException(e);
+               }
+            }
+         }
+
+         if (nTried > 0) {
+            Verb.basicAddError(this, "Failed to switch to child window with title containing: " + Util.sq(name));
+         }
+      }
+
+      private void switchToDefaultSubWindow(WebDriver driver) {
+         String parentWindow = driver.getWindowHandle();
+         Set<String> handles = driver.getWindowHandles();
+         for (String windowHandle : handles) {
+            if (!windowHandle.equals(parentWindow)) {
+               driver.switchTo().window(windowHandle);
+               break;
+            }
+         }
+      }
+
    }
 
    /**
@@ -2496,6 +2987,11 @@ public abstract class Verb extends DDTBase {
          VerifyWebElement verifier = VerifyWebElement.copy(verb);
          verifier.doIt();
          verb.setElement(verifier.getElement());
+         if (verifier.hasErrors())
+            Verb.basicAddError(verb, verifier.getErrors());
+         else
+            Verb.basicAddComment(verb, verifier.getComments());
+
       }
 
 
@@ -2600,6 +3096,7 @@ public abstract class Verb extends DDTBase {
 
       }
    }
+
    /**
      * Description
      * Wait implements process wait for the specified number of seconds
@@ -2643,6 +3140,105 @@ public abstract class Verb extends DDTBase {
          }
       }
    }
+
+   /**
+    * Description
+    * WaitUntil is used in scenarios where one needs to wait for a value in some web element on a dynamic page and it is not clear when it will appear.
+    * An example is a carouselle like web page that rotates values in a particular element
+    * The logic requires presence of a WebDriver instance.
+    * The logic assumes that throughout the period specified by the input, the locator of the web element of interest remains valid though its value may change
+    *
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 06/06/15    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class WaitUntil extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this, false);
+         if (this.hasErrors())
+            return;
+
+         WebDriver d = Driver.getDriver();
+         if (!(d instanceof WebDriver)) {
+            Verb.basicAddError(this, "Web Driver is required but absent!");
+         }
+         else try {
+            boolean verified = false;
+            boolean timeExhausted = false;
+            DDTDate.DDTDuration duration = new DDTDate.DDTDuration();
+            int totalWaitTime = this.getContext().getInt("TotalWaitTime");
+            int pollingInterval = this.getContext().getInt("WaitInterval");
+            String invokeSpecs =  this.getContext().getString("InputSpecs"); // Optionally, when found invoke this test on the fly.
+
+            if (pollingInterval < 1)
+               pollingInterval = DDTSettings.Settings().waitInterval();
+            int iteration = 0;
+
+            while (true) {
+               // Reset errors prior to trying
+               clearErrors();
+               // 're-find' the element to refresh the one we are interested in
+               try {
+                  iteration++;
+                  verified = false;
+                  //Driver.refresh(1);
+                  //FindElement.findElement(this);
+                  // Referify the element
+                  VerifyWebElement.verifyWebElement(this);
+                  // Verification presumed only if the instance has an web element.
+                  if (this.getElement() instanceof WebElement)
+                     verified = this.isPass();
+               }
+               catch (Exception e) {
+                  System.out.println("Failed Verification, Iteration: " + iteration);
+               }
+
+               duration.setEndTime();
+               timeExhausted = (duration.elapsedTimeInSeconds() > totalWaitTime ? true : false);
+               System.out.println("iteration: " + iteration + ", " + timeExhausted + " " + duration.toString() + " " + duration.elapsedTimeInSeconds() + " " + totalWaitTime + " " + getErrors());
+               // If not done yet, set done to true if total time elapsed
+               if (timeExhausted) {
+                  this.addError("Element failed verification within " + duration.elapsedTimeInSeconds() + " seconds, " + iteration + " iteration(s)");
+                  return;
+               }
+               // If verified, pass, else wait a bit more.
+               if (verified) {
+                  String blurb = "Element found within: " + duration.elapsedTimeInSeconds() + "seconds , " + iteration + " iteration(s)";
+                  if (isNotBlank(invokeSpecs)) {
+                     blurb += ", Invoking item using specs: " + Util.sq(invokeSpecs);
+                  }
+                  Verb.basicAddComment(this, blurb);
+                  if (isNotBlank(invokeSpecs)) {
+                     // Invoke the indicated test case
+                     NewTest branch = new NewTest();
+                     branch.getContext().setProperty("InputSpecs", invokeSpecs);
+                     TestItem testTag = new TestItem("WaitUntil.001",  "newTest",  "",  "",  "",  "",  "InputSpecs=" + invokeSpecs,  "Taging via " + invokeSpecs);
+                     testTag.initialize(1);
+                     branch.getContext().setProperty("TestItem", testTag);
+                     int thisLevel = this.getContext().getInt("level") + 1;
+                     branch.getContext().setProperty("level", thisLevel);
+                     NewTest.newTest(branch);
+                  }
+                  return;
+               }
+               else
+                  Thread.sleep((pollingInterval));
+            }
+         } catch (Exception e) {
+            setException(e);
+         }
+      }
+   }
+
 
    /**
     * Created with IntelliJ IDEA.

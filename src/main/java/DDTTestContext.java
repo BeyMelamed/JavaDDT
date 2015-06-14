@@ -1,3 +1,4 @@
+import org.apache.commons.lang.StringUtils;
 import org.openqa.selenium.WebElement;
 
 import java.security.InvalidKeyException;
@@ -130,6 +131,14 @@ public class DDTTestContext extends Hashtable {
       }
    }
 
+   public void removeErrors() {
+      try {
+         remove("errors");
+      }
+      catch (Exception e) {
+      }
+   }
+
    public Object getProperty(String key) {
       String s = key.toLowerCase();
       if (null != this.get(s))
@@ -138,11 +147,20 @@ public class DDTTestContext extends Hashtable {
    }
 
    public String getString(String key) {
-      return (String) this.getProperty(key);
+      String result = (String) this.getProperty(key);
+      if (StringUtils.isBlank(result))
+         result = "";
+      return result;
    }
 
    public int getInt(String key) {
-      return (int) this.getProperty(key);
+
+      try {
+         return Integer.valueOf(this.getProperty(key.toLowerCase()).toString());
+      }
+      catch (Exception e) {
+         return 0;
+      }
    }
 
    public Long getLong(String key) {
@@ -258,6 +276,9 @@ public class DDTTestContext extends Hashtable {
    }
 
    public void setProperty(String key, Object value) {
+      if (value == null)
+         return; // cannot (exception is thrown when trying to put null
+
       String s = key.toLowerCase();
       if (null != this.get(s))
          this.remove(s);

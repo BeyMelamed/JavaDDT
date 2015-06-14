@@ -107,6 +107,7 @@ public abstract class UIQuery extends DDTBase{
     * ============|=========|====================================
     * 10/02/14    |Bey      |Initial Version
     * 10/26/14    |Bey      |Introduce DDTTestContext functionality
+    * 06/12/15    |Bey      |Fixed bug with query from testContext (was not setting up)
     * ============|=========|====================================
     */
    public static class WebDriverQuery extends UIQuery {
@@ -217,6 +218,7 @@ public abstract class UIQuery extends DDTBase{
        * 'Query' a web driver instance (a property of testItem)
        */
       public String query(DDTTestContext testContext) {
+         setUpFrom(testContext);
          String result = doTheQuery();
 
          return result;

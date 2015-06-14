@@ -1,5 +1,7 @@
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
@@ -35,6 +37,12 @@ public class KeyboardEmulator extends Thread {
    private final static int Shift = KeyEvent.VK_SHIFT;
    private final static int Enter = KeyEvent.VK_ENTER;
    private final static int Tab = KeyEvent.VK_TAB;
+   private final static int F5 = KeyEvent.VK_F5;
+   private final static int CTRL = KeyEvent.VK_CONTROL;
+   private final static int HOME = KeyEvent.VK_HOME;
+   private final static int END = KeyEvent.VK_END;
+   private final static int KeyDown = KeyEvent.VK_DOWN;
+   private final static int KeyUp = KeyEvent.VK_UP;
    private static Robot kb;
    private static String text;
    private static String shiftChars = "!@#$%^&*()_+{}:\"<>?";
@@ -65,6 +73,44 @@ public class KeyboardEmulator extends Thread {
       return text;
    }
 
+   public static void f5() {
+      try {
+         Robot keyboard = getKeyboard();
+         keyboard.keyPress(F5);
+      }
+      catch (AWTException e) {
+
+      }
+   }
+
+   public static void copyToClipboard() {
+      try {
+         Robot keyboard = getKeyboard();
+         // Highlight text
+         keyboard.keyPress(HOME);
+         keyboard.keyPress(Shift);
+         keyboard.keyPress(END);
+         keyboard.keyRelease(Shift);
+
+         keyboard.keyPress(CTRL);
+         keyboard.keyPress(KeyEvent.getExtendedKeyCodeForChar('c'));
+         keyboard.keyRelease(CTRL);
+      }
+      catch (AWTException e) {}
+      finally {}
+   }
+
+   public static void pasteFromClipboard() {
+      try {
+         Robot keyboard = getKeyboard();
+         keyboard.keyPress(CTRL);
+         keyboard.keyPress(KeyEvent.getExtendedKeyCodeForChar('v'));
+         keyboard.keyRelease(CTRL);
+      }
+      catch (AWTException e) {}
+      finally {}
+   }
+
    public static String type(String s, boolean appendEnter) throws AWTException {
       if (isBlank(s))
          return s;
@@ -72,6 +118,7 @@ public class KeyboardEmulator extends Thread {
       String typed = "";
       try {
          Robot keyboard = getKeyboard();
+         keyboard.waitForIdle();
          int size = s.length();
          char c;
          for (int i = 0; i < size; i++) {
@@ -92,7 +139,6 @@ public class KeyboardEmulator extends Thread {
          }
          if (appendEnter) {
             keyboard.keyPress(Enter);
-            keyboard.keyRelease(Enter);
          }
       }
       catch (AWTException e) {
@@ -100,6 +146,15 @@ public class KeyboardEmulator extends Thread {
       }
       finally {
          return typed;
+      }
+   }
+
+   public static void printKeyCodes() {
+      Field[] fields = java.awt.event.KeyEvent.class.getDeclaredFields();
+      for (Field f : fields) {
+         if (Modifier.isStatic(f.getModifiers())) {
+            System.out.println(f.getName());
+         }
       }
    }
 

@@ -402,7 +402,7 @@ public class DDTTestRunner {
       StringBuilder sb = new StringBuilder("Environment: ");
       result[0][0] = "os";
       result[0][1] = "OS Name: " + System.getProperty("os.name") + ", " +
-            "OS Version: " + System.getProperty("os.version") + ", Browser: " + DDTSettings.Settings().browserName();
+            "OS Version: " + System.getProperty("os.version") + ", Browser: " + Driver.getDriverName();
 
       result[1][0] = "env";
       result[1][1] = "Country: " + System.getProperty("user.country") +
@@ -560,6 +560,14 @@ public class DDTTestRunner {
       return errors;
    }
 
+   public void handleTestItemReporting (TestItem testItem) {
+      if (isReportableAction(testItem.getAction())) {
+         getReporter().addDDTest(new DDTReportItem(testItem));
+         if (getReporter().firstReportStep() < 1L)
+            getReporter().setFirstReportStep(currentReportedSessionStep());  // Done only once - reported steps
+         getReporter().setLastReportStep(currentReportedSessionStep());      // Keeps incrementing - reported steps
+      }
+   }
    /**
     * Executes each of the active TestItem instances in the current TestRunner instance.
     */
@@ -630,15 +638,8 @@ public class DDTTestRunner {
                      testItem.setException(e);
                }
                finally {
-
-                  if (isReportableAction(testItem.getAction())) {
-                     getReporter().addDDTest(new DDTReportItem(testItem));
-                     if (getReporter().firstReportStep() < 1L)
-                        getReporter().setFirstReportStep(currentReportedSessionStep());  // Done only once - reported steps
-                     getReporter().setLastReportStep(currentReportedSessionStep());      // Keeps incrementing - reported steps
-                  }
-
                   incrementDone();
+                  handleTestItemReporting(testItem);
                }
 
                // If settings indicates pausing after a UI step, do it
@@ -683,6 +684,7 @@ public class DDTTestRunner {
             }  // if testItem.active
             else {
                incrementSkip();
+               handleTestItemReporting(testItem);
             }
             // Consider Termination at the test case or test session level
             if (shouldQuitTestCase || shouldQuitTestSession) {
@@ -748,6 +750,7 @@ public class DDTTestRunner {
          }
       }
    }
+
 
    /**
     * The starting point of the test run - use the args array or use defaults from DDTSettings.Settings()

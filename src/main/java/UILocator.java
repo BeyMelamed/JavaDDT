@@ -133,7 +133,6 @@ public abstract class UILocator extends DDTBase{
       String locSpecs = "";
       waitPollPeriod = 50;
       waitTimeInSeconds = 5L;
-
    }
    /**
     * Locate a UI component as per the specifics and context of the TestItem instance
@@ -201,7 +200,7 @@ public abstract class UILocator extends DDTBase{
 
       @Override
       /**
-       * Locates a WebUI Element based on the context in TestItem.
+       * Locates a WebUI Element based on the context in testContext.
        * If found testItem.element is set to the located element
        * Else, testItem.errors and exceptions indicate the issue.
        */
@@ -213,7 +212,8 @@ public abstract class UILocator extends DDTBase{
          }
 
          try {
-            setElement(locate());
+            WebElement el = locate();
+            setElement(el);
             testContext.setProperty("Element", getElement());
             if (!(isBlank(getErrors())))
                testContext.addError(getErrors());

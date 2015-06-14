@@ -806,6 +806,60 @@ public class DDTDate extends DDTBase{
          return new Period(getEndTime().getTime() - getStartTime().getTime());
       }
 
+      /**
+       *
+       * @return Answer the elapsed time in milliseconds.
+       */
+      public int elapsedTimeInMillis() {
+         setEndTime();
+         Period p = this.asPeriod();
+
+         return p.getMillis() + elapsedTimeInSeconds() * 60;
+      }
+
+      /**
+       *
+       * @return Answer the elapsed time in seconds.
+       */
+      public int elapsedTimeInSeconds() {
+         setEndTime();
+         Period p = this.asPeriod();
+         return p.getSeconds() + elapsedTimeInMinutes() * 60;
+      }
+
+      /**
+       *
+       * @return Answer the elapsed time in minutes
+       */
+      public int elapsedTimeInMinutes() {
+         setEndTime();
+         Period p = this.asPeriod();
+
+         return p.getMinutes() + p.getHours() * 60;
+      }
+
+      /**
+       *
+       * @return Answer the elapsed time in hours
+       */
+      public int elapsedTimeInHours() {
+         setEndTime();
+         Period p = this.asPeriod();
+
+         return p.getHours();
+      }
+
+      /**
+       *
+       * @return Answer the elapsed time in days
+       */
+      public int elapsedTimeInDays() {
+         setEndTime();
+         Period p = this.asPeriod();
+
+         return p.getDays();
+      }
+
       @Override
       public String toString() {
 

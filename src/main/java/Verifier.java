@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.commons.lang3.StringUtils.trim;
 
 /**
@@ -45,6 +46,7 @@ import static org.apache.commons.lang3.StringUtils.trim;
  * 05/10/14    |Bey      |Added 'Between' comparison mode
  * 05/12/14    |Bey      |Added 'stripWhiteSpace' parameter (and data token)
  * 10/28/14    |Bey      |Inherit from DDTBase
+ * 06/12/15    |Bey      |VerifyString -  introduce Not Equal comparison
  * ============|=========|====================================
  */
 public class Verifier extends DDTBase{
@@ -242,6 +244,16 @@ public class Verifier extends DDTBase{
       setupMultiVerification();
    }
 
+   public String toString() {
+      String result = "Exp: " + Util.sq(getEv()) + ", Act: " + Util.sq(getAv()) + ", Cmp: " + Util.sq(getComp());
+      if (isNotBlank(getCls()))
+         result += ", Cls: " + Util.sq(getCls());
+      if (isNotBlank(getOpt()))
+         result += ", Option: " + Util.sq(getOpt());
+
+      return result;
+   }
+
    public void setEv(String value) {
       this.expectedValue =  value;
    }
@@ -365,6 +377,7 @@ public class Verifier extends DDTBase{
       }
 
       try {
+
          switch (getCls().toLowerCase()) {
             case "" : verifyStrings() ; break;
             case "int" :case "integer" :
@@ -397,7 +410,7 @@ public class Verifier extends DDTBase{
                break;
             }
 
-            case "amount" : case "currency" :case "money" :
+            case "currency" :
             {
                AmountVerifier verifier = new AmountVerifier(getEv(), getAv(), getComp(), getOpt(), getCls(), getStripWhiteSpace());
                if (isBlank(verifier.getErrors()))
@@ -417,7 +430,7 @@ public class Verifier extends DDTBase{
                break;
             }
 
-            default: addError("Invalid object class specified: " +Util.sq(getCls()));
+            default: addError("Invalid numeric object class specified: " +Util.sq(getCls()) + ", options are: " + NumberVerifier.ValidFormats);
          } // Switch
 
       } //Try
@@ -492,6 +505,15 @@ public class Verifier extends DDTBase{
                   addComment(getStandardComment());
                else
                   addError(getStandardError());
+               break;
+            }
+            case "ne" :case "notequalsto" : case "notequalto" : case "notequal" :case "notequals" :case "!=" :case "<>":
+            {
+               if (!actual.equals(expected))
+                  addComment(getStandardComment());
+               else
+                  addError(getStandardError());
+
                break;
             }
             case "startswith" :case "startwith" :
@@ -582,7 +604,17 @@ public class Verifier extends DDTBase{
    } //VerifyStrings - the default verification logic
 
    private class NumberVerifier extends Verifier {
+      int comparisonResult=0;
 
+      public int getComparisonResult() {
+         return comparisonResult;
+      }
+
+      public void setComparisonResult(int value) {
+         comparisonResult = value;
+      }
+
+      private static final String ValidFormats =   "'int', 'long', 'double', 'float', 'decimal', 'currency', 'date'";
       private NumberVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
          super(ev, av, md, opt, cls, stripWhiteSpace);
          removeGroupingSeparator();
@@ -602,23 +634,26 @@ public class Verifier extends DDTBase{
 
       /**
        * Verifies whether expectation is met based on the (numeric) instance's values.
-       * The values to compare are numbers of some sort.
+       * The values to compare are numbers of some sort and have been compared to one another before to produce the comparisonResult
+       *  1: Actual > expected
+       * -1: Expected > Actual
+       *  0: Expected = Actual
        * @throws Exception
        */
 
-      public void verify(Number expected, Number actual) throws Exception {
+      public void verify(Number actual) throws Exception {
          String compareMode = getComp().toLowerCase();
 
          // If comparison method not specified, get it from the settings.
          if (StringUtils.isBlank(compareMode))
-            compareMode = "equals";
+            compareMode = DDTSettings.Settings().defaultComparison().toLowerCase();
 
          try {
 
             switch (compareMode) {
                case "equals" :case "equal" : case "is" :case "=" : case "eq" : case "==" :
                {
-                  if (actual.equals(expected))
+                  if (getComparisonResult() == 0)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -626,7 +661,7 @@ public class Verifier extends DDTBase{
                }
                case "gt" : case "greaterthan" : case ">" :
                {
-                  if (actual.hashCode() > expected.hashCode())
+                  if (getComparisonResult() == 1)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -635,7 +670,7 @@ public class Verifier extends DDTBase{
                }
                case "ge" : case "greaterthanorequalsto" : case "greaterthanorequalto" :case ">=": case "=>" :
                {
-                  if (actual.hashCode() >= expected.hashCode())
+                  if (getComparisonResult() > -1)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -644,7 +679,7 @@ public class Verifier extends DDTBase{
                }
                case "lt" :case "lessthan" :case "<":
                {
-                  if (actual.hashCode() < expected.hashCode())
+                  if (getComparisonResult() == -1)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -653,7 +688,7 @@ public class Verifier extends DDTBase{
                }
                case "le" :case "lessthanorequalsto" : case "lessthanorequalto" :case "<=" : case "=<" :
                {
-                  if (actual.hashCode() <= expected.hashCode())
+                  if (getComparisonResult() < 0)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -661,7 +696,7 @@ public class Verifier extends DDTBase{
                }
                case "ne" :case "notequalsto" : case "notequalto" :case "!=" :
                {
-                  if (actual.hashCode() != expected.hashCode())
+                  if (getComparisonResult() != 0)
                      addComment(getStandardComment());
                   else
                      addError(getStandardError());
@@ -747,8 +782,15 @@ public class Verifier extends DDTBase{
       }
 
       public void verify() throws Exception {
+         if (actual == expected)
+            setComparisonResult(0);
+         if (actual > expected)
+            setComparisonResult(1);
+         if (actual < expected)
+            setComparisonResult(-1);
+
          if (isBlank(getErrors()))
-            verify(expected, BigDecimal.valueOf(actual * 1.00));
+            verify(BigDecimal.valueOf(actual * 1.00));
       }
    }
 
@@ -774,7 +816,6 @@ public class Verifier extends DDTBase{
             } catch (Exception ex) {
                blurb = "Invalid (expected) Long value: " + Util.sq(getEv()) + "  ";
             }
-
          }
 
          try {
@@ -789,8 +830,10 @@ public class Verifier extends DDTBase{
       }
 
       public void verify() throws Exception {
+         if (actual != null && expected != null)
+            setComparisonResult(actual.compareTo(expected));
          if (isBlank(getErrors()))
-            verify(expected, BigDecimal.valueOf((Long) actual * 1.00));
+            verify(BigDecimal.valueOf((Long) actual * 1.00));
       }
    }
 
@@ -831,7 +874,9 @@ public class Verifier extends DDTBase{
       }  // setValuesFromStrings
 
       public void verify() throws Exception {
-         verify(expected, actual);
+         if (expected != null && actual != null)
+            setComparisonResult(actual.compareTo(expected));
+         verify(actual);
       }
    }  // Decimal Verifier
 
@@ -878,7 +923,10 @@ public class Verifier extends DDTBase{
       } // setValuesFromStrings
 
       public void verify() throws Exception {
-         verify(expected, actual);
+         if (actual != null && expected != null)
+            setComparisonResult(actual.compareTo(expected));
+
+         verify(actual);
       }
    }  // NumberVerifier
 

@@ -116,6 +116,52 @@ public class Util {
       return result;
    }
 
+   /**
+    * Replaces a string with xml special characters converted to their corresponding code
+    * @param text
+    * @return a string with xml special characters converted to their corresponding code
+    */
+   public static String xmlize(String text, String version) {
+      String result="";
+      String xmlVersion = version;
+      String xmlPattern = "";
+      if (isBlank(text))
+         return result;
+
+      if (isBlank(xmlVersion))
+         xmlVersion = "1.0";
+
+      switch (xmlVersion) {
+         case "1.0":
+            xmlPattern = "[^"
+                  + "\u0009\r\n"
+                  + "\u0020-\uD7FF"
+                  + "\uE000-\uFFFD"
+                  + "\ud800\udc00-\udbff\udfff"
+                  + "]";
+
+         case "1.1":
+            xmlPattern = "[^"
+                  + "\u0009\r\n"
+                  + "\u0020-\uD7FF"
+                  + "\uE000-\uFFFD"
+                  + "\ud800\udc00-\udbff\udfff"
+                  + "]";
+         default:
+            xmlPattern = "[^"
+               + "\u0001-\uD7FF"
+               + "\uE000-\uFFFD"
+               + "\ud800\udc00-\udbff\udfff"
+               + "]+";
+      }
+      result = text.replaceAll(xmlVersion, text);
+      return result;
+   }
+
+   public static String xmlize(String text) {
+      return xmlize(text, "1.0");
+   }
+
    public static String append(String strOld, String strNew, String strSep){
       String result = "";
       String prefix = "";

@@ -1,6 +1,3 @@
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.apache.commons.lang.StringUtils.isBlank;
 
 /**
@@ -38,6 +35,8 @@ public class DDTReportItem extends DDTBase {
    private String status;
    private Long sessionStepNumber = 0L;
    private DDTTestContext testContext = null;
+   private String description;
+   private String id;
 
    public DDTReportItem() {
 
@@ -53,45 +52,8 @@ public class DDTReportItem extends DDTBase {
       addError(testItem.getErrors());
       addComment(testItem.getComments());
       setSessionStepNumber(testItem.getSessionStepNumber());
-   }
-
-   /**
-    * Set an instance of DDTReportItem from a Verb instance
-    * @param
-    */
-   public DDTReportItem(Verb verb) {
-      DDTTestContext tmp = verb.getContext();
-      tmp.setProperty("action", verb.myName());
-      setTestContext(tmp);
-      setStatus(verb.hasErrors() ? "FAIL" : "PASS");
-      addError(verb.getErrors());
-      addComment(verb.getComments());
-      setUserReport(tmp.toString());
-      setSessionStepNumber(verb.myName());
-   }
-
-   /**
-    * Set an instance of DDTReportItem from status and description
-    * This provides for a basic reporting without the 'heavy-weight' details incorporated into TestItem instance
-    * @param testItem
-    */
-   public DDTReportItem(String status, String description) {
-      setUserReport(description);
-      setStatus(status);
-      setSessionStepNumber("testing");
-   }
-
-   /**
-    * Set an instance of DDTReportItem from status, description, comments and errors
-    * This provides for a basic+ reporting without the 'heavy-weight' details incorporated into TestItem instance
-    * @param testItem
-    */
-   public DDTReportItem(String status, String description, String comments, String errors) {
-      setUserReport(description);
-      setStatus(status);
-      addComment(comments);
-      addError(errors);
-      setSessionStepNumber("testing");
+      setId(testItem.getId());
+      setDescription(testItem.getDescription());
    }
 
    public void setSessionStepNumber(Long value) {
@@ -102,6 +64,22 @@ public class DDTReportItem extends DDTBase {
       if (sessionStepNumber == null)
          setSessionStepNumber("testing"); // The 'testing' screen should 'consider' this item as a reportable step
       return sessionStepNumber;
+   }
+
+   public void setDescription(String value) {
+      description = value;
+   }
+
+   public String getDescription() {
+      return description;
+   }
+
+   public void setId(String value) {
+      id = value;
+   }
+
+   public String getId() {
+      return id;
    }
 
    /**
@@ -166,5 +144,28 @@ public class DDTReportItem extends DDTBase {
 
       return sb.toString();
    }
+
+   public String reportSummary() {
+      StringBuilder sb = new StringBuilder("");
+
+      if (!isBlank(getId())) {
+         sb.append("ID: " + getId());
+      }
+
+      if (!isBlank(getDescription())) {
+         if (sb.length() > 0)
+            sb.append(", ");
+         sb.append("Description: " + getDescription());
+      }
+
+      if (!isBlank(getComments())) {
+         if (sb.length() > 0)
+            sb.append(", ");
+         sb.append("Comments: " + getComments());
+      }
+
+      return sb.toString();
+   }
+
 
 }
