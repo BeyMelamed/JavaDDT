@@ -127,7 +127,7 @@ public class DDTTestContext extends Hashtable {
       if (isNotBlank(value)) {
          String s = (String)this.getProperty("errors");
          s = Util.append(s, value, ", ");
-         this.setProperty("Errors", s);
+         this.setProperty("errors", s);
       }
    }
 
@@ -137,6 +137,10 @@ public class DDTTestContext extends Hashtable {
       }
       catch (Exception e) {
       }
+   }
+
+   public boolean containErrors() {
+      return !StringUtils.isBlank(getString("errors"));
    }
 
    public Object getProperty(String key) {

@@ -6,8 +6,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -99,12 +98,12 @@ public abstract class Verb extends DDTBase {
       verbs.put("refreshSettings".toLowerCase(), new RefreshSettings());
       verbs.put("quit".toLowerCase(), new Quit());
       verbs.put("runCommand".toLowerCase(), new RunCommand());
+      verbs.put("runExternalMethod".toLowerCase(), new RunExternalMethod());
       verbs.put("runJS".toLowerCase(), new RunJS());
       verbs.put("saveElementProperty".toLowerCase(), new SaveElementProperty());
       verbs.put("saveWebDriverProperty".toLowerCase(), new SaveWebDriverProperty());
       verbs.put("scrollWebPage".toLowerCase(), new ScrollWebPage());
       verbs.put("selectOption".toLowerCase(), new SelectOption());
-      //verbs.put("searchByTags".toLowerCase(), new SearchByTags());
       verbs.put("sendKeys".toLowerCase(), new TypeKeys()); // *** Note Exception in verb name ***
       verbs.put("setPageSize".toLowerCase(), new SetPageSize());
       verbs.put("setVars".toLowerCase(), new SetVars());
@@ -173,7 +172,7 @@ public abstract class Verb extends DDTBase {
 
    public void clear() {
       super.clear();
-      setContext(null);
+      setContext(null); // Will be lazily initialized to an empty context
       setElement(null);
       getContext().removeErrors();
    }
@@ -352,7 +351,6 @@ public abstract class Verb extends DDTBase {
             Verb.basicAddError(verb, "Action requires Web Driver - but it is not initialized.  Action Failed");
          }
       }
-
    }
 
    private static void basicAddError(Verb verb, String blurb) {
@@ -417,7 +415,7 @@ public abstract class Verb extends DDTBase {
        * @param verb
        */
       private void basicValidation(BranchOnElementValue verb) {
-         super.basicValidation(verb, true);
+         super.basicValidation(verb, isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -467,8 +465,8 @@ public abstract class Verb extends DDTBase {
          String prefix = "";
          for (int i = 0; i < nBranches; i++) {
             if (isBlank(branches[i])) {
-              errors += prefix + "Branches no: " + i + " is blank!";
-              prefix = ", ";
+               errors += prefix + "Branches no: " + i + " is blank!";
+               prefix = ", ";
             }
             if (isBlank(queries[i])) {
                errors += prefix + "Query no: " + i + " is blank!";
@@ -548,16 +546,24 @@ public abstract class Verb extends DDTBase {
          // Branches and Queries array have values at each index, other arrays may have blanks
 
          // Iterate {iterations} times over the logic
+         boolean found = false;
          for(int iteration = 1; iteration <= iterations; iteration++) {
+            if (found)
+               break;
+            clearComments();
+            System.out.println("*** Iteration: " + iteration + " ***");
             try {
 
                clearErrors();
-
+               setElement(null);
                FindElement.findElement(this);
+
                if (hasErrors()) {
                   clearErrors();
+                  Verb.basicAddComment(this,"Errors encountered while trying to find common element!  Terminating action.");
                }
                else {
+                  String actualText = this.getElement().getText();
                   String thisBranch = "";
                   String thisQuery = "";
                   String thisParam = "";
@@ -565,9 +571,8 @@ public abstract class Verb extends DDTBase {
                   String thisValue = "";
                   String thisClass = "";
 
-                  boolean found = false;
                   for (int i = 0; i < nBranches; i++) {
-
+                     found = false;
                      thisBranch = branches[i];
                      thisQuery = queries[i];
                      thisComparison = comparisons[i];
@@ -597,25 +602,36 @@ public abstract class Verb extends DDTBase {
                            branch.getContext().setProperty("level", thisLevel);
                            System.out.println("Verification succeeded for option no: " + (i + 1) + ", branching using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration);
                            NewTest.newTest(branch);
-                           break;
+                           System.out.println("Back From Branching for option no: " + (i + 1) + ", branching using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration);
                         } catch (Throwable e) {
-                           Verb.basicAddComment(this, "Verification succeeded for option no: " + (i + 1) + ", but branching using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration + " FAILED!");
+                           Verb.basicAddComment(this, "Verification succeeded for option no: " + (i + 1) + ", but test case branched to using inputSpecs of: " + Util.sq(thisBranch) + ", Iteration: " + iteration + " FAILED!");
+                           setException(e);
                            System.out.println(this.getComments());
                         }
+                        finally {
+                           System.out.println("Breaking on iteration " + iteration);
+                           break;
+                        }
                      } else
-                        System.out.println("Did not match option no: " + (i + 1) + ", Branch: " + thisBranch + ", Iteration: " + iteration);
+                        System.out.println("Did not match option no: " + (i + 1) + ", Branch: " + thisBranch + ", Iteration: " + iteration +", actual: " + actualText);
 
                      // Reset errors from verifications, etc. as this is just a relay mechanism, not an application testing mechanism
                      clearErrors();
                      if (found) {
-
-                        Verb.basicAddComment(this, "Branching via: " + thisBranch + ",  Iteration: " + iteration);
+                        Verb.basicAddComment(this, "Branched via: " + thisBranch + ",  Iteration: " + iteration);
                         break;
-                     } else
-                        Verb.basicAddComment(this, "None of the " + nBranches + " were matched! Testing commences.  Iteration: " + iteration);
-
-
+                     } else {
+                        try {
+                           System.out.println("Sleeeping after option no: " + (i + 1) + ", Branch: " + thisBranch + ", Iteration: " + iteration);
+                           Thread.sleep(1000);
+                        }
+                        catch(Exception e) {
+                           Verb.basicAddComment(this, "Failed on Thread.sleep! Testing commences.  Iteration: " + iteration);
+                        }
+                     }
                   }
+                  if (!found)
+                     Verb.basicAddComment(this, "None of the " + nBranches + " branch options were matched following " + iterations  + " iterations! Actual Text: " + actualText);
                }
             } catch (Exception e) {
                setException(e);
@@ -645,7 +661,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1177,7 +1193,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1189,7 +1205,7 @@ public abstract class Verb extends DDTBase {
             return;
 
          this.setElement(locator.getElement());
-         Verb.basicAddComment(this, "Element Found");
+         Verb.basicAddComment(this, "Element Found!");
 
          // Support for saving elements in TestRunner's elements Map
          // Support for saving elements in TestRunner's elements Map
@@ -1397,7 +1413,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1420,8 +1436,8 @@ public abstract class Verb extends DDTBase {
          if (0L == waitInSeconds)
             waitInSeconds = DDTSettings.Settings().waitTime();
          int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
-            if (waitIntervalMillis ==0)
-               waitIntervalMillis = DDTSettings.Settings().waitInterval();
+         if (waitIntervalMillis ==0)
+            waitIntervalMillis = DDTSettings.Settings().waitInterval();
 
          WebDriver driver = Driver.getDriver();
 
@@ -1614,7 +1630,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1689,7 +1705,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, false);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1861,7 +1877,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, false);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -1939,6 +1955,169 @@ public abstract class Verb extends DDTBase {
             setException(e);
          }
       }
+   }
+
+   /**
+    * Description
+    * RunExternalMethod instances provide an extesibility to the DDT project
+    * For this verb to work, the class in which to run and the method to invoke must be within the class path of the project.
+    * The method must  be a boolean method.
+    * The method can either accept no parameters (if it needs no context to work with) or an instance instance of DDTTestContext...
+    * A method must be provided.
+    * If a class is not provided, the DDTExternal class within the DDT project is the developer sandbox - it is bereft of any methods except for two methods that are used for demo purposes
+    * iPass - always passes
+    * iFail - always fails
+    * The instance's DDTTestContext contains the necessary information (class, method)
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 06/14/15    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class RunExternalMethod extends Verb {
+      private String methodName = "";
+      private String className = "DDTExternal"; // Default
+      private String constructorTypeName = "DDTTestContext";  // Default
+      private boolean isDriverRequired = true;  // More exploration of this feature will indicate more clearly what the default should be...
+
+      // If the external method is, indeed, a UI method, it has to take care of its own handling of a web driver
+      // or use the instance's context where the DDT (singleton) driver will be passed)
+      // To avoid clashing with DDT design we set this to false...
+      public boolean isUIVerb() { return false;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         methodName = this.getContext().getString("method");
+         if (isBlank(methodName))  {
+            Verb.basicAddError(this, "Faulty Setup.  Method Name is required but is missing for this verb.  Action failed.");
+            return;
+         }
+
+         className = this.getContext().getString("class");
+         if (isBlank(className))  {
+            Verb.basicAddComment(this, "No class name provided, using project's default class name (DDTExternal).");
+         }
+
+         constructorTypeName = this.getContext().getString("type");
+         if (isBlank(constructorTypeName))  {
+            Verb.basicAddComment(this, "No constructor type name provided, using the default constructor type of (DDTTContext).");
+         }
+
+         isDriverRequired =  this.getContext().getBoolean("driverRequired");
+
+         basicValidation(this, isDriverRequired);
+         if (this.hasErrors())
+            return;
+
+         try {
+            if (isDriverRequired)
+               this.getContext().setProperty("driver", Driver.getDriver());
+
+            invokeMethod(className, methodName, constructorTypeName, this.getContext());
+
+         } catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!hasException())
+               setException(e);
+         }
+      }
+
+      /**
+       * Invokes an action whose name is specified by className
+       * Use reflection to convert className to a method in the DDTExternal class that, by convention uses a DDTTestContext parameter as its input parameter.
+       * TODO Make it more generic (handle classes other than DDTExternal, do not insist on DDTTestContext as a parameter to the invoked method ad find a way ?listener? to get results.)
+       */
+      private boolean invokeMethod(String className, String methodName, String typeName, DDTTestContext testContext) throws Exception {
+
+         Method m = null;
+         Class c = null;
+         Class cc = null;
+
+         if (isBlank(className)) {
+            Verb.basicAddError(this, "Faulty Setup: Class name is required for this verb.");
+            return false;
+         }
+
+         try {
+            c = Class.forName(className);
+         }
+         catch (Exception e ) {
+            Verb.basicAddError(this, "Failed to get class for class named " + Util.sq(className));
+            setException(e);
+            return false;
+         }
+
+         if (typeName.toLowerCase() == "null") {
+            // do nothing it is already so defined
+         }
+         else {
+            try {
+               cc = Class.forName(typeName);
+            }
+            catch (Exception e ) {
+               Verb.basicAddError(this, "Failed to get class for constructor named " + Util.sq(constructorTypeName));
+               setException(e);
+               return false;
+            }
+         }
+
+         try {
+            m = getMethod(c, cc, methodName);
+            if (m == null) {
+               Verb.basicAddError(this, "Failed to get method for class " + Util.sq(className) + ", method " + Util.sq(methodName));
+               return false;
+            }
+
+            m.setAccessible(true);
+            m.invoke(new DDTExternal(), testContext);
+
+            if (testContext.containErrors()) {
+               Verb.basicAddError(this, testContext.getString("errors"));
+               return false;
+            }
+
+            String comments = testContext.getString("comments");
+            if (isBlank(comments))
+               comments = "Method " + Util.sq(methodName) + " in class " + Util.sq(className) + " invoked successfully and passed!";
+            Verb.basicAddComment(this, comments);
+            return true;
+         }
+         catch (NoSuchMethodException e) {
+            Verb.basicAddError(this, "Failed to get method for class " + Util.sq(className) + ", method " + Util.sq(methodName) + " is an invalid method for the class.");
+            setException(e);
+            return false;
+         }
+      }
+
+      /**
+       * Gets a method from the DDTExternal class (for now, hard-coded!) with a parameter of class DDTTestContext (for now, hard coded)
+       */
+      private Method getMethod (Class cls, Class parameterType, String methodName) throws NoSuchMethodException {
+         Method m = null;
+         Method[] methods;
+
+         if (isBlank(methodName))
+            return m;
+
+
+         try {
+            // TODO - figure out how to avoid hard-coding here of both, class name and parameterType class.
+            // As is, we basically ignore cls and parameterType parameters
+            m = DDTExternal.class.getDeclaredMethod(methodName, new Class[] {DDTTestContext.class});
+         }
+         catch (NoSuchMethodException e) {
+            setException(e);
+            return m;
+         }
+         catch(Exception e) {
+            setException(e);
+         }
+         return m;
+      }
+
    }
 
    /**
@@ -2347,7 +2526,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -2536,7 +2715,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -2952,7 +3131,7 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
-    * VerifyOption implements verification of an option in a drop-down or similar control
+    * VerifyWeb Element implements verification of a web element on a web page
     * History
     * When        |Who      |What
     * ============|=========|====================================
@@ -2999,7 +3178,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -3060,7 +3239,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, true);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -3163,7 +3342,7 @@ public abstract class Verb extends DDTBase {
 
          debug(this);
 
-         basicValidation(this, false);
+         basicValidation(this, this.isUIVerb());
          if (this.hasErrors())
             return;
 
@@ -3201,6 +3380,9 @@ public abstract class Verb extends DDTBase {
                catch (Exception e) {
                   System.out.println("Failed Verification, Iteration: " + iteration);
                }
+               finally {
+
+               }
 
                duration.setEndTime();
                timeExhausted = (duration.elapsedTimeInSeconds() > totalWaitTime ? true : false);
@@ -3212,7 +3394,7 @@ public abstract class Verb extends DDTBase {
                }
                // If verified, pass, else wait a bit more.
                if (verified) {
-                  String blurb = "Element found within: " + duration.elapsedTimeInSeconds() + "seconds , " + iteration + " iteration(s)";
+                  String blurb = "Element found within: " + duration.elapsedTimeInSeconds() + " seconds , " + iteration + " iteration(s)";
                   if (isNotBlank(invokeSpecs)) {
                      blurb += ", Invoking item using specs: " + Util.sq(invokeSpecs);
                   }
@@ -3238,7 +3420,6 @@ public abstract class Verb extends DDTBase {
          }
       }
    }
-
 
    /**
     * Created with IntelliJ IDEA.

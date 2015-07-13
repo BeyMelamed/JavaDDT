@@ -39,6 +39,9 @@ public class DDTBase {
    private Throwable exception;
    private WebElement element = null;
 
+   public DDTBase() {
+
+   }
    public void addError(String value) {
       if (!isBlank(value))
          errors = isBlank(getErrors()) ?  value : getErrors() + ", " + value;

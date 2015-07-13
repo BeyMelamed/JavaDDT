@@ -121,8 +121,7 @@ public abstract class UIQuery extends DDTBase{
        */
       //@Override
       public void setUpFrom(TestItem testItem) {
-         setFunctionName(testItem.getQryFunction());
-         setSaveAs(testItem.getDataProperties().getString("saveAs"));
+         setUpFrom(testItem.getDataProperties());
       }
 
       /**

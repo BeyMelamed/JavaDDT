@@ -133,6 +133,10 @@ public class Driver extends Thread{
       return result;
    }
 
+   /**
+    * 06/23/2015 Ignore Certificate Errors
+    * @return driver
+    */
    public static WebDriver get() {
 
       if(useThisDriver == null){
