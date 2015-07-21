@@ -186,7 +186,7 @@ public class DDTTestContext extends Hashtable {
    public boolean getBoolean(String key) {
       if (!this.containsKey(key.toLowerCase()))
          return false;
-      return (boolean) this.getProperty(key.toLowerCase());
+      return Util.asBoolean(this.getString(key.toLowerCase()));
    }
 
    public boolean getStringAsBoolean(String key) {

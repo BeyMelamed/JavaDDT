@@ -666,6 +666,8 @@ public abstract class Verb extends DDTBase {
          if (this.hasErrors())
             return;
 
+           boolean doubleClick = getContext().getBoolean("double");
+
          try {
             FindElement.findElement(this);
             if (hasErrors())
@@ -674,6 +676,10 @@ public abstract class Verb extends DDTBase {
                if (getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).perform();
                   getElement().click();
+                  if (doubleClick) {
+                      Thread.sleep(100);
+                      getElement().click();
+                  }
                   Verb.basicAddComment(this, "Element Clicked");
                } else
                   Verb.basicAddError(this, "Element not enabled - action failed");
