@@ -59,8 +59,8 @@ public class Verifier extends DDTBase{
    private String option;
    private String cls;
    private boolean stripWhiteSpace;
-   private boolean orVerifier;
    private boolean andVerifier;
+   private boolean orVerifier;
 
    /**
     *   Prepare string array for multiple verifications of 'or' or 'and' and set the type of multiple operation if any

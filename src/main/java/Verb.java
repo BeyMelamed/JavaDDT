@@ -91,6 +91,7 @@ public abstract class Verb extends DDTBase {
       verbs.put("findOption".toLowerCase(), new FindOption());
       verbs.put("generateReport".toLowerCase(), new GenerateReport());
       verbs.put("handleAlert".toLowerCase(), new HandleAlert());
+      verbs.put("hover".toLowerCase(), new Hover());
       verbs.put("maximize".toLowerCase(), new Maximize());
       verbs.put("navigateToPage".toLowerCase(), new NavigateToPage());
       verbs.put("newTest".toLowerCase(), new NewTest());
@@ -1572,6 +1573,61 @@ public abstract class Verb extends DDTBase {
             // Do not overwrite previous exceptions!
             if (!hasException())
                setException(e);
+         }
+      }
+   }
+
+   /**
+    * Description
+    * Hover instances are used to hover over a web element for some period of time - typically used to get drop-down menus or options displayed
+    * The instance's DDTTestContext contains the necessary information
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 07/14/15    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class Hover extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException{
+
+         debug(this);
+
+         basicValidation(this, true);
+         if (this.hasErrors())
+            return;
+
+         // Get the expected response from the data properties structure.
+         // If exists, ensure it is valid, if blank, assume Accept.
+         String waitTime = getContext().getString("waittime");
+         if (isBlank(waitTime))
+            waitTime = "1";
+         // Make the seconds to long milliseconds
+         waitTime += "000";
+
+         Long longWaitTime = 1000L; // One second
+         try {
+            longWaitTime = Long.parseLong(waitTime);
+         }
+         catch (Exception e) {
+            // Do nothing - just use one second
+         }
+
+         // Find the element to hover over
+         FindElement.findElement(this);
+         if (hasErrors())
+            return;
+
+         if ((getElement() instanceof WebElement)) {
+            Actions action = new Actions(Driver.getDriver());
+            action.moveToElement(getElement()).build().perform();
+            try {
+               Thread.sleep(longWaitTime);
+            }
+            catch (InterruptedException t) {}
          }
       }
    }

@@ -387,6 +387,7 @@ public abstract class UILocator extends DDTBase{
     * When        |Who      |What
     * ============|=========|====================================
     * 06/25/15    |Bey      |Initial Version
+    * 07/14/15    |Bey      |Introduce instancesFoFind logic allowing for finding the nth element that matches search.
     * ============|=========|====================================
     */
    public class UILocatorByTag extends WebUILocator {
@@ -397,6 +398,9 @@ public abstract class UILocator extends DDTBase{
       private Verifier verifier = null;
       private DDTTestContext testContext;
       private int elementsInspected = 0;
+      private int instanceToFind = 0;
+      private int instancesFound = 0;
+      private int iteration = 1;
 
       public UILocatorByTag() {
 
@@ -421,6 +425,11 @@ public abstract class UILocator extends DDTBase{
          setElement(context.getElement());
 
          tagsArray = tags.split(",");
+         // Try to find the nTh instance (not, necessrily the first one)
+         instanceToFind = testContext.getStringAsInteger("instance");
+         // Consider only Nth instance greater than one (one is the default)
+         if (instanceToFind < 2)
+            instanceToFind = 0;
       }
 
       public int getElementsInspected() {
@@ -459,14 +468,20 @@ public abstract class UILocator extends DDTBase{
             List<WebElement> traversalElements = element.findElements(By.tagName(tags[index]));
             for (WebElement e1 : traversalElements) {
                traverseFromParentElement(e1, tags, index + 1);
-               if (foundElement())
-                  break;
+               if (foundElement()) {
+                  instancesFound++;
+                  if (instancesFound >= instanceToFind)
+                     break;
+               }
             }
          }
          else {
             // The traversal has reached its verification level
             // for each web element at this traversal level, setup a verifier and a WebElement Query in order to (dis)qualify the element
             List<WebElement> qualifyElements = element.findElements(By.tagName(tags[index]));
+            // increment the number of iteration at the significant level
+            iteration++;
+
             for (WebElement e2 : qualifyElements) {
                clearErrors();
                elementsInspected++;
@@ -482,7 +497,7 @@ public abstract class UILocator extends DDTBase{
                   verifier.verify();
                   if (verifier.isPass()) {
                      foundElement = e2;
-                     addComment("Element found (element number: " + elementsInspected + ", Tag Level: " + (index + 1));
+                     addComment("Element found (element number: " + elementsInspected + ", Tag Level: " + (index + 1) + ", iteration: " + iteration);
                      break;
                   }
                }

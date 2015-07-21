@@ -39,6 +39,8 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 12/11/13    |Bey      |Initial Version
  * 05/08/14    |Bey      |Introduce Time Zone Adjustment
  * 06/22/14    |Bey      |Change format of test items provider specs
+ * 07/20/15    |Bey      |Fixed issue with File.separator for getting OS independent file name
+ *                       |Ensure all driver file names are not named .exe on non-windows OS
  * ============|=========|====================================
  * @TODO - set up all properties from property file (handle non string types), introduce all email properties to Settings
  */
@@ -449,10 +451,10 @@ public class DDTSettings {
          return "";
       if (toLower)
          path = path.toLowerCase();
-      if (DDTSettings.separator() == "\\")
-         return path.replace("\\", "/");
-      else
+      if (File.separator == "\\")
          return path.replace("/", "\\");
+      else
+         return path.replace("\\", "/");
    }
 
    /**
@@ -580,7 +582,11 @@ public class DDTSettings {
    }
 
    private void setIEDriverFileName(String value) {
-      ieDriverFileName = DDTSettings.asValidOSPath(value, true);
+      String tmp = value;
+      if (!isWindowsOS()) {
+         tmp = tmp.toLowerCase().replace(".exe", "");
+      }
+      ieDriverFileName = DDTSettings.asValidOSPath(tmp, true);
    }
 
    public String ieDriverFileName() {

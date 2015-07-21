@@ -322,7 +322,7 @@ public class DDTReporter {
 
       // Ensure the folder exists - if no exception is thrown, it does!
       File tmp = Util.setupReportFolder( DDTSettings.asValidOSPath(folder, true));
-      String fileSpecs = folder + File.separator + DDTSettings.asValidOSPath(fileName, true);
+      String fileSpecs = DDTSettings.asValidOSPath(folder + File.separator + fileName, true);
 
       String extraBlurb = "";
 
