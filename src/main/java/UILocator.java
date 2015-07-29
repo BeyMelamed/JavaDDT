@@ -171,6 +171,8 @@ public abstract class UILocator extends DDTBase{
     * 10/26/14    |Bey      |Introduce DDTTestContext usage in addition to TestItem
     * 10/28/14    |Bey      |Inherit from DDTBase
     * 06/26/15    |Bey      |Introduce TagLocator
+    * 07/24/15    |Bey      |Changed Locator Array Delimiter to '^' to handle commas in locator value,
+    *                       |Fixed message text bug (cosmetic)
     * ============|=========|====================================
     */
    public static class WebUILocator extends UILocator {
@@ -278,8 +280,8 @@ public abstract class UILocator extends DDTBase{
           * Implement a version of Chaining made of comma delimited 'how' and 'searchValue' fragments.
           */
 
-         String[] hows = how.split(",");
-         String[] searchValues = searchValue.split(",");
+         String[] hows = how.split("^");
+         String[] searchValues = searchValue.split("^");
          chainedSpecs = new By[hows.length];
 
          try {
@@ -325,7 +327,7 @@ public abstract class UILocator extends DDTBase{
                   }
 
                   default: {
-                     addError("Locator Setup Error: Invalid 'How' search property indicated (" + Util.sq(thisHow + ")"));
+                     addError("Locator Setup Error: Invalid 'How' search property indicated (" + Util.sq(thisHow) + ")");
                      return;
                   }
                }

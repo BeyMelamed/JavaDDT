@@ -1,10 +1,12 @@
+import com.relevantcodes.extentreports.ExtentTest;
+import com.relevantcodes.extentreports.LogStatus;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.Period;
 import org.openqa.selenium.WebElement;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
 
 import static org.apache.commons.lang.StringUtils.*;
 
@@ -38,6 +40,8 @@ import static org.apache.commons.lang.StringUtils.*;
  * 03/14/14    |Bey      |Initial Version
  * 09/19/14    |Bey      |Added automatic step ID numeric suffix generation - initialize(int stepNo) when step id ends with '#'
  * 10/28/14    |Bey      |Inherit from DDTBase
+ * 07/24/15    |Bey      |Level property handling in reporting items
+ * 07/27/15    |Bey      |Implement Extent Reporting
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -69,10 +73,12 @@ public class TestItem extends DDTBase{
    private Long parentStepNumber;            // The step number of the instance's 'parent'
    private TestItem parentTestItem;          // The instance's parent testItem
    private TestStringsProviderSpecs providerSpecs;
+   private ExtentTest extentTest;            // This is needed when the reporting session is the Extent reporting
    DDTDate.DDTDuration duration;
 
    public static final String LevelToken = "level";
 
+   public static final boolean isNestedReporting = DDTSettings.Settings().nestedReporting();
    /**
     * Class function playing part in customizing the way a test item appears in reports -
     * User has control over this by changing strings in the ddt.prperties file
@@ -136,6 +142,10 @@ public class TestItem extends DDTBase{
             case "exceptiontrace" :
             {
                if (isNotBlank(item.exceptionTrace())) value = "Trace: " + item.exceptionTrace() ; break;
+            }
+            case "level" :
+            {
+               value = "Level: " + item.getLevel() ; break;
             }
             case "exceptioncause" :
             {
@@ -264,6 +274,7 @@ public class TestItem extends DDTBase{
 
       savedProperties = new DDTTestContext();
 
+      setExtentTest();
    }
 
    /**
@@ -344,7 +355,53 @@ public class TestItem extends DDTBase{
       return description;
    }
 
+   private void setExtentTest() {
+      extentTest = DDTReporter.getExtentTestInstance(this);
+   }
+
+   public ExtentTest getExtentTest() {
+      return extentTest;
+   }
+
 // ====================================== End Setter / Getter Section ================================
+
+   // Finalize the ExtentTest instance of this item...
+   public void finalizeExtentTest() {
+      ExtentTest test = getExtentTest();
+      if (test instanceof ExtentTest) {
+      if (test.getTest().hasEnded)
+         return;
+
+      String reportStyle = DDTSettings.Settings().reportingStyle();
+      if (!reportStyle.equalsIgnoreCase("extent") || isEmpty())
+         return;
+
+
+      String allText = getComments().isEmpty() ? "" : "Comments: " + getComments();
+
+      // Handle status
+      if (hasErrors())
+         allText = allText.isEmpty() ? "Errors: " + getErrors() : allText + ", Errors: " + getErrors();
+
+      if (hasErrors()) {
+         test.log(LogStatus.FAIL, allText);
+      }
+      else
+         if (this.isSkipItem() || !this.isActive())
+            test.log(LogStatus.SKIP, getDescription());
+         else
+            test.log(LogStatus.PASS, getDescription());
+
+      // Add screen caputre if needed
+      if (!getScreenShotFileName().isEmpty())
+         test.addScreenCapture(getScreenShotFileName());
+
+      DDTReporter.getExtentReportInstance().endTest(test);
+      DDTReporter.getExtentReportInstance().flush();
+      } else {
+          addError("Failed to obtain ExtentTest in finalizeExtentTest method.");
+      }
+   }
 
    public void setParentStepNumber(Long value) {
       parentStepNumber = value;
@@ -390,32 +447,11 @@ public class TestItem extends DDTBase{
       return dataProperties;
    }
 
-   public void setElement(WebElement value) {
-      element = value;
-   }
-   public WebElement getElement() {
-      return element;
-   }
-
    public void setMrElement(WebElement value) {
       mrElement = value;
    }
    public WebElement getMrElement() {
       return mrElement;
-   }
-
-   public int getWaitInterval() {
-      String waitInterval;
-      int result = -1;
-
-      waitInterval =  (String) dataProperties.get("waitinterval");
-
-      result = (isBlank(waitInterval) || !isNumeric(waitInterval)) ? 0 : Integer.parseInt(waitInterval);
-
-      if (result < 1)
-         result = DDTSettings.Settings().waitInterval();
-
-      return result;
    }
 
    /**
@@ -435,14 +471,6 @@ public class TestItem extends DDTBase{
 
    public int getLevel() {
       return level;
-   }
-   public void addSavedProperty(String varName, String propertyValue) {
-      if (isNotBlank(varName)) {
-         String key = varName.toLowerCase();
-         if (savedProperties.containsKey(key))
-            savedProperties.remove(key);
-         savedProperties.put(key, propertyValue);
-      }
    }
 
    private void initDuration() {
@@ -654,10 +682,6 @@ public class TestItem extends DDTBase{
       return result;
    }
 
-   public void setParentInputWorksheetName(String value) {
-      parentInputWorksheetName = value;
-   }
-
    public String getParentInputSegment() {
       String result = "";
       if (getParentTestItem() instanceof TestItem)
@@ -694,15 +718,6 @@ public class TestItem extends DDTBase{
       return getDescription().toLowerCase().contains(":debug:");
    }
 
-   public String errorsAsHtml() {
-
-      if (this.hasErrors()) {
-         return getErrors().replace("\n", "<br>");
-      }
-      else
-         return "";
-   }
-
    public boolean isFailure() {
       return (hasException() || hasErrors());
    }
@@ -712,12 +727,6 @@ public class TestItem extends DDTBase{
       return isBlank(id) && isBlank(action) && isBlank(locType) && isBlank(data) && isBlank(qryFunction);
    }
 
-   public boolean shouldSaveProperty() {
-      return !hasErrors() &&
-            isNotBlank(locType) &&
-            isNotBlank(getSaveAs()) &&
-            (Driver.isInitialized());
-   }
    public String pad() {
       return (level < 1) ? "" : StringUtils.left("-----------------", level) + " ";
    }
@@ -773,19 +782,6 @@ public class TestItem extends DDTBase{
 
    public void setCurrTime() {
       this.currTime = new Date();
-   }
-
-   /**
-    * Save the properties present in the instance's savedProperties hashtable
-    */
-   public void saveProperties() {
-      Set keys = savedProperties.entrySet();
-      if (keys.size() < 1)
-         return;
-
-      String blurb = (String) Util.populateDictionaryFromHashtable(savedProperties, DDTTestRunner.getVarsMap());
-      savedProperties.clear();
-      addComment(blurb);
    }
 
    /**
@@ -878,12 +874,15 @@ public class TestItem extends DDTBase{
     * When        |Who      |What
     * ============|=========|====================================
     * 06/07/14    |Bey      |Initial Version
+    * 07/24/15    |Bey      |Include Level in report templates
+    * 07/27/15    |Bey      |Implement Extent Reporting
     * ============|=========|====================================
     */
    public static class TestItems {
 
       private TestItem[] testItems = new TestItem[0];
       private TestItem parentItem = null;
+      private int level;
 
       public TestItems() {
 
@@ -905,6 +904,14 @@ public class TestItem extends DDTBase{
          if (getItems() == null)
             return 0;
          return getItems().length;
+      }
+
+      public void setLevel(int value) {
+         level = value;
+      }
+
+      public int getLevel() {
+         return level;
       }
 
       public String getInputProvider() {

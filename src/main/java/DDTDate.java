@@ -3,10 +3,12 @@ import org.joda.time.DurationFieldType;
 import org.joda.time.MutableDateTime;
 import org.joda.time.Period;
 
+import java.security.InvalidParameterException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Locale;
 
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -46,6 +48,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 06/23/14  |Bey            |Git Recommit
  * 10/20/14  |Bey            |Fix Time Zone Adjustment bug (avoid double timezone adjustment) + Streamline class - removed unused code.
  * 10/28/14  |Bey            |Inheritance from DDTBase
+ * 07/23/15  |Bey            |Add Locale specification - for now, on the Settings level only (not on the fly)
  * ==========|===============|========================================================
  */
 public class DDTDate extends DDTBase{
@@ -70,6 +73,8 @@ public class DDTDate extends DDTBase{
    private DurationFieldType durationUnit;
    private String outputType;
    private String outputStyle;
+   private Locale locale;
+   private String localeCode; // do not set a default in order to default to current locale
 
    public DDTDate()
    {
@@ -104,11 +109,34 @@ public class DDTDate extends DDTBase{
    }
 
    public String getOutput() {
-      return output;
-   }
+      return output;  }
 
    private void setOutputType (String value) {
       outputType = value;
+   }
+
+   public String getLocaleCode() {
+      return localeCode + "";
+   }
+
+   public void setLocaleCode(String value){
+      localeCode = value;
+   }
+
+   public Locale getLocale() {
+      return locale;
+   }
+
+   // Use this constructor when the locale is a string ("en")
+   public void setLocale (String value) {
+      if (isNotEmpty(value))
+         locale = new Locale(value);
+      else {
+         if (isNotEmpty(localeCode))
+            locale = new Locale(localeCode);
+         else
+            locale = new Locale("en");
+      }
    }
 
    public String getOutputType() {
@@ -154,6 +182,14 @@ public class DDTDate extends DDTBase{
 
     // ======================== End Getters / Setters ========================
 
+    private void initializeLocale() {
+       // For now, set locale code only on the Settings level.
+       // If needed, add feature to update on the fly...
+       setLocaleCode(DDTSettings.Settings().localeCode());
+       setLocale(getLocaleCode());
+
+    }
+
     /**
     * Sets the date from a properly formatted string with the following logical structure
     * %DATE{+/-}{digits}{unitType},{outputType},{outputStyle}@
@@ -165,6 +201,7 @@ public class DDTDate extends DDTBase{
     */
    public void initialize(String input) {
       try {
+         initializeLocale();
          parseInput(input);
          if (!(getException() instanceof Exception))
             setOutput();
@@ -178,6 +215,7 @@ public class DDTDate extends DDTBase{
     * Initializes the instance's referenceDate with the 'Server' date (datetime stamp adjusted by timezone adjustment)
     */
    private void initializeReferenceDate() {
+      initializeLocale();
       DateTime result = new DateTime();
       int timeZoneAdjustmentInHours = DDTSettings.Settings().getTimeZoneAdjustmentInHours();
       setReferenceDate(result.plusHours(timeZoneAdjustmentInHours).toMutableDateTime());
@@ -266,6 +304,8 @@ public class DDTDate extends DDTBase{
     * The variables maintained here are formatted with a prefix to distinguish them from other, user defined variables.
     *
     * @TODO: enable Locale modifications (at present the test machine's locale is considered and within a test session only one locale can be tested)
+    *        WikiPedia: https://en.wikipedia.org/wiki/Date_format_by_country
+    *        Stack Overflow (coes) http://stackoverflow.com/questions/3191664/list-of-all-locales-and-their-short-codes
     * @param varsMap
     */
    private void maintainDateProperties(Hashtable<String, Object> varsMap) throws Exception {
@@ -274,10 +314,10 @@ public class DDTDate extends DDTBase{
 
       try {
          // Build formatting objects for each of the output styles
-         DateFormat shortStyleFormatter  = DateFormat.getDateInstance(DateFormat.SHORT);
-         DateFormat mediumStyleFormatter = DateFormat.getDateInstance(DateFormat.MEDIUM);
-         DateFormat longStyleFormatter   = DateFormat.getDateInstance(DateFormat.LONG);
-         DateFormat fullStyleFormatter   = DateFormat.getDateInstance(DateFormat.FULL);
+         DateFormat shortStyleFormatter  = DateFormat.getDateInstance(DateFormat.SHORT, getLocale());
+         DateFormat mediumStyleFormatter = DateFormat.getDateInstance(DateFormat.MEDIUM, getLocale());
+         DateFormat longStyleFormatter   = DateFormat.getDateInstance(DateFormat.LONG, getLocale());
+         DateFormat fullStyleFormatter   = DateFormat.getDateInstance(DateFormat.FULL, getLocale());
 
          // Use a dedicated variable to hold values of formatting results to facilitate debugging
          // @TODO (maybe) when done debugging - convert to inline calls to maintainDateProperty ...
@@ -510,6 +550,7 @@ public class DDTDate extends DDTBase{
    private void parseMathComponent(String component) {
       boolean foundUnit = false;
       boolean shouldAdd = component.startsWith("+");
+      boolean shouldSubtract = component.startsWith("-");
       // strip the sign to add or subtract
       String tmp = component.substring(1).toLowerCase();
       for (int j = 0; j < DateUnits.length; j++) {
@@ -525,7 +566,13 @@ public class DDTDate extends DDTBase{
             }
 
             try {
-               setUnits (shouldAdd ? Integer.valueOf(tmp) : (0 - Integer.valueOf(tmp)));
+               if (!shouldAdd && !shouldSubtract) {
+                  setException(new InvalidParameterException("Invalid Specification - Use '+' or '-' to add or subtract date units!"));
+                  return;
+               }
+               else {
+                  setUnits (shouldAdd ? Integer.valueOf(tmp) : (0 - Integer.valueOf(tmp)));
+               }
             }
             catch (Exception e) {
                setException(e);

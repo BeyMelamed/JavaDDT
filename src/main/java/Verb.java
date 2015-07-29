@@ -6,6 +6,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -666,7 +667,8 @@ public abstract class Verb extends DDTBase {
          if (this.hasErrors())
             return;
 
-           boolean doubleClick = getContext().getBoolean("double");
+         boolean doubleClick = getContext().getBoolean("double");
+         String prefix = doubleClick ? "(Double) " : "";
 
          try {
             FindElement.findElement(this);
@@ -680,7 +682,7 @@ public abstract class Verb extends DDTBase {
                       Thread.sleep(100);
                       getElement().click();
                   }
-                  Verb.basicAddComment(this, "Element Clicked");
+                  Verb.basicAddComment(this, "Element " + prefix + "Clicked");
                } else
                   Verb.basicAddError(this, "Element not enabled - action failed");
             } else Verb.basicAddError(this, "Failed to find Web Element - Element not clicked!");
@@ -1491,7 +1493,7 @@ public abstract class Verb extends DDTBase {
             return;
 
          try {
-            String description = getContext().getString("Description");
+            String description = getContext().getString("Title");
             String emailBody = getContext().getString("EmailBody");
 
             DDTTestRunner.generateReport(description, emailBody);
@@ -1730,6 +1732,7 @@ public abstract class Verb extends DDTBase {
     * ============|=========|====================================
     * 10/30/14    |Bey      |Initial Version
     * 06/06/15    |Bey      |Added recursion mechanism (newTest and copy)
+    * 07/24/15    |Bey      |Fix issues with level propagation
     * ============|=========|====================================
     */
 
@@ -1773,11 +1776,10 @@ public abstract class Verb extends DDTBase {
 
          try {
             TestItem testItem = (TestItem) getContext().getProperty("testItem");
+            int level = 1 + testItem.getLevel();
             String[][] testItemStrings;
             String inputSpecs = getContext().getString("InputSpecs");
-            if (!getContext().containsKey("level"))
-               getContext().put("level", 1);
-            int level = getContext().getInt("Level");
+            getContext().setProperty("level", level);
 
             // Test Items Strings provider - String[n][] where each of the n rows is a collection of strings making up a TestItem instance.
             // stringProviderSpecs contains information about the test item strings provider - err out if it is invalid.
@@ -1804,6 +1806,17 @@ public abstract class Verb extends DDTBase {
             runner.setTestItems(testItems);
             runner.setParentStepNumber(testItem.getSessionStepNumber());
             runner.processTestItems();
+            if (TestItem.isNestedReporting) {
+               for (TestItem item : testItems.getItems()) {
+                  if (!item.isEmpty()) {
+                     //item.finalizeExtentTest();
+                     testItem.getExtentTest().appendChild(item.getExtentTest());
+                     item.finalizeExtentTest();
+                  }
+               }
+
+               testItem.finalizeExtentTest();
+            }
             if (runner.failed()) {
                String error = (isBlank(testItem.getErrors()) ? "" : testItem.getErrors()) + (" " + runner.getErrors().trim());
                if (isBlank(error)) {
@@ -1928,6 +1941,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 10/31/14    |Bey      |Initial Version
+    * 07/26/15    |Bey      |Fix bug with output buffer
     * ============|=========|====================================
     */
 
@@ -1957,10 +1971,12 @@ public abstract class Verb extends DDTBase {
             file = DDTSettings.Settings().scriptsFolder() + file;
          }
 
+         // @TODO Figure out how to handle Linux / Unix executables more elegantly (the code below works with fully qualified path as in "/bin/sh" instead of "sh" for system commands
+         // String os = System.getProperty("os.name").toLowerCase();
          File f = new File(DDTSettings.asValidOSPath(file, true));
          if(!(f.exists()) || f.isDirectory()) {
-            Verb.basicAddError(this, "File " + Util.sq(file) + " is not a valid script or executable file - Action aborted.");
-            return;
+             Verb.basicAddError(this, "File " + Util.sq(file) + " is not a valid script or executable file - Action aborted.");
+             return;
          }
 
          // Create a parameters array, the first of which is the (executable) file name with optional parameters
@@ -2001,7 +2017,7 @@ public abstract class Verb extends DDTBase {
             Process pr = rt.exec(args);
             StringBuilder sbE = new StringBuilder (pr.getErrorStream().read());
             String errors = sbE.toString();
-            StringBuilder sbO = new StringBuilder (pr.getErrorStream().read());
+            OutputStream sbO = pr.getOutputStream();
             String output = sbO.toString();
 
             if (!isBlank(errors)) {

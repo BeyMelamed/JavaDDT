@@ -1,3 +1,5 @@
+import com.relevantcodes.extentreports.ExtentReports;
+import com.relevantcodes.extentreports.ExtentTest;
 import mx4j.tools.adaptor.http.XSLTProcessor;
 
 import javax.mail.MessagingException;
@@ -12,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.*;
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -43,23 +45,40 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * Session level is generated at the end of the test session.
  * Section level is generated per user's request via a verb 'generateReport' - enabling reporting segmentation.
  * Note the various 'session' vs. 'section' methods below.
+ * @TODO - resolve issues with invalid characters in elements or page title (e.g., char(92) messes up xml document)
+ *         See http://stackoverflow.com/questions/4134438/saving-an-escape-character-0x1b-in-an-xml-file   for discussion.
  * History
  * When        |Who      |What
  * ============|=========|====================================
  * 12/30/13    |Bey      |Initial Version
  * 06/13/15    |Bey      |Add top of email message - same structure as the email header
+ * 07/24/15    |Bey      |Various improvements & bugs (desciption handling)
+ * 07/26/15    |Bey      |Implement Extent Reports
  * ============|=========|====================================
  */
 public class DDTReporter {
+   /**
+    * Used for creation of session summary strings
+    */
+   private final int _BLURB = 0;
+   private final int _PROJECT = 1;
+   private final int _MODULE = 2;
+   private final int _SECTION = 3;
+   private final int _OS = 4;
+   private final int _ENV = 5;
+   private final int _JAVA = 6;
+   private final int _USER = 7;
+   private final int _STATUS = 8;
 
    private static Long firstSessionStep = 0L;
    private static Long lastSessionStep = 0L;
    private static DDTDate.DDTDuration sessionDuration;
    private static DDTDate.DDTDuration sectionDuration;
+   private static ExtentReports extentReport;
 
    //private List<TestEvent> testEvents;
    private List<DDTReportItem> testItems;
-   private boolean reportGenerated=false;
+   private boolean reportGenerated = false;
    private DDTSettings settings = DDTSettings.Settings();
    private Long firstReportStep = 0L;
    private Long lastReportStep = 0L;
@@ -87,6 +106,54 @@ public class DDTReporter {
          sessionDuration = new DDTDate.DDTDuration();
    }
 
+   // Generate Extent Reporter Instance
+   public static ExtentReports getExtentReportInstance() {
+      String reportStyle = DDTSettings.Settings().reportingStyle();
+      if (!reportStyle.equalsIgnoreCase("extent"))
+         return null;
+
+      if (extentReport == null) {
+         String defaultFileName = DDTSettings.Settings().reportsFolder();
+         if (!defaultFileName.endsWith("\\") && !defaultFileName.endsWith("/"))
+            defaultFileName += "\\";
+         defaultFileName += DDTSettings.Settings().reportFileName();
+         defaultFileName = DDTSettings.asValidOSPath(defaultFileName, true);
+         extentReport = new ExtentReports(defaultFileName, true);
+
+         // optional
+         extentReport.config()
+               .documentTitle(DDTSettings.Settings().projectName())
+               .reportName("Regression")
+               .reportHeadline("");
+
+         // optional
+         extentReport
+               .addSystemInfo("User Home", System.getProperty("user.home"))
+               .addSystemInfo("Project Home", System.getProperty("user.dir"))
+               .addSystemInfo("Java Home", System.getProperty("java.home"))
+               .addSystemInfo("Country", System.getProperty("user.country"))
+               .addSystemInfo("Time Zone", System.getProperty("user.timezone"));
+      }
+      return extentReport;
+   }
+
+   public static ExtentTest getExtentTestInstance(TestItem testItem) {
+      String reportStyle = DDTSettings.Settings().reportingStyle();
+      if (!reportStyle.equalsIgnoreCase("extent"))
+         return null;
+
+      String testDescription = testItem.getUserReport();
+      if (testDescription.isEmpty())
+         testDescription = testItem.getId();
+      if (testDescription.isEmpty())
+         testDescription = "Test Step " + testItem.paddedReportedStepNumber();
+
+      String testName = testItem.pad() + testItem.getId() + " - " + testItem.getDescription();
+      //ExtentTest test = new ExtentTest(testName, testDescription);
+      ExtentTest test = getExtentReportInstance().startTest(testName, testDescription);
+      return test;
+   }
+
    public String sessionImagesFolderName() {
       return getSessionFolderName("images");
    }
@@ -103,7 +170,8 @@ public class DDTReporter {
       }
       return result;
    }
-   public static String sessionDurationString () {
+
+   public static String sessionDurationString() {
       return sessionDuration.toString();
    }
 
@@ -114,15 +182,15 @@ public class DDTReporter {
       nSkip = skipped;
    }
 
-   public void resetDuration () {
+   public void resetDuration() {
       this.sectionDuration = new DDTDate.DDTDuration();
    }
 
-   public void resetFailedSteps () {
+   public void resetFailedSteps() {
       this.failedTestsSummary = new ArrayList<>();
    }
 
-   public String durationString () {
+   public String durationString() {
       return sectionDuration.toString();
    }
 
@@ -132,6 +200,7 @@ public class DDTReporter {
 
    /**
     * Add the report item to the list and update the result counters based on its status string (pass, fail, skip)
+    *
     * @param reportItem
     */
    public void addDDTest(DDTReportItem reportItem) {
@@ -145,11 +214,11 @@ public class DDTReporter {
          nSkip++;
    }
 
-   private void setDDTests (List<DDTReportItem> value) {
+   private void setDDTests(List<DDTReportItem> value) {
       testItems = value;
    }
 
-   public List<DDTReportItem> getDDTests () {
+   public List<DDTReportItem> getDDTests() {
       if (testItems == null)
          setDDTests(new ArrayList<DDTReportItem>());
       return testItems;
@@ -193,6 +262,7 @@ public class DDTReporter {
 
 
    private static String[][] getEnvironmentItems() {
+
       return DDTTestRunner.getEnvironmentItems();
    }
 
@@ -200,7 +270,7 @@ public class DDTReporter {
       return (DDTTestRunner.nSessionFail() > 0) ? "Session Failed" : "Session Passed";
    }
 
-   private String sessionFailBlurb () {
+   private String sessionFailBlurb() {
       String result = sessionPassFail() + ": " +
             DDTTestRunner.nSessionDone() + " steps processed, " +
             DDTTestRunner.nSessionFail() + " failed, " +
@@ -211,7 +281,7 @@ public class DDTReporter {
       return result;
    }
 
-   private String sessionPassBlurb () {
+   private String sessionPassBlurb() {
       String result = sessionPassFail() + ": " +
             DDTTestRunner.nSessionDone() + " steps processed, " +
             DDTTestRunner.nSessionPass() + " passed";
@@ -229,9 +299,9 @@ public class DDTReporter {
       return (nFail > 0) ? "Section Failed" : "Section Passed";
    }
 
-   private String sectionFailBlurb () {
+   private String sectionFailBlurb() {
       String result = sectionPassFail() + ": " +
-            nDone + " steps processed (" + durationString() +"), "  +
+            nDone + " steps processed (" + durationString() + "), " +
             nFail + " failed, " +
             nPass + " passed,";
       if (nSkip > 0)
@@ -240,9 +310,9 @@ public class DDTReporter {
       return result;
    }
 
-   private String sectionPassBlurb () {
+   private String sectionPassBlurb() {
       String result = sectionPassFail() + ": " +
-            nDone + " steps processed (" + durationString() +"), "  +
+            nDone + " steps processed (" + durationString() + "), " +
             nPass + " passed, ";
       if (nSkip > 0)
          result += nSkip + " skipped, ";
@@ -256,96 +326,240 @@ public class DDTReporter {
 
    /**
     * Place holder for generating more than one kind of report.
+    *
     * @param description
     * @param emailBody
     */
    public void generateReport(String description, String emailBody) {
       String reportStyle = DDTSettings.Settings().reportingStyle().toLowerCase();
       switch (reportStyle) {
-         case "default" : generateDefaultReport(description, emailBody); break;
-         default: generateDefaultReport(description, emailBody);
+         case "default":
+            generateDefaultReport(description, emailBody);
+            break;
+         case "extent": {
+            generateExtentReport(description, emailBody);
+            break;
+         }
+         default:
+            generateDefaultReport(description, emailBody);
+      }
+   }
+
+   public void generateExtentReport(String description, String emailBody) {
+      // Terminate the Exent report by flushing its contents and closing the instance.
+      getExtentReportInstance().flush();
+      //getExtentReportInstance().close();
+
+      String reportFileName = DDTSettings.Settings().reportFileName();
+
+      String[] summaryItems = generateReportSummary(description);
+
+
+      if (isBlank(settings.emailRecipients())) {
+         System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");
+      } else {
+
+         emailReportResults(description, emailBody, summaryItems, reportFileName);
+
+      }
+
+      reportGenerated = true;
+      reset();
+
+   }
+
+   /**
+    * Generate the following string array for creation of email and html (if reporting format calls for it):
+    * [0] (blurb) Attached is a summary of test results run titled: "VM Turbo Section"
+    * <p/>
+    * [1] PROJECT: 'Selenium Based DDT Automation'
+    * [2] MODULE: 'VM Turbo Section'
+    * [3] SECTION: Test Results as of 16:34:18 - 2015, July 24 (Session duration: 00:00:42.899, Reported tests duration: 00:00:42.899)
+    * [4] OS: OS Name: Windows 7, OS Version: 6.1, Browser: CHROME
+    * [5] ENVIRONMENT: Country: US, Language: en, Time Zone: America/New_York
+    * [6] JAVA: Version: 1.7.0_45, Home: C:\Program Files\Java\jdk1.7.0_45\jre
+    * [7] USER: Name: BeyMelamed, Home: C:\Users\BeyMelamed, Project Home: C:\JavaDDT
+    * [8] STATUS: Section Passed: 37 steps processed (00:00:42.900), 37 passed, 2 skipped, none failed. Session Passed: 37 steps processed, 37 passed, 2 skipped, none failed. Reportable steps included in this report: 1 thru 37 - Actions excluded from reporting: NewTest, GenerateReport, InitializeReport, SetVars - Item status included: PASS,FAIL,SKIP (un-reported action steps not counted.)
+    */
+   private String[] generateReportSummary(String description) {
+
+      String[] result = new String[9];
+      // Create the values for the various top sections of the report
+      // Project, Module, Mode, Summary
+      String[][] environmentItems = getEnvironmentItems();
+
+      String durationBlurb = " (Session duration: " + sessionDurationString() + ", Reported tests duration: " + durationString() + ")";
+
+      String projectName = settings.projectName();
+      if (isBlank(projectName))
+         projectName = "Selenium Based DDT Automation Project";
+      String moduleName = description;
+      if (isBlank(moduleName))
+         moduleName = "Selenium based DDT Test Results";
+      moduleName = Util.sq(moduleName) + " as of " + new SimpleDateFormat("HH:mm:ss - yyyy, MMMM dd").format(new Date()) + durationBlurb ;
+
+      projectName = Util.sq(projectName);
+
+      // @TODO - When documentation mode becomes available, weave that in... using "Documentation" instead of "Results"
+      String mode = "Test Results";
+      String osInfo = environmentItems[0][1];
+      String envInfo = environmentItems[1][1];
+      String javaInfo = environmentItems[2][1];
+      String userInfo = environmentItems[3][1];
+
+      //String summary = sectionSummary() + " " + sessionSummary();
+      String sectionSummary = sectionSummary();
+      String sessionSummary = sessionSummary();
+
+      // String summarizing the scope of this report section
+      String rangeClause = " Reportable steps included in this report: " + firstReportStep() + " thru " + DDTTestRunner.nSessionDone();
+      if (lastReportStep() != firstReportStep() || isNotBlank(settings.dontReportActions())) {
+         rangeClause += " - Actions excluded from reporting: " + settings.dontReportActions().replace(",", ", ");
+      }
+
+      String summary = rangeClause;
+
+      summary += " - Item status included: " + settings.statusToReport() + " (un-reported action steps not counted.)";
+      summary = summary.replaceAll(", , ", ", ");
+
+      result[_BLURB] = "Attached is a summary of test results titled: " + Util.sq(description);
+      result[_PROJECT] = projectName;
+      result[_MODULE] = moduleName;
+      result[_SECTION] = sectionSummary;
+      result[_OS] = osInfo;
+      result[_ENV] = envInfo;
+      result[_JAVA] = javaInfo;
+      result[_USER] = userInfo;
+      result[_STATUS] = sessionSummary + rangeClause;
+
+      return result;
+   }
+
+   /**
+    * Generates the failedTestsSummary structure for placement in an email body.
+    */
+   private void generateFailureSections() {
+      String underscore = "<br>==================<br>"; // Assuming html contents of email message
+      int nFailures = 0;
+      for (DDTReportItem t : getDDTests()) {
+
+         // If step failed, add its description to the failedTestsSummary.
+         if (t.hasErrors()) {
+            nFailures++;
+            String failureBlurb = underscore + "Failure " + nFailures + " - Step: " + t.paddedReportedStepNumber() + underscore;
+            failedTestsSummary.add(failureBlurb + t.reportSummary() + "<p>Errors:</p>" + t.errorsAsHtml() + "<br>");
+         }
       }
    }
 
    /**
     * Report Generator logic
+    *
     * @param description
     * @param emailBody
     */
    public void generateDefaultReport(String description, String emailBody) {
+
+      String fileName = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS").format(new Date()) + ".xml";
 
       if (getDDTests().size() < 1) {
          System.out.println("No Test Steps to report on.  Report Generation aborted.");
          return;
       }
 
-      // Create the values for the various top sections of the report
-      // Project, Module, Mode, Summary
-      String[][] environmentItems = getEnvironmentItems();
+      String[] summaryItems = generateReportSummary(description);
 
-      String projectName = settings.projectName();
-      if (isBlank(projectName))
-         projectName = "Selenium Based Java DDT Automation Project";
-      String moduleName = description;
-      if (isBlank(moduleName))
-         moduleName = "Selenium based Java DDT Test Results";
+      try {
 
-      projectName = Util.sq(projectName);
-      moduleName = Util.sq(moduleName);
+         generateAndTransformXMLOutput(fileName, summaryItems);
 
-      String durationBlurb = " (Session duration: " + sessionDurationString() + ", Reported tests duration: " + durationString() + ")";
-      // @TODO - When documentation mode becomes available, weave that in... using "Documentation" instead of "Results"
-      String mode = "Test Results as of " + new SimpleDateFormat("HH:mm:ss - yyyy, MMMM dd").format(new Date()) + durationBlurb;
-      String osInfo = environmentItems[0][1];
-      String envInfo = environmentItems[1][1];
-      String javaInfo = environmentItems[2][1];
-      String userInfo = environmentItems[3][1];
+         reportGenerated = true;
 
-      String summary = sectionSummary() + " " + sessionSummary();
-
-      // String summarizing the scope of this report section
-      String rangeClause = " Reportable steps included in this report: " + firstReportStep() + " thru " + (lastReportStep());
-      if (lastReportStep() != firstReportStep() || isNotBlank(settings.dontReportActions()) ) {
-         rangeClause += " - Actions excluded from reporting: " + settings.dontReportActions().replace(",", ", ");
+      } catch (Exception e) {
+         System.out.println("Exception Encountered while generating html report.\nReport not generated.");
+         e.printStackTrace();
+         return;
       }
 
-      String underscore = "<br>==================<br>"; // Assuming html contents of email message
+      if (isBlank(settings.emailRecipients())) {
+         System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");
+      } else {
 
-      String emailSubject = "Test Results for Project: " + projectName + ", Section: " + moduleName;
-      summary += rangeClause;
+         emailReportResults(description, emailBody, summaryItems, fileName);
 
-      summary += " - Item status included: " + settings.statusToReport() + " (un-reported action steps not counted.)";
-      summary = summary.replaceAll(", , ", ", ");
+      }
 
-      String fileName = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS").format(new Date()) + ".xml";
-      String folder = settings.reportsFolder() + Util.asSafePathString(description);
+      reset();
+   }
+
+   private void emailReportResults(String description, String emailBody, String[] summaryItems, String fileName) {
+
+      String folder = DDTSettings.Settings().reportsFolder();
+      String fileSpecs = DDTSettings.asValidOSPath(folder + File.separator + fileName, true);
+
+      String emailSubject = "Test Results for Project: " + summaryItems[_PROJECT];
+
+      String summary = summaryItems[_STATUS];
+
+      String topBlurb =
+            "<b>PROJECT:</b>      " + summaryItems[_PROJECT] + "<br>" +
+            "<b>MODULE</b>:       " + summaryItems[_MODULE] + "<br>" +
+            "<b>SECTION</b>:      " + summaryItems[_SECTION] + "<br>" +
+            "<b>OS</b>:           " + summaryItems[_OS] + "<br>" +
+            "<b>ENVIRONMENT</b>:  " + summaryItems[_ENV] + "<br>" +
+            "<b>JAVA</b>:         " + summaryItems[_JAVA] + "<br>" +
+            "<b>USER</b>:         " + summaryItems[_USER] + "<br>" +
+            "<b>STATUS</b>:       " + summary + "<br>";
+
+      String extraEmailBody = (isBlank(emailBody) ? "<br>" + topBlurb : "<br>" + topBlurb + "<br>" + emailBody) + "</br>";
+
+      String messageBody = "Attached is a summary of test results run ";
+      if (isNotEmpty(description))
+         messageBody += "titled: " + Util.dq(description) + "<br>";
+
+      messageBody += extraEmailBody;  // extraBlurb = no reportable steps
+
+      // Generate Failure to be embedded in the body of the report (for the current section)
+      generateFailureSections();
+
+      try {
+         Email.sendMail(emailSubject, messageBody, fileSpecs.replace(".xml", ".html"), failedTestsSummary);
+         System.out.println("Report Generated.  Report Results Emailed to: " + settings.emailRecipients());
+      } catch (MessagingException e) {
+         System.out.println("Messaging Exception Encountered while emailing test results.\nResults not sent, Report generated.");
+         e.printStackTrace();
+      }
+
+   }
+
+   private void generateAndTransformXMLOutput(String fileName, String[] reportItems) {
+      String folder = settings.reportsFolder();
 
       // Ensure the folder exists - if no exception is thrown, it does!
-      File tmp = Util.setupReportFolder( DDTSettings.asValidOSPath(folder, true));
+      File tmp = Util.setupReportFolder(DDTSettings.asValidOSPath(folder, true));
       String fileSpecs = DDTSettings.asValidOSPath(folder + File.separator + fileName, true);
 
       String extraBlurb = "";
 
       int nReportableSteps = 0;
-      XMLOutputFactory factory      = XMLOutputFactory.newInstance();
+      XMLOutputFactory factory = XMLOutputFactory.newInstance();
 
       try {
          XMLStreamWriter writer = factory.createXMLStreamWriter(
                new FileWriter(fileSpecs));
-
          writer.writeStartDocument();
          writer.writeCharacters("\n");
 
          // build the xml hierarchy - the innermost portion of it are the steps (see below)
          // In parallel, build the top portion of the email body.
-         writeStartElement(writer, "Project", new String[] {"name"}, new String[] {projectName});
-         writeStartElement(writer, "Module", new String[] {"name"}, new String[] {moduleName});
-         writeStartElement(writer, "Mode", new String[] {"name"}, new String[] {mode});
-         writeStartElement(writer, "OperatingSystem", new String[] {"name"}, new String[] {osInfo});
-         writeStartElement(writer, "Environment", new String[] {"name"}, new String[] {envInfo});
-         writeStartElement(writer, "Java", new String[] {"name"}, new String[] {javaInfo});
-         writeStartElement(writer, "User", new String[] {"name"}, new String[] {userInfo});
-         writeStartElement(writer, "Summary", new String[] {"name"}, new String[] {summary});
+         writeStartElement(writer, "Project", new String[]{"name"}, new String[]{reportItems[_PROJECT]});
+         writeStartElement(writer, "Module", new String[]{"name"}, new String[]{reportItems[_MODULE]});
+         writeStartElement(writer, "Mode", new String[]{"name"}, new String[]{"Test Results"});  // Revisit... This is Resutls or Documentation
+         writeStartElement(writer, "OperatingSystem", new String[]{"name"}, new String[]{reportItems[_OS]});
+         writeStartElement(writer, "Environment", new String[]{"name"}, new String[]{reportItems[_ENV]});
+         writeStartElement(writer, "Java", new String[]{"name"}, new String[]{reportItems[_JAVA]});
+         writeStartElement(writer, "User", new String[]{"name"}, new String[]{reportItems[_USER]});
+         writeStartElement(writer, "Summary", new String[]{"name"}, new String[]{reportItems[_STATUS]});
          writeStartElement(writer, "Steps");
 
          // Failures will be added to the mailed message body - we construct it here.
@@ -355,19 +569,10 @@ public class DDTReporter {
             // Only report the statuses indicated for reporting in the settings.
             if (!(settings.statusToReport().contains(t.getStatus())))
                continue;
-            String[] attributes =   new String[] {"Id", "Name", "Status", "ErrDesc"};
+            String[] attributes = new String[]{"Id", "Name", "Status", "ErrDesc"};
             String xmlItem = Util.xmlize(t.getUserReport());
-            if (xmlItem != t.getUserReport())
-               System.out.println("Original: " + t.getUserReport() + "\nAfter: " + xmlItem);
-            String[] values = new String[] {t.paddedReportedStepNumber(), xmlItem, t.getStatus(), t.getErrors()};
-            writeStartElement(writer, "Step",attributes, values);
-
-            // If step failed, add its description to the failedTestsSummary.
-            if (t.hasErrors()) {
-               nFailures++;
-               String failureBlurb = underscore + "Failure " + nFailures + " - Step: " + t.paddedReportedStepNumber() + underscore;
-               failedTestsSummary.add(failureBlurb + t.reportSummary() + "<p>Errors:</p>" + t.errorsAsHtml() + "<br>");
-            }
+            String[] values = new String[]{t.paddedReportedStepNumber(), xmlItem, t.getStatus(), t.getErrors()};
+            writeStartElement(writer, "Step", attributes, values);
 
             writeEndElement(writer); // step
             nReportableSteps++;
@@ -376,17 +581,16 @@ public class DDTReporter {
          // If no reportable steps recorded, write a step element to indicate so...
          if (nReportableSteps < 1) {
             extraBlurb = "*** No Reportable Steps encountered ***";
-            String[] attributes =   new String[] {"Id", "Name", "Status", "ErrDesc"};
-            String[] values = new String[] {"------", extraBlurb, "", ""};
+            String[] attributes = new String[]{"Id", "Name", "Status", "ErrDesc"};
+            String[] values = new String[]{"------", extraBlurb, "", ""};
 
-            writeStartElement(writer, "Step",attributes, values);
+            writeStartElement(writer, "Step", attributes, values);
             writeEndElement(writer); // step
          }
 
          // close each of the xml hierarchy elements in reverse order
          writeEndElement(writer); // steps
-         writeEndElement(writer); // summary
-         writeEndElement(writer); // user
+         writeEndElement(writer); // summarywriteEndElement(writer); // user
          writeEndElement(writer); // java
          writeEndElement(writer); // environment
          writeEndElement(writer); // operating system
@@ -398,57 +602,27 @@ public class DDTReporter {
 
          writer.flush();
          writer.close();
-
-         try {
-            transformXmlFileToHtml(fileSpecs, folder);
-         }
-         catch (Exception e ) {
-            System.out.println("Error encountered while transofrming xml file to html.\nReport not generated.");
-            e.printStackTrace();
-            return;
-         }
-
-         reportGenerated = true;
-
       } catch (XMLStreamException e) {
-         System.out.println("XML Stream Exception Encountered while transforming xml file to html.\nReport not generated.");
-         e.printStackTrace();
-         return;
-      } catch (IOException e) {
-         System.out.println("IO Exception Encountered while transforming xml file to html.\nReport not generated.");
+         System.out.println("Exception encountered in xml construction: " + e.toString());
          e.printStackTrace();
          return;
       }
-
-      String topBlurb =
-            "<b>PROJECT:</b>      " + projectName + "<br>" +
-            "<b>MODULE</b>:       " + moduleName + "<br>" +
-            "<b>SECTION</b>:      " + mode + "<br>" +
-            "<b>OS</b>:           " + osInfo + "<br>" +
-            "<b>ENVIRONMENT</b>:  " + envInfo +  "<br>" +
-            "<b>JAVA</b>:         " + javaInfo + "<br>" +
-            "<b>USER</b>:         " + userInfo + "<br>" +
-            "<b>STATUS</b>:       " + summary + "<br>";
-
-      String extraEmailBody = (isBlank(emailBody) ? "<br>" + topBlurb : "<br>" + topBlurb + "<br>" + emailBody) + "</br>";
-
-
-      if (isBlank(settings.emailRecipients())) {
-         System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");
-      }
-      else {
-         String messageBody = "Attached is a summary of test results run titled " + Util.dq(description) + "<br>" + (isBlank(extraBlurb) ? "" : "<br>" + extraBlurb) + extraEmailBody;
-         try {
-            Email.sendMail(emailSubject, messageBody, fileSpecs.replace(".xml", ".html"), failedTestsSummary);
-            System.out.println("Report Generated.  Report Results Emailed to: " + settings.emailRecipients());
-         }
-         catch (MessagingException e){
-            System.out.println("Messaging Exception Encountered while emailing test results.\nResults not sent, Report generated.");
-            e.printStackTrace();
-         }
+      catch (IOException e) {
+         System.out.println("Exception encountered in xml construction: " + e.toString());
+         e.printStackTrace();
+         return;
       }
 
-      reset();
+      /**
+       * Try to transpose the xml just produced to an html file
+       */
+      try {
+         transformXmlFileToHtml(fileSpecs, folder);
+      } catch (Exception e) {
+         System.out.println("Error encountered while transofrming xml file to html.\nReport not generated.");
+         e.printStackTrace();
+      }
+
    }
 
    private void transformXmlFileToHtml(String fileSpecs, String resultsFolder) throws IOException, TransformerException {
@@ -493,7 +667,6 @@ public class DDTReporter {
       }
    }
 
-
    private void writeStartElement(XMLStreamWriter writer, String name) throws XMLStreamException {
       writer.writeStartElement(name);
       writer.writeCharacters("\n");
@@ -511,5 +684,4 @@ public class DDTReporter {
       writer.writeEndElement();
       writer.writeCharacters("\n");
    }
-
 }

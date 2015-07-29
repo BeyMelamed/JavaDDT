@@ -43,6 +43,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * When      |Who            |What
  * ==========|===============|========================================================
  * 01/13/14  |Bey            |Initial Version
+ * 07/24/15  |Bey            |Fixed handling of level propagation (level must be 1 or more), Number of steps (incrementDone() relocated
+ * 07/27/15  |Bey            |Implementation of Extent reporting and nested reporting
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -470,9 +472,9 @@ public class DDTTestRunner {
 
    private int level = 0;
    private Long parentStepNumber; // For all but level 0 items this is > 0;
+   private TestItem parentItem;   // Instrumental in nested reporting mode.
    private String errors = "";
 
-   private String inputSpecs;
    private TestItem.TestItems testItems;
 
    public void setParentStepNumber(Long value) {
@@ -487,17 +489,6 @@ public class DDTTestRunner {
 
    public DDTTestRunner () {
       resetTrCounters();
-   }
-
-   public void setInputSpecs(String value) {
-      inputSpecs = value;
-   }
-
-   public String getInputSpecs() {
-      if (isBlank(inputSpecs)) {
-         setInputSpecs(DDTSettings.Settings().inputSpecs());
-      }
-      return inputSpecs;
    }
 
    public int nItems() {
@@ -541,11 +532,15 @@ public class DDTTestRunner {
    }
 
    public int getLevel() {
-      return level;
+      return (level > 0) ? level : 1;
    }
 
    public void setTestItems(TestItem.TestItems items) {
       testItems = items;
+   }
+
+   public TestItem.TestItems getTestItems() {
+      return testItems;
    }
 
    public boolean failed() {
@@ -560,6 +555,14 @@ public class DDTTestRunner {
       return errors;
    }
 
+   public void setParentItem(TestItem value) {
+      parentItem = value;
+   }
+
+   public TestItem getParentItem() {
+      return parentItem;
+   }
+
    public void handleTestItemReporting (TestItem testItem) {
       if (isReportableAction(testItem.getAction())) {
          getReporter().addDDTest(new DDTReportItem(testItem));
@@ -567,6 +570,10 @@ public class DDTTestRunner {
             getReporter().setFirstReportStep(currentReportedSessionStep());  // Done only once - reported steps
          getReporter().setLastReportStep(currentReportedSessionStep());      // Keeps incrementing - reported steps
       }
+
+      // Finzlize this extent report test item only if the reporting mode is not nested
+      if (!TestItem.isNestedReporting)
+         testItem.finalizeExtentTest();  // Finalize the test item (end it and flush the reporter.)
    }
    /**
     * Executes each of the active TestItem instances in the current TestRunner instance.
@@ -588,6 +595,8 @@ public class DDTTestRunner {
             // Skip empty rows in the data source
             if ((testItem == null) || testItem.isEmpty())
                continue;
+
+            incrementDone();
 
             // Allow for developer's debugging
             if (testItem.shouldDebug())
@@ -638,8 +647,7 @@ public class DDTTestRunner {
                      testItem.setException(e);
                }
                finally {
-                  incrementDone();
-                  handleTestItemReporting(testItem);
+                  //handleTestItemReporting(testItem);
                }
 
                // If settings indicates pausing after a UI step, do it
@@ -665,7 +673,7 @@ public class DDTTestRunner {
                      else
                         testItem.addComment("'Screen Image on step failure' feature is turned off or Driver not initialized - no image taken.  To turn feature on, change the relevant Settings' (takeImageOnFailedStep) property");
                   }
-               }
+               } // if testItem.isFailure()
                else {
                   incrementPass();
                   if (testItem.getElement() instanceof WebElement) {
@@ -684,8 +692,8 @@ public class DDTTestRunner {
             }  // if testItem.active
             else {
                incrementSkip();
-               handleTestItemReporting(testItem);
             }
+            handleTestItemReporting(testItem);
             // Consider Termination at the test case or test session level
             if (shouldQuitTestCase || shouldQuitTestSession) {
                String ptpBlurb = "";

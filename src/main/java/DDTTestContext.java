@@ -151,7 +151,7 @@ public class DDTTestContext extends Hashtable {
    }
 
    public String getString(String key) {
-      String result = (String) this.getProperty(key);
+      String result = (String) this.getProperty(key.toLowerCase());
       if (StringUtils.isBlank(result))
          result = "";
       return result;

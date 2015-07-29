@@ -6,7 +6,7 @@
 
     <groupId>com.DynaBytes.Automation</groupId>
     <artifactId>JavaDDT</artifactId>
-    <version>1.2.2</version>
+    <version>1.2.3</version>
     <packaging>jar</packaging>
     <dependencies>
 
@@ -117,9 +117,16 @@
         </dependency>
 
         <dependency>
+            <!-- Old Phantom JS - incompatible with Selenium 2.4.4 and higher
             <groupId>com.github.detro.ghostdriver</groupId>
             <artifactId>phantomjsdriver</artifactId>
             <version>1.1.0</version>
+            -->
+
+            <!--> Newer Phantom JS - compatible with Selenium 2.4.4 and higher -->
+            <groupId>com.codeborne</groupId>
+            <artifactId>phantomjsdriver</artifactId>
+            <version>1.2.1</version>
         </dependency>
 
         <dependency>
@@ -127,6 +134,13 @@
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
             <version>1.7.3</version>
+        </dependency>
+
+        <dependency>
+            <!-- Documentation: http://extentreports.relevantcodes.com/2x/docs.html -->
+	        <groupId>com.relevantcodes</groupId>
+	        <artifactId>extentreports</artifactId>
+	        <version>2.03</version>
         </dependency>
 
     </dependencies>

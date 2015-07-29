@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.util.Hashtable;
 import java.util.Properties;
 
-import static java.lang.Long.*;
 import static org.apache.commons.lang3.StringUtils.*;
 
 /**
@@ -39,8 +38,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 12/11/13    |Bey      |Initial Version
  * 05/08/14    |Bey      |Introduce Time Zone Adjustment
  * 06/22/14    |Bey      |Change format of test items provider specs
- * 07/20/15    |Bey      |Fixed issue with File.separator for getting OS independent file name
- *                       |Ensure all driver file names are not named .exe on non-windows OS
+ * 07/23/15    |Bey      |Add Locale Code (for now, only date localization)
  * ============|=========|====================================
  * @TODO - set up all properties from property file (handle non string types), introduce all email properties to Settings
  */
@@ -93,6 +91,9 @@ public class DDTSettings {
    private final String DesiredCapabilityValues = "true,false,true,true,true,false,false,false,true,false,dismiss,true";
    private final boolean StripWhiteSpace = true;
    private final String ReportingStyle = "Default";
+   private final String ReportFileName = "DDTTestResults.html";
+   private final String LocaleCode = "en";
+   private final boolean IsNestedReporting = false;
 
    private String resourcesFolder;
    private String imagesFolder;
@@ -138,8 +139,10 @@ public class DDTSettings {
    private String desiredCapabilityValues;
    private boolean stripWhiteSpace;
    private String reportingStyle;
-
+   private String reportFileName;
+   private String localeCode;
    private static DDTSettings ddtSettings;
+   private boolean isNestedReporting;
 
    public DDTSettings () {
       loadProperties();
@@ -485,6 +488,30 @@ public class DDTSettings {
       return projectName;
    }
 
+   private void setLocaleCode(String value) {
+      localeCode = value;
+   }
+
+   public String localeCode() {
+      if (isBlank(localeCode)) {
+         String s = getPropertyOrDefaultValue(LocaleCode, "LocaleCode", false);
+         setLocaleCode(s);
+      }
+      return localeCode;
+   }
+
+   private void setReportFileName(String value) {
+      reportFileName = value;
+   }
+
+   public String reportFileName() {
+      if (isBlank(reportFileName)) {
+         String s = getPropertyOrDefaultValue(ReportFileName, "ReportFileName", false);
+         setReportFileName(s);
+      }
+      return reportFileName;
+   }
+
    private void setResourcesFolder(String value) {
       resourcesFolder = asValidOSPath(value, true);
       DDTTestRunner.addVariable("$resourcesDir",resourcesFolder);
@@ -582,11 +609,13 @@ public class DDTSettings {
    }
 
    private void setIEDriverFileName(String value) {
-      String tmp = value;
-      if (!isWindowsOS()) {
-         tmp = tmp.toLowerCase().replace(".exe", "");
-      }
-      ieDriverFileName = DDTSettings.asValidOSPath(tmp, true);
+       String tmp = value;
+
+       if (!isWindowsOS()) {
+           tmp = tmp.toLowerCase().replace(".exe", "");
+       }
+
+       ieDriverFileName = DDTSettings.asValidOSPath(tmp, true);
    }
 
    public String ieDriverFileName() {
@@ -595,7 +624,7 @@ public class DDTSettings {
          s = s.replace("%proj%", ProjectFolder);
          setIEDriverFileName(s);
       }
-      return  ieDriverFileName;
+      return  asValidOSPath(ieDriverFileName, true);
    }
 
    private void setChromeDriverFileName(String value) {
@@ -612,7 +641,7 @@ public class DDTSettings {
          s = s.replace("%proj%", ProjectFolder);
          setChromeDriverFileName(s);
       }
-      return chromeDriverFileName;
+      return asValidOSPath(chromeDriverFileName, true);
    }
 
    private void setInputSpecs(String value) {
@@ -1033,5 +1062,20 @@ public class DDTSettings {
       }
       return reportingStyle;
    }
+
+   private void setIsNestedReporting(boolean value) {
+      isNestedReporting = value;
+   }
+
+   /**
+    * Used for nested (Extent) reporting style
+    * @return boolean
+    */
+   public boolean nestedReporting() {
+      String s = getPropertyOrDefaultValue(Util.booleanString(IsNestedReporting), "IsNestedReporting", false);
+      setIsNestedReporting(Util.asBoolean(s));
+      return isNestedReporting;
+   }
+
 
 }

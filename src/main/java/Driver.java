@@ -161,6 +161,7 @@ public class Driver extends Thread {
                         //System.setProperty("webdriver.firefox.bin", "C:\\Program Files (x86)\\Mozilla Firefox\\Firefox.exe");
                         FirefoxProfile profile = new FirefoxProfile();
                         profile.setEnableNativeEvents(true);
+                        profile.setAcceptUntrustedCertificates(true);
 
                         try {
                             aDriver = new FirefoxDriver();
