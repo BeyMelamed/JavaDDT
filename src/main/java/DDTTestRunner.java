@@ -45,6 +45,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 01/13/14  |Bey            |Initial Version
  * 07/24/15  |Bey            |Fixed handling of level propagation (level must be 1 or more), Number of steps (incrementDone() relocated
  * 07/27/15  |Bey            |Implementation of Extent reporting and nested reporting
+ * 07/31/15  |Bey            |Fix bug - Final Report - use level < 2 instead of < 1 (also, remove verbs hashtable variable)
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -56,7 +57,6 @@ public class DDTTestRunner {
    private static boolean shouldQuitTestSession;
    private static DDTTestContext varsMap;
    private static Hashtable<String, WebElement> elementsMap;
-   private static Hashtable<String, Verb> verbs;
 
    // The test session variables hashtable is maintained by DDTTestRunner instance.
    private static Hashtable<String, TestItem> currentTestItem = new Hashtable<String, TestItem>();
@@ -745,7 +745,7 @@ public class DDTTestRunner {
       }
 
       // Test session level stats
-      if (getLevel() < 1)  {
+      if (getLevel() < 2)  {
          // Final Report ...
          reportSessionSummaryAsJSON();
          if (nSessionFail() > 0) {

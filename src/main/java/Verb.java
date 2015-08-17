@@ -118,7 +118,6 @@ public abstract class Verb extends DDTBase {
       verbs.put("verifyWebDriver".toLowerCase(), new VerifyWebDriver());
       verbs.put("verifyWebElement".toLowerCase(), new VerifyWebElement());
       verbs.put("wait".toLowerCase(), new Wait());
-      verbs.put("waitUntil".toLowerCase(), new WaitUntil());
    }
 
    public static void invokeForTestItem(TestItem testItem) {
@@ -444,7 +443,7 @@ public abstract class Verb extends DDTBase {
 
          tmp = getContext().getString("Queries");
          if (isBlank(tmp)) {
-            Verb.basicAddError(this, "Setup error:  Must have at least two queires for this verb to work!");
+            Verb.basicAddError(this, "Setup error:  Must have at least two queries for this verb to work!");
             return;
          }
 
@@ -1431,6 +1430,7 @@ public abstract class Verb extends DDTBase {
          String functionName = getContext().getString("QryFunction");
          // Get the expected value from the data properties structure.
          String expectedValue = getContext().getString("value"); // User expects this value - it may serve for comparison with GetTitle or other property
+         boolean loaded;
          if (functionName.equalsIgnoreCase("getTitle"))
             searchTitle = expectedValue;
          else
@@ -1451,14 +1451,22 @@ public abstract class Verb extends DDTBase {
          WebDriver driver = Driver.getDriver();
 
          try {
-            // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
-            boolean loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
-                  titleContains(searchTitle));
+            if (driver instanceof WebDriver) {
+               String actualTitle = driver.getTitle();
+               loaded = (actualTitle.toLowerCase().contains(searchTitle.toLowerCase()));
+               if (!loaded)
+                  Verb.basicAddError(this, "Page Title (" + actualTitle + ") does not contain '" + searchTitle + "'");
+            }
+            else {
+               // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
+               loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
+                     titleContains(searchTitle));
 
-            if (loaded) {
-               Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
-            } else {
-               Verb.basicAddError(this,"Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
+               if (loaded) {
+                  Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
+               } else {
+                  Verb.basicAddError(this, "Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
+               }
             }
          }
          catch (Exception e) {
@@ -1593,6 +1601,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 07/14/15    |Bey      |Initial Version
+    * 08/16/15    |Bey      |Introduce action.release() after wait
     * ============|=========|====================================
     */
 
@@ -1634,6 +1643,7 @@ public abstract class Verb extends DDTBase {
             action.moveToElement(getElement()).build().perform();
             try {
                Thread.sleep(longWaitTime);
+               action.release();
             }
             catch (InterruptedException t) {}
          }
@@ -2808,10 +2818,6 @@ public abstract class Verb extends DDTBase {
          if (isBlank(itemType))
             itemType = "frame";
 
-         int itemNo = this.getContext().getInt("ItemNo");
-         if (itemNo == 0)
-            itemNo = -1; // this indicates user did not (should have not) indicate frame number.
-
          // If exists, itemName is used to qualify one of many
          String itemName = getContext().getString("value");
          if (isBlank(itemName))
@@ -3393,107 +3399,6 @@ public abstract class Verb extends DDTBase {
             }
          }
          catch (Exception e) {
-            setException(e);
-         }
-      }
-   }
-
-   /**
-    * Description
-    * WaitUntil is used in scenarios where one needs to wait for a value in some web element on a dynamic page and it is not clear when it will appear.
-    * An example is a carouselle like web page that rotates values in a particular element
-    * The logic requires presence of a WebDriver instance.
-    * The logic assumes that throughout the period specified by the input, the locator of the web element of interest remains valid though its value may change
-    *
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 06/06/15    |Bey      |Initial Version
-    * ============|=========|====================================
-    */
-
-   public static class WaitUntil extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      public void doIt() throws VerbException {
-
-         debug(this);
-
-         basicValidation(this, this.isUIVerb());
-         if (this.hasErrors())
-            return;
-
-         WebDriver d = Driver.getDriver();
-         if (!(d instanceof WebDriver)) {
-            Verb.basicAddError(this, "Web Driver is required but absent!");
-         }
-         else try {
-            boolean verified = false;
-            boolean timeExhausted = false;
-            DDTDate.DDTDuration duration = new DDTDate.DDTDuration();
-            int totalWaitTime = this.getContext().getInt("TotalWaitTime");
-            int pollingInterval = this.getContext().getInt("WaitInterval");
-            String invokeSpecs =  this.getContext().getString("InputSpecs"); // Optionally, when found invoke this test on the fly.
-
-            if (pollingInterval < 1)
-               pollingInterval = DDTSettings.Settings().waitInterval();
-            int iteration = 0;
-
-            while (true) {
-               // Reset errors prior to trying
-               clearErrors();
-               // 're-find' the element to refresh the one we are interested in
-               try {
-                  iteration++;
-                  verified = false;
-                  //Driver.refresh(1);
-                  //FindElement.findElement(this);
-                  // Referify the element
-                  VerifyWebElement.verifyWebElement(this);
-                  // Verification presumed only if the instance has an web element.
-                  if (this.getElement() instanceof WebElement)
-                     verified = this.isPass();
-               }
-               catch (Exception e) {
-                  System.out.println("Failed Verification, Iteration: " + iteration);
-               }
-               finally {
-
-               }
-
-               duration.setEndTime();
-               timeExhausted = (duration.elapsedTimeInSeconds() > totalWaitTime ? true : false);
-               System.out.println("iteration: " + iteration + ", " + timeExhausted + " " + duration.toString() + " " + duration.elapsedTimeInSeconds() + " " + totalWaitTime + " " + getErrors());
-               // If not done yet, set done to true if total time elapsed
-               if (timeExhausted) {
-                  this.addError("Element failed verification within " + duration.elapsedTimeInSeconds() + " seconds, " + iteration + " iteration(s)");
-                  return;
-               }
-               // If verified, pass, else wait a bit more.
-               if (verified) {
-                  String blurb = "Element found within: " + duration.elapsedTimeInSeconds() + " seconds , " + iteration + " iteration(s)";
-                  if (isNotBlank(invokeSpecs)) {
-                     blurb += ", Invoking item using specs: " + Util.sq(invokeSpecs);
-                  }
-                  Verb.basicAddComment(this, blurb);
-                  if (isNotBlank(invokeSpecs)) {
-                     // Invoke the indicated test case
-                     NewTest branch = new NewTest();
-                     branch.getContext().setProperty("InputSpecs", invokeSpecs);
-                     TestItem testTag = new TestItem("WaitUntil.001",  "newTest",  "",  "",  "",  "",  "InputSpecs=" + invokeSpecs,  "Taging via " + invokeSpecs);
-                     testTag.initialize(1);
-                     branch.getContext().setProperty("TestItem", testTag);
-                     int thisLevel = this.getContext().getInt("level") + 1;
-                     branch.getContext().setProperty("level", thisLevel);
-                     NewTest.newTest(branch);
-                  }
-                  return;
-               }
-               else
-                  Thread.sleep((pollingInterval));
-            }
-         } catch (Exception e) {
             setException(e);
          }
       }
