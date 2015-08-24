@@ -369,35 +369,40 @@ public class TestItem extends DDTBase{
    public void finalizeExtentTest() {
       ExtentTest test = getExtentTest();
       if (test instanceof ExtentTest) {
-      if (test.getTest().hasEnded)
-         return;
+         if (test.getTest().hasEnded)
+            return;
 
-      String reportStyle = DDTSettings.Settings().reportingStyle();
-      if (!reportStyle.equalsIgnoreCase("extent") || isEmpty())
-         return;
+         String reportStyle = DDTSettings.Settings().reportingStyle();
+         if (!reportStyle.equalsIgnoreCase("extent") || isEmpty())
+            return;
 
+         String allText = getComments().isEmpty() ? "" : "Comments: " + getComments();
 
-      String allText = getComments().isEmpty() ? "" : "Comments: " + getComments();
+         // Handle status
+         if (hasErrors())
+            allText = allText.isEmpty() ? "Errors: " + getErrors() : allText + ", Errors: " + getErrors();
 
-      // Handle status
-      if (hasErrors())
-         allText = allText.isEmpty() ? "Errors: " + getErrors() : allText + ", Errors: " + getErrors();
-
-      if (hasErrors()) {
-         test.log(LogStatus.FAIL, allText);
-      }
-      else
-         if (this.isSkipItem() || !this.isActive())
-            test.log(LogStatus.SKIP, getDescription());
+         if (hasErrors()) {
+            test.log(LogStatus.FAIL, allText);
+         }
          else
-            test.log(LogStatus.PASS, getDescription());
+            if (this.isSkipItem() || !this.isActive())
+               test.log(LogStatus.SKIP, getDescription());
+            else
+               test.log(LogStatus.PASS, getDescription());
 
-      // Add screen caputre if needed
-      if (!getScreenShotFileName().isEmpty())
-         test.addScreenCapture(getScreenShotFileName());
+         // Add screen caputre if needed
+         if (!getScreenShotFileName().isEmpty())
+            test.addScreenCapture(getScreenShotFileName());
 
-      DDTReporter.getExtentReportInstance().endTest(test);
-      DDTReporter.getExtentReportInstance().flush();
+         DDTReporter.getExtentReportInstance().endTest(test);
+         try {
+            DDTReporter.getExtentReportInstance().flush();
+         }
+         catch (NullPointerException e) {
+            DDTReporter.getExtentReportInstance().startTest("dummy");
+            //DDTReporter.getExtentReportInstance().endTest(test);
+         }
       } else {
           addError("Failed to obtain ExtentTest in finalizeExtentTest method.");
       }
@@ -876,6 +881,7 @@ public class TestItem extends DDTBase{
     * 06/07/14    |Bey      |Initial Version
     * 07/24/15    |Bey      |Include Level in report templates
     * 07/27/15    |Bey      |Implement Extent Reporting
+    * 08/21/15    |Bey      |Adopt Extent Reporting to multiple reporting per session
     * ============|=========|====================================
     */
    public static class TestItems {

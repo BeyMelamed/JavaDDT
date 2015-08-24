@@ -1,9 +1,6 @@
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Hashtable;
 import java.util.Properties;
-
 import static org.apache.commons.lang3.StringUtils.*;
 
 /**
@@ -39,12 +36,13 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 05/08/14    |Bey      |Introduce Time Zone Adjustment
  * 06/22/14    |Bey      |Change format of test items provider specs
  * 07/23/15    |Bey      |Add Locale Code (for now, only date localization)
+ * 08/22/15    |Bey      |Add Version and property file handling for both, DDTProperties and BuildProperties
  * ============|=========|====================================
- * @TODO - set up all properties from property file (handle non string types), introduce all email properties to Settings
  */
 public class DDTSettings {
    private static Properties properties;
-
+   private static Properties buildProperties;
+   private final String DDTVersion = "Please Set Version in ddt.properties file!";
    private final String FileSeparator = File.separator;
    private final String ProjectFolder = System.getProperty("user.dir") + FileSeparator;
    private final String ResourcesFolder = ProjectFolder +  "src" + FileSeparator + "main" + FileSeparator + "Resources" + FileSeparator;
@@ -53,6 +51,7 @@ public class DDTSettings {
    private final String ImagesFolder = ResourcesFolder +  "Images" + FileSeparator;
    private final String ReportsFolder = ResourcesFolder + "Reports" + FileSeparator;
    private final String ClassLoadFolder = ProjectFolder + "target" + FileSeparator + "classes" + FileSeparator;
+   private final String TargetFolder = ProjectFolder + "target" + FileSeparator;
    private final String XslFileName = "Automation.Xsl";
    private final String ItemDelim = ";";
    private final String AndDelim = ".and.";
@@ -95,6 +94,7 @@ public class DDTSettings {
    private final String LocaleCode = "en";
    private final boolean IsNestedReporting = false;
 
+   private String ddtVersion;
    private String resourcesFolder;
    private String imagesFolder;
    private String reportsFolder;
@@ -148,36 +148,50 @@ public class DDTSettings {
       loadProperties();
    }
 
-   private  void loadProperties() {
-      properties = new Properties();
-      InputStream is = null;
-      String blurb = "";
-
-      String propsFileName = ResourcesFolder + "ddt.properties";
-      propsFileName = asValidOSPath(propsFileName, true);
-      try {
-         File f = new File(propsFileName);
-         is = new FileInputStream( f );
-      }
-      catch ( Exception e ) {
-         is = null;
-      }
-
-      try {
-         if ( is == null ) {
-            // Try loading from default resources folder.
-            is = getClass().getResourceAsStream(ProjectFolder + "resources/ddt.properties");
+   // Load Properties from a file (path)
+   private static Properties readProperties(String path) {
+      if (isNotEmpty(path)) {
+         Properties p = new Properties();
+         InputStream is = null;
+         File f = new File(asValidOSPath(path, true));
+         try {
+            is = new FileInputStream(f);
+            p.load(is);
+            return p;
          }
-         // Try loading properties from the file (if found)
-         properties.load( is );
-         blurb = "Properties loaded from ddt.Properties file.";
+         catch (FileNotFoundException e) {
+            return null;
+         }
+         catch (IOException e)  {
+            return null;
+         }
       }
-      catch ( Exception e ) {
-         blurb = "Properties file missing - Using Defaults!";
+      else
+         return null;
+   }
+
+   // Load the properties from which Settings() are to be derived.
+   private  void loadProperties() {
+      String blurb = "Properties file missing - Using Defaults!";
+      properties = readProperties(ResourcesFolder + "ddt.properties");
+      if (properties == null){
+        blurb = "Properties loaded from ddt.Properties file.";
       }
-      finally {
-         System.out.println(blurb);
-      }
+      System.out.println(blurb);
+   }
+
+   // Load the Build Properties (this is where we find the maven Version property for the project
+   private  void loadBuildProperties() {
+      if (buildProperties instanceof Properties)
+         return;
+
+      String propsFileName = TargetFolder + FileSeparator + "maven-archiver" + FileSeparator + "pom.properties";
+      propsFileName = asValidOSPath(propsFileName, true);
+      buildProperties = readProperties(propsFileName);
+      if (buildProperties instanceof Properties)
+         System.out.println("Build Properties loaded from: " + propsFileName);
+      else
+         System.out.println("Failed to load Build Properties from: " + propsFileName);
    }
 
    public String ensureEndsWithFileSeparator (String path) {
@@ -463,6 +477,49 @@ public class DDTSettings {
    /**
     * ===================== Getters / Setters =====================
     */
+
+   private void setDDTVersion(String value) {
+      ddtVersion = value;
+   }
+
+   private String ddtVersion() {
+      if (isBlank(ddtVersion)) {
+         String s = getPropertyOrDefaultValue(DDTVersion, "DDTVersion", false);
+         setDDTVersion(s);
+      }
+      return ddtVersion;
+   }
+
+   public synchronized String getVersion() {
+      String version = null;
+
+      loadBuildProperties();
+      // try to load from maven pom.properties first
+      if (buildProperties.containsKey("version"))
+         version = buildProperties.getProperty("version","");
+
+      // fallback to using Java API
+      if (version == null) {
+         Package aPackage = getClass().getPackage();
+         if (aPackage != null) {
+            version = aPackage.getImplementationVersion();
+            if (version == null) {
+               version = aPackage.getSpecificationVersion();
+            }
+         }
+      }
+
+      if (version == null)
+         version = ddtVersion();
+
+      if (version == null) {
+         // we could not compute the version so use a blank
+         version = "";
+      }
+
+      return version;
+   }
+
 
    private void setValidDelims (String value) {
       validDelims = value;

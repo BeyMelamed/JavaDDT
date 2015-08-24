@@ -54,6 +54,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 06/13/15    |Bey      |Add top of email message - same structure as the email header
  * 07/24/15    |Bey      |Various improvements & bugs (desciption handling)
  * 07/26/15    |Bey      |Implement Extent Reports
+ * 08/21/15    |Bey      |Improve handling of Extent Reports (multiple files per test session)
  * ============|=========|====================================
  */
 public class DDTReporter {
@@ -75,6 +76,7 @@ public class DDTReporter {
    private static DDTDate.DDTDuration sessionDuration;
    private static DDTDate.DDTDuration sectionDuration;
    private static ExtentReports extentReport;
+   private static String extentReportFileName;
 
    //private List<TestEvent> testEvents;
    private List<DDTReportItem> testItems;
@@ -106,6 +108,22 @@ public class DDTReporter {
          sessionDuration = new DDTDate.DDTDuration();
    }
 
+   private static void setExtentReportFileName(String value) {
+      extentReportFileName = value;
+   }
+
+   private static String getExtendReportFileName() {
+      String tmp = extentReportFileName;
+      if (isBlank(tmp)) {
+         tmp = DDTSettings.Settings().reportFileName();
+         Date dt = new Date();
+         String insert = "-" + new SimpleDateFormat("yyyy-MM-dd-HHmmss.SSS").format(new Date()); //String.valueOf(dt.getTime());
+         tmp = tmp.replace(".", insert + ".");
+         setExtentReportFileName(tmp);
+      }
+      return extentReportFileName;
+   }
+
    // Generate Extent Reporter Instance
    public static ExtentReports getExtentReportInstance() {
       String reportStyle = DDTSettings.Settings().reportingStyle();
@@ -113,10 +131,11 @@ public class DDTReporter {
          return null;
 
       if (extentReport == null) {
-         String defaultFileName = DDTSettings.Settings().reportsFolder();
-         if (!defaultFileName.endsWith("\\") && !defaultFileName.endsWith("/"))
-            defaultFileName += "\\";
-         defaultFileName += DDTSettings.Settings().reportFileName();
+         String defaultFileName = getExtendReportFileName();
+         String defaultFolder = DDTSettings.Settings().reportsFolder();
+         if (!defaultFolder.endsWith("\\") && !defaultFolder.endsWith("/"))
+            defaultFolder += "\\";
+         defaultFileName = defaultFolder + defaultFileName;
          defaultFileName = DDTSettings.asValidOSPath(defaultFileName, true);
          extentReport = new ExtentReports(defaultFileName, true);
 
@@ -124,7 +143,7 @@ public class DDTReporter {
          extentReport.config()
                .documentTitle(DDTSettings.Settings().projectName())
                .reportName("Regression")
-               .reportHeadline("");
+               .reportHeadline(DDTSettings.Settings().projectName() + " (" + DDTSettings.Settings().getVersion() + ")");
 
          // optional
          extentReport
@@ -135,6 +154,10 @@ public class DDTReporter {
                .addSystemInfo("Time Zone", System.getProperty("user.timezone"));
       }
       return extentReport;
+   }
+
+   public static boolean isExtentReportInitialized() {
+      return (extentReport instanceof ExtentReports);
    }
 
    public static ExtentTest getExtentTestInstance(TestItem testItem) {
@@ -350,7 +373,7 @@ public class DDTReporter {
       getExtentReportInstance().flush();
       //getExtentReportInstance().close();
 
-      String reportFileName = DDTSettings.Settings().reportFileName();
+      String reportFileName = getExtendReportFileName();
 
       String[] summaryItems = generateReportSummary(description);
 
@@ -363,6 +386,8 @@ public class DDTReporter {
 
       }
 
+      setExtentReportFileName("");
+      extentReport = null;
       reportGenerated = true;
       reset();
 

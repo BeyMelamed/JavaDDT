@@ -413,7 +413,7 @@ public class DDTTestRunner {
 
       result[2][0] = "java";
       result[2][1] = "Version: " + System.getProperty("java.version") +
-            ", Home: " + System.getProperty("java.home");
+            ", Home: " + System.getProperty("java.home") + ", DDT Version: " + DDTSettings.Settings().getVersion();
 
       result[3][0] = "user";
       result[3][1] = "Name: " + System.getProperty("user.name") +

@@ -85,6 +85,6 @@
     <orderEntry type="library" name="Maven: com.googlecode.json-simple:json-simple:1.1" level="project" />
     <orderEntry type="library" name="Maven: com.codeborne:phantomjsdriver:1.2.1" level="project" />
     <orderEntry type="library" name="Maven: org.jsoup:jsoup:1.7.3" level="project" />
-    <orderEntry type="library" name="Maven: com.relevantcodes:extentreports:2.03" level="project" />
+    <orderEntry type="library" name="Maven: com.relevantcodes:extentreports:2.04" level="project" />
   </component>
 </module>

@@ -39,6 +39,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * When        |Who      |What
  * ============|=========|============================================================================================================
  * 10/26/14    |Bey      |Initial Version
+ * 08/21/15    |Bey      |Bug with getBoolean()
  * ============|=========|============================================================================================================
  */
 
@@ -151,7 +152,13 @@ public class DDTTestContext extends Hashtable {
    }
 
    public String getString(String key) {
-      String result = (String) this.getProperty(key.toLowerCase());
+      String result = "";
+      try {
+         result = (String) this.getProperty(key.toLowerCase());
+      }
+      catch (Exception e) {
+         result = "";
+      }
       if (StringUtils.isBlank(result))
          result = "";
       return result;
@@ -186,7 +193,8 @@ public class DDTTestContext extends Hashtable {
    public boolean getBoolean(String key) {
       if (!this.containsKey(key.toLowerCase()))
          return false;
-      return Util.asBoolean(this.getString(key.toLowerCase()));
+      String value = this.getProperty(key.toLowerCase()).toString();
+      return Util.asBoolean(value);
    }
 
    public boolean getStringAsBoolean(String key) {

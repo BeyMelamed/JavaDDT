@@ -255,7 +255,7 @@ public abstract class Verb extends DDTBase {
    }
 
    private static void debug(Verb verb) {
-      boolean shouldDebug = verb.getContext().getBoolean("Debug");
+      boolean shouldDebug = verb.getContext().getBoolean("debug");
       if (shouldDebug) {
          String pleaseNote = "This is a debugging spot for all of us, Verbs - Just keep debugging...";
       }
@@ -1262,6 +1262,7 @@ public abstract class Verb extends DDTBase {
          actor.doIt();
          // Pass context up
          verb.setElement(actor.getElement());
+         verb.getContext().setProperty("element", actor.getElement());
          verb.addComment(actor.getComments());
          verb.addError(actor.getErrors());
          verb.setException(actor.getException());
@@ -1879,6 +1880,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 10/31/14    |Bey      |Initial Version
+    * 08/21/15    |Bey      |Bug in doIt fixed - ensure both, driver is instance of WebDriver AND has handles
     * ============|=========|====================================
     */
 
@@ -1896,7 +1898,7 @@ public abstract class Verb extends DDTBase {
 
          try {
             WebDriver d = Driver.getDriver();
-            if (d != null && !d.getWindowHandles().isEmpty()) {
+            if (d instanceof WebDriver  && (d.getWindowHandles().size() > 0)) {
                d.close();
                Verb.basicAddComment(this, "Web Driver Closed.");
             }
@@ -3188,6 +3190,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/03/14    |Bey      |Initial Version
+    * 08/21/15    |Bey      |Bug fixed - preserve option that was found in Context
     * ============|=========|====================================
     */
 
