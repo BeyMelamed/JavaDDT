@@ -37,6 +37,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 06/22/14    |Bey      |Change format of test items provider specs
  * 07/23/15    |Bey      |Add Locale Code (for now, only date localization)
  * 08/22/15    |Bey      |Add Version and property file handling for both, DDTProperties and BuildProperties
+ * 08/24/15    |Bey      |Change TakeImage (from boolean to policy string) to enable image story of UI steps.
  * ============|=========|====================================
  */
 public class DDTSettings {
@@ -74,7 +75,7 @@ public class DDTSettings {
    private final String EmailPort = "587";
    private final boolean EmailAuthenticationRequired = true;
    private final boolean IsLocal = true;
-   private final boolean TakeImageOnFailedStep = true;
+   private final String TakeImagePolicy = "OnFail";
    private final boolean ReportEachTableCell = false;
    private final boolean TabOut = true;
    private final String StatusToReport = "PASS,FAIL,SKIP";
@@ -113,7 +114,7 @@ public class DDTSettings {
    private String chromePropertyKey;
    private String browserName;
    private boolean isLocal; // if true (local) - drives the screen shots file output type (FILE or BYTE)
-   private boolean takeImageOnFailedStep; // if true then an image is taken automatically on each failure (turn off while testing)
+   private String takeImagePolicy; // Never = {as expected}, OnFail = only on Failed UI steps, Always = on all UI steps (pass or fail)
    private boolean reportEachTableCell;  // if True then reporting on table searches may be huge - use true for debugging purposes mostly
    private boolean tabOut;               // Should driver append tab to data entry string in order to tab out of it
    private Long waitTime = -1L;
@@ -239,7 +240,6 @@ public class DDTSettings {
     * Initializes various aspects of the project's settings
     */
    private static void initialize() {
-      ddtSettings.setTakeImageOnFailedStep(false); // Turn off when testing
       ddtSettings.setIsLocal(true); // Turn off when testing remotely
       // Initialize various folders
       initializeFolders(ddtSettings);
@@ -830,15 +830,15 @@ public class DDTSettings {
       return emailAuthenticationRequired;
    }
 
-   private void setTakeImageOnFailedStep(boolean value) {
-      takeImageOnFailedStep = value;
+   private void setTakeImagePolicy(String value) {
+      takeImagePolicy = value;
    }
 
-   public boolean takeImageOnFailedStep() {
-      // no lazy initialization as a boolean can never be null - it is a primitive
-      String s = getPropertyOrDefaultValue(Util.booleanString(TakeImageOnFailedStep), "TakeImageOnFailedStep", false);
-      setTakeImageOnFailedStep(Util.asBoolean(s));
-      return takeImageOnFailedStep;
+   public String takeImagePolicy() {
+      String s = getPropertyOrDefaultValue(TakeImagePolicy, "TakeImagePolicy", true);
+
+      setTakeImagePolicy(s);
+      return takeImagePolicy;
    }
 
    private void setReportEachTableCell(boolean value) {

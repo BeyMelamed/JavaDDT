@@ -46,6 +46,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 07/24/15  |Bey            |Fixed handling of level propagation (level must be 1 or more), Number of steps (incrementDone() relocated
  * 07/27/15  |Bey            |Implementation of Extent reporting and nested reporting
  * 07/31/15  |Bey            |Fix bug - Final Report - use level < 2 instead of < 1 (also, remove verbs hashtable variable)
+ * 08/24/15  |Bey            |Adjust handling of takeing images as per takeImagePolicy in DDTSettings (replacing takeImageOnFile boolean)
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -657,28 +658,29 @@ public class DDTTestRunner {
                if (isBlank(pad))
                   pad = testItem.pad();
 
-               if (testItem.isFailure()) {
+               if (testItem.isFailure())
                   incrementFail();
-
-                  // Handle screen shots based on settings - but only if this is a UI test
-                  if (testItem.isUITest()) {
-                     if (DDTSettings.Settings().takeImageOnFailedStep() && Driver.isInitialized()) {
-                        String imageFileOrError = Util.takeScreenImage(Driver.getDriver(), "", testItem.getId());
-                        if (!(imageFileOrError.toLowerCase().contains("error:"))) {
-                           // Add it to the error - not Comments as error has occured
-                           testItem.setScreenShotFileName(imageFileOrError);
-                           testItem.addError("Screen Image " + testItem.getScreenShotFileNameAsHtml() + " taken!");
-                        }
-                     }
-                     else
-                        testItem.addComment("'Screen Image on step failure' feature is turned off or Driver not initialized - no image taken.  To turn feature on, change the relevant Settings' (takeImageOnFailedStep) property");
-                  }
-               } // if testItem.isFailure()
                else {
                   incrementPass();
                   if (testItem.getElement() instanceof WebElement) {
                      // Preserve the most recent web element
                      mrElement = testItem.getElement();
+                  }
+               }
+               // Handle screen shots based on settings - but only if this is a UI test
+               // NOTE: TakeScreenShot verb is NOT considered UI step!
+               if (testItem.isUITest()) {
+                  String takeImagePolicy = DDTSettings.Settings().takeImagePolicy();
+                  String blurb = "";
+                  if ((takeImagePolicy.equalsIgnoreCase("always")) || (testItem.isFailure() && (takeImagePolicy.equalsIgnoreCase("onfail")))) {
+                     // No sense in taking a screen shot with uninitialized web driver...
+                     if (Driver.isInitialized()) {
+                        String imageFileOrError = Util.takeScreenImage(Driver.getDriver(), "", testItem.getId());
+                        if (!(imageFileOrError.toLowerCase().contains("error:"))) {
+                           testItem.setScreenShotFileName(imageFileOrError);
+                           testItem.addComment("Screen Image " + testItem.getScreenShotFileNameAsHtml() + " taken!");
+                        }
+                     }
                   }
                }
 
