@@ -254,7 +254,7 @@ public abstract class UILocator extends DDTBase{
             // Do not overwrite previous exceptions!
             addError("Exception generated in Locator instance. (" + e.getMessage().toString());
          }
-
+         //System.out.println(element.getLocation().toString());
          return element;
 
       }
