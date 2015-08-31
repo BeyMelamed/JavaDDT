@@ -1,9 +1,6 @@
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import static org.apache.commons.lang3.StringUtils.indexOf;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-
 /**
  * Created with IntelliJ IDEA.
  * User: Avraham (Bey) Melamed
@@ -92,6 +89,9 @@ public abstract class TestStringsProvider extends DDTBase{
          }
          else if (specs.getArgs().length == 3 && fileName.endsWith(".xlsx")) {
             stringsProvider = new FileTestStringsProvider.ExcelXSSFTestStringsProvider(specs);
+         }
+         else if (specs.getArgs().length > 1 && fileName.endsWith(".txt")) {
+            stringsProvider = new FileTestStringsProvider.DelimitedTestStringsProvider(specs);
          }
          else {
             System.out.println("Invalid / Unsupported Input File Type: " + sq(fileName));

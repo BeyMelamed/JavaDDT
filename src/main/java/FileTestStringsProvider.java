@@ -315,6 +315,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
     * When        |Who      |What
     * ============|=========|====================================
     * 7/02/14     |Bey      |Initial Version
+    * 8/30/15     |Bey      |Eliminate unused methods
     * ============|=========|====================================
     */
    public static class HtmlTestStringsProvider extends FileTestStringsProvider {
@@ -323,16 +324,6 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
       }
 
       public HtmlTestStringsProvider(TestStringsProviderSpecs inputSpecs) {
-         setTestStringsProviderSpecs(inputSpecs);
-         addError(getTestStringsProviderSpecs().getErrors());
-      }
-
-      public HtmlTestStringsProvider(String[] inputSpecs) {
-         setTestStringsProviderSpecs(inputSpecs);
-         addError(getTestStringsProviderSpecs().getErrors());
-      }
-
-      public HtmlTestStringsProvider(String inputSpecs) {
          setTestStringsProviderSpecs(inputSpecs);
          addError(getTestStringsProviderSpecs().getErrors());
       }
@@ -439,6 +430,140 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
          }
          finally {
             System.out.println(nRows + " test item strings found on file: " + inputFile);
+         }
+      }
+   }
+
+   /**
+    * Created with IntelliJ IDEA.
+    * User: Avraham (Bey) Melamed
+    * Date: 7/2/14
+    * Time: 2:22 PM
+    * Selenium Based Automation
+    *
+    * =============================================================================
+    * Copyright 2014 Avraham (Bey) Melamed.
+    *
+    * Licensed under the Apache License, Version 2.0 (the "License");
+    * you may not use this file except in compliance with the License.
+    * You may obtain a copy of the License at
+    *
+    * http://www.apache.org/licenses/LICENSE-2.0
+    *
+    * Unless required by applicable law or agreed to in writing, software
+    * distributed under the License is distributed on an "AS IS" BASIS,
+    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    * See the License for the specific language governing permissions and
+    * limitations under the License.
+    * =============================================================================
+    *
+    * Description - Provides test items from a delimited text file.
+    *
+    * NOTE: This class is one of several test item strings provider classes - this is used for delimited .txt files
+    *
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 8/30/15     |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+   public static class DelimitedTestStringsProvider extends FileTestStringsProvider {
+
+      public DelimitedTestStringsProvider() {
+      }
+
+      public DelimitedTestStringsProvider(TestStringsProviderSpecs inputSpecs) {
+         setTestStringsProviderSpecs(inputSpecs);
+         addError(getTestStringsProviderSpecs().getErrors());
+      }
+
+      public boolean isSetupValid() {
+         return getTestStringsProviderSpecs().isValid();
+      }
+
+      @Override
+      /**
+       * Gets test Items from a delimited text file that is structured in a proprietary way... (same order as the spreadsheet provider)
+       * Extension is .txt by convention
+       * Empty lines are ignored           .
+       * Lines starting with # are ignored.
+       * The first line is headers by convention and is ignored
+       * Must have at least two columns (one tab) per line
+       *
+       * Here is an example of a file with two test steps (^t denotes a tab character)
+       *
+       Id^tAction^tLocType^t^tLocSpecs^tQryFunction^tActive^tData^tDescription
+       Demo#^tNewTest^t^t^t^t^tInputSpecs=File!DDTRootxls!Calculate1^tRun the first calculation test scenraio
+       Demo#^tNewTest^t^t^t^t^tInputSpecs=File!DDTRootxls!Calculate2^tRun the second calculation test scenraio
+
+       * Note that class is used to identify properties as 'class' attribute does not have to be unique
+
+       */
+
+      void provideStrings() throws ArrayIndexOutOfBoundsException, IOException {
+
+         int nRows = 0;
+
+         // Setup errors are set by the constructor - if any.
+         if (!isBlank(getErrors()) || !isSetupValid())
+            return;
+
+         String inputFile = getSourceName();
+
+         ArrayList<String[]> itemList = new ArrayList<String[]>();
+         String theLine = "";
+         String[] anItem;
+         boolean done = false;
+         int nItems = 0;
+
+         try {
+            File theFile;
+            theFile = new File(DDTSettings.asValidOSPath(inputFile, true));
+            FileReader fr = new FileReader(theFile);
+            BufferedReader br = new BufferedReader(fr);
+
+            while (!done) {
+               theLine = br.readLine();
+               done = (theLine == null);
+               if (!done) {
+                  nRows++;
+                  if (nRows == 1)
+                     continue;
+                  if (isBlank(theLine))
+                     continue;
+                  if (theLine.startsWith("#"))
+                     continue;
+                  anItem = theLine.split("\t");
+                  int len = anItem.length;
+                  if (len < 2 || len > 8) {
+                     System.out.println("Invalid line encountered in " + inputFile.toString() + "(" + theLine + "), line has " + len + " delimiters");
+                     continue;
+                  }
+                  if (len < 8) {
+                     // Make up empty items' fields
+                     String[] tmpItem = {"","","","","","","",""};
+                     for (int i = 0; i < len; i++)
+                        tmpItem[i] = anItem[i];
+                     anItem = tmpItem;
+                  }
+                  itemList.add(anItem);
+                  nItems++;
+               }
+            }
+
+            if (nItems > 0) {
+               stringifyTestItems(itemList);
+               System.out.println(nItems + " Items found on file " + inputFile);
+               addComment(nItems + " Items found on file " + inputFile);
+            }
+            else {
+               System.out.println("No Items found on file " + inputFile);
+               addError("No Items found on file " + inputFile);
+            }
+         }
+         catch (Exception e) {
+            setException(e);
+            throw new java.io.IOException("Failed to get test item strings from text file: " + e.toString());
          }
       }
    }

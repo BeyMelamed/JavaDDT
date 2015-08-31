@@ -36,13 +36,14 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * ==========|===============|========================================================
  * 7/2/2014  |Bey            |Initial Version
  * 10/28/14  |Bey            |Initial Version
+ * 08/30/15  |Bey            |Added .txt file extension
  * ==========|===============|========================================================
  */
 public class TestStringsProviderSpecs extends DDTBase{
 
    public static final String SPLITTER = "!";
 
-   private final String supportedFileExtensions = ",.xml,.xls,.xlsx,.html,";
+   private final String supportedFileExtensions = ",.xml,.xls,.xlsx,.html,.txt,";
    private String inputSpecs;
    private String[] args;
 
