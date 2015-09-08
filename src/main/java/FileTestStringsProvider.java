@@ -4,6 +4,9 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -53,6 +56,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * =============|=========|====================================
  * 07/02/14     |Bey      |Initial Version
  * 10/28/14     |Bey      |Subclass from BaseDDT
+ * 09/06/15     |Bey      |Move boolean isSetupValid here to avoid repetition in subclasses
  * =============|=========|====================================
  */
 public abstract class FileTestStringsProvider extends TestStringsProvider {
@@ -63,6 +67,10 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
 
    public String getItemsContainerName() {
       return getTestStringsProviderSpecs().getItemsContainerName();
+   }
+
+   public boolean isSetupValid() {
+      return getTestStringsProviderSpecs().isValid();
    }
 
    /**
@@ -116,10 +124,6 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
       public ExcelTestStringsProvider(String inputSpecs) {
          setTestStringsProviderSpecs(inputSpecs);
          addError(getTestStringsProviderSpecs().getErrors());
-      }
-
-      public boolean isSetupValid() {
-         return getTestStringsProviderSpecs().isValid();
       }
 
       @Override
@@ -229,10 +233,6 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
          addError(getTestStringsProviderSpecs().getErrors());
       }
 
-      public boolean isSetupValid() {
-         return getTestStringsProviderSpecs().isValid();
-      }
-
       @Override
       void provideStrings() throws IOException {
 
@@ -287,6 +287,202 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
    /**
     * Created with IntelliJ IDEA.
     * User: Avraham (Bey) Melamed
+    * Date: 9/6/15
+    * Time: 2:22 PM
+    * Selenium Based Automation
+    *
+    * =============================================================================
+    * Copyright 2015 Avraham (Bey) Melamed.
+    *
+    * Licensed under the Apache License, Version 2.0 (the "License");
+    * you may not use this file except in compliance with the License.
+    * You may obtain a copy of the License at
+    *
+    * http://www.apache.org/licenses/LICENSE-2.0
+    *
+    * Unless required by applicable law or agreed to in writing, software
+    * distributed under the License is distributed on an "AS IS" BASIS,
+    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    * See the License for the specific language governing permissions and
+    * limitations under the License.
+    * =============================================================================
+    *
+    * Description - Provides test items from a json file.
+    * {
+         "$schema": "http://json-schema.org/draft-04/schema#",
+         "title": "TestStep",
+         "description": "An instance of DDT Test Step",
+         "type": "TestItem",
+         "properties": {
+            "id": {
+            "description": "ID for for a test step",
+            "type": "string"
+         },
+    "action": {
+    "description": "Step Action - The action invoked (verb used) for this test step",
+    "type": "string"
+    "locType": {
+    "description": "Locator type for this test step - used only for UI steps",
+    "type": "string"
+    },
+    "locSpecs": {
+    "description": "Locator details for this test step - used only for UI steps",
+    "type": "string"
+    },
+    "qryFunction": {
+    "description": "Web Element Query Function - used only for a UI test step",
+    "type": "string"
+    },
+    "active": {
+    "description": "Indicates whether this test step is active (blank = yes).",
+    "type": "string"
+    },
+    "data": {
+    "description": "Step specific action modifiers for this test step.",
+    "type": "string"
+    },
+    "description": {
+    "description": "Description of this test step.",
+    "type": "string"
+    },
+    },
+      "required": ["action"]
+    }
+    *
+    * NOTE: This class is one of several test item strings provider classes - this is used for delimited .txt files
+    *
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 9/06/15     |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+   public static class JSONTestStringsProvider extends FileTestStringsProvider {
+
+      public JSONTestStringsProvider() {
+      }
+
+      public JSONTestStringsProvider(TestStringsProviderSpecs inputSpecs) {
+         setTestStringsProviderSpecs(inputSpecs);
+         addError(getTestStringsProviderSpecs().getErrors());
+      }
+
+      @Override
+      /**
+       * Gets test Items from a JSON file that is structured in a proprietary way... (same order as the spreadsheet provider)
+       * Extension is .json
+       * Must have at least the action property - but this is not enforced here.
+       *
+       * Here is an example of a file with two test steps
+       *
+       {
+       "TestItems": [
+       {
+          "id":"JSONTest#",
+          "action": "NewTest",
+          "data": "InputSpecs=File!DDTRoot.xlsx!Root",
+          "description": "Run the first calculation test scenario"
+       },
+       {
+          "id":"JSONTest#",
+          "action": "Click",
+          "locType": "id",
+          "locSpecs": "submitButton",
+          "description": "Click the Submit Button"
+       }]
+       }
+
+       */
+
+      void provideStrings() throws ArrayIndexOutOfBoundsException, IOException {
+
+         int nRows = 0;
+
+         // Setup errors are set by the constructor - if any.
+         if (!isBlank(getErrors()) || !isSetupValid())
+            return;
+
+         String inputFile = getSourceName();
+
+         ArrayList<String[]> itemList = new ArrayList<String[]>();
+         int nItems = 0;
+
+         try {
+
+            File theFile;
+            JSONParser jp = new JSONParser();
+            theFile = new File(DDTSettings.asValidOSPath(inputFile, true));
+            FileReader fr = new FileReader(theFile);
+            JSONArray tests = new JSONArray();
+            Object jsonItems = jp.parse(fr);
+            JSONObject jsonObject =  (JSONObject) jsonItems;
+
+            // Note: the name of the objects in the JSON file is critical AND IS CASE SENSITIVE!!!
+            tests = (JSONArray) jsonObject.get("TestItems");
+
+            // This methodology uses a string iterator for getting each of the Json objects.
+
+            Iterator<String> iterator = tests.iterator();
+            Object id;
+            Object action;
+            Object locType;
+            Object locSpecs;
+            Object qryFunction;
+            Object active;
+            Object data;
+            Object description;
+            while (iterator.hasNext()){
+               //TODO - Figure out a better way to get the properties out of the JSON object
+               Object tmp = iterator.next();
+               JSONObject jo = (JSONObject) tmp;
+
+               // Get TestItem (temporary) properties - these are null or strings - names are for readability purposes the same as TestItem properties.
+               id = jo.get("id");
+               action = jo.get("action");
+               locType = jo.get("locType");
+               locSpecs = jo.get("locSpecs");
+               qryFunction = jo.get("qryFunction");
+               active = jo.get("active");
+               data = jo.get("data");
+               description = jo.get("description");
+
+               // Needs to be replenished each iteration - ?? why ??
+               String[] anItem = new String[8];
+
+               // Creata an array of string representing a single test item
+               anItem[0] = (id == null ? "" : id.toString());
+               anItem[1] = (action == null ? "" : action.toString());
+               anItem[2] = (locType == null ? "" : locType.toString());
+               anItem[3] = (locSpecs == null ? "" : locSpecs.toString());
+               anItem[4] = (qryFunction == null ? "" : qryFunction.toString());
+               anItem[5] = (active == null ? "" : active.toString());
+               anItem[6] = (data == null ? "" : data.toString());
+               anItem[7] = (description == null ? "" : description.toString());
+
+               itemList.add(anItem);
+               nItems++;
+            }
+
+            if (nItems > 0) {
+               stringifyTestItems(itemList);
+               System.out.println(nItems + " Items found on file " + inputFile);
+               addComment(nItems + " Items found on file " + inputFile);
+            }
+            else {
+               System.out.println("No Items found on file " + inputFile);
+               addError("No Items found on file " + inputFile);
+            }
+         }
+         catch (Exception e) {
+            setException(e);
+            throw new java.io.IOException("Failed to get test item strings from text file: " + e.toString());
+         }
+      }
+   }
+
+   /**
+    * Created with IntelliJ IDEA.
+    * User: Avraham (Bey) Melamed
     * Date: 7/2/14
     * Time: 2:22 PM
     * Selenium Based Automation
@@ -326,10 +522,6 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
       public HtmlTestStringsProvider(TestStringsProviderSpecs inputSpecs) {
          setTestStringsProviderSpecs(inputSpecs);
          addError(getTestStringsProviderSpecs().getErrors());
-      }
-
-      public boolean isSetupValid() {
-         return getTestStringsProviderSpecs().isValid();
       }
 
       @Override
@@ -437,7 +629,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
    /**
     * Created with IntelliJ IDEA.
     * User: Avraham (Bey) Melamed
-    * Date: 7/2/14
+    * Date: 8/30/15
     * Time: 2:22 PM
     * Selenium Based Automation
     *
@@ -477,9 +669,9 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
          addError(getTestStringsProviderSpecs().getErrors());
       }
 
-      public boolean isSetupValid() {
-         return getTestStringsProviderSpecs().isValid();
-      }
+//      public boolean isSetupValid() {
+//         return getTestStringsProviderSpecs().isValid();
+//      }
 
       @Override
       /**
@@ -619,10 +811,6 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
       public XMLTestStringsProvider(String inputSpecs) {
          setTestStringsProviderSpecs(inputSpecs);
          addError(getTestStringsProviderSpecs().getErrors());
-      }
-
-      public boolean isSetupValid() {
-         return getTestStringsProviderSpecs().isValid();
       }
 
       @Override

@@ -93,6 +93,9 @@ public abstract class TestStringsProvider extends DDTBase{
          else if (specs.getArgs().length > 1 && fileName.endsWith(".txt")) {
             stringsProvider = new FileTestStringsProvider.DelimitedTestStringsProvider(specs);
          }
+         else if (specs.getArgs().length > 1 && fileName.endsWith(".json")) {
+            stringsProvider = new FileTestStringsProvider.JSONTestStringsProvider(specs);
+         }
          else {
             System.out.println("Invalid / Unsupported Input File Type: " + sq(fileName));
             return result;

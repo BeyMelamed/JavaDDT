@@ -187,12 +187,28 @@ public class DDTSettings {
          return;
 
       String propsFileName = TargetFolder + FileSeparator + "maven-archiver" + FileSeparator + "pom.properties";
-      propsFileName = asValidOSPath(propsFileName, true);
+      propsFileName = propsFileName.replace("\\\\","\\");
+            propsFileName = asValidOSPath(propsFileName, true);
       buildProperties = readProperties(propsFileName);
       if (buildProperties instanceof Properties)
          System.out.println("Build Properties loaded from: " + propsFileName);
-      else
-         System.out.println("Failed to load Build Properties from: " + propsFileName);
+      else {
+         System.out.println("Failed to load Build Properties from: " + propsFileName + " - Using Version '1.0.0'");
+         buildProperties = defaultBuildProperties();
+      }
+   }
+
+   /**
+    * Default Build Properties is used whenever the version of the project is needed.
+    * This is the default construct in liew of pom.properties file in the maven-archiver folder of the Target folder of the project.
+    * @return Properties that has the version entry - used when the build itself does not have those
+    */
+   private Properties defaultBuildProperties() {
+      Properties p = new Properties();
+      p.setProperty("version", "1.0.0");
+      p.setProperty("groupId","com.DynaBytes.Automation");
+      p.setProperty("artifactId", "JavaDDT");
+      return p;
    }
 
    public String ensureEndsWithFileSeparator (String path) {
