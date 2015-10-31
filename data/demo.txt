@@ -1,0 +1,5 @@
+Id	Action	LocType		LocSpecs	QryFunction	Active	Vars	Description
+
+TextDemo#	NewTest					InputSpecs=File!DDTRoot.xlsx!Calculate	Run the calculation test scenraio
+#This is just a comment
+TextDemo#	NewTest					InputSpecs=File!DDTRoot.xlsx!Calculate

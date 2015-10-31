@@ -394,7 +394,7 @@ public abstract class Verb extends DDTBase {
       private String[] branches;
       private String[] values;
       private String[] queries;
-      private String[] params;
+      private String[] data;
       private String[] comparisons;
       private String[] classes;
       private int iterations;
@@ -487,13 +487,13 @@ public abstract class Verb extends DDTBase {
          // Knowing the number of parameters' array size - create those arrays and fill them with the appropriate values (or blanks)
 
          values = new String[nBranches];
-         params = new String[nBranches];
+         data = new String[nBranches];
          classes = new String[nBranches];
          comparisons = new String[nBranches];
 
          for (int i = 0; i < nBranches; i++) {
             values[i] = "";
-            params[i] = "";
+            data[i] = "";
             classes[i] = "";
             comparisons[i] = "";
          }
@@ -518,7 +518,7 @@ public abstract class Verb extends DDTBase {
             if (i < tmpValues.length && isNotBlank(tmpValues[i]))
                values[i] = tmpValues[i].toUpperCase().equals("@BLANK@") ? "" : tmpValues[i];
             if (i < tmpParams.length && isNotBlank(tmpParams[i]))
-               params[i] = tmpParams[i].toUpperCase().equals("@BLANK@") ? "" : tmpParams[i];
+               data[i] = tmpParams[i].toUpperCase().equals("@BLANK@") ? "" : tmpParams[i];
             if (i < tmpClasses.length && isNotBlank(tmpClasses[i]))
                classes[i] = tmpClasses[i].toUpperCase().equals("@BLANK@") ? "" : tmpClasses[i];
             if (i < tmpCompares.length && isNotBlank(tmpCompares[i]))
@@ -1215,7 +1215,6 @@ public abstract class Verb extends DDTBase {
          this.setElement(locator.getElement());
          Verb.basicAddComment(this, "Element Found!");
 
-         // Support for saving elements in TestRunner's elements Map
          // Support for saving elements in TestRunner's elements Map
          String eKey = getContext().getString("saveelementas");
          if (!isBlank(eKey))

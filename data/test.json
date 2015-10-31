@@ -1,0 +1,16 @@
+       {
+       "TestItems": [
+          {
+          "id":"JSONTest#",
+          "action": "NewTest",
+          "vars": "InputSpecs=File!DDTRoot.xlsx!Root",
+          "description": "Run the first calculation test scenario"
+          },
+          {
+          "id":"JSONTest#",
+          "action": "Click",
+          "locType": "id",
+          "locSpecs": "submitButton",
+          "description": "Click the Submit Button"
+          }]
+       }
