@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <TestCase Description="This is a POC for DDT XML Test - 01">
-  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Vars="InputSpecs=File!DDTRoot.xlsx!Calculate" Description="Launch the Calculator Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Vars="InputSpecs=File!DDTRoot.xlsx!ChainingFinders" Description="Launch the Chaining Finders Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Vars="InputSpecs=File!DDTRoot.xlsx!CssFinders" Description="Launch the Css Finders Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Vars="InputSpecs=File!DDTRoot.xlsx!FrameSwitching" Description="Launch the Frame Switching Test Case"></TestItem>
-  <TestItem Id="DDTXMLDemo#" Action="Wait" Active="" Vars="WaitTime=5" Description="Wait a bit"></TestItem>
-  <TestItem Id="DDTXMLDemo#" Action="generateReport" Vars="Description=Test XML Demo Results" Description="Report results of this session"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Params="InputSpecs=File!DDTRoot.xlsx!Calculate" Description="Launch the Calculator Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Params="InputSpecs=File!DDTRoot.xlsx!ChainingFinders" Description="Launch the Chaining Finders Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Params="InputSpecs=File!DDTRoot.xlsx!CssFinders" Description="Launch the Css Finders Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="newTest" Active="" Params="InputSpecs=File!DDTRoot.xlsx!FrameSwitching" Description="Launch the Frame Switching Test Case"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="Wait" Active="" Params="WaitTime=5" Description="Wait a bit"></TestItem>
+  <TestItem Id="DDTXMLDemo#" Action="generateReport" Params="Description=Test XML Demo Results" Description="Report results of this session"></TestItem>
 </TestCase>

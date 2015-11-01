@@ -3,7 +3,7 @@
           {
           "id":"JSONTest#",
           "action": "NewTest",
-          "vars": "InputSpecs=File!DDTRoot.xlsx!Root",
+          "params": "InputSpecs=File!DDTRoot.xlsx!Root",
           "description": "Run the first calculation test scenario"
           },
           {

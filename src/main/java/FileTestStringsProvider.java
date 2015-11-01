@@ -337,7 +337,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
     "description": "Indicates whether this test step is active (blank = yes).",
     "type": "string"
     },
-    "vars": {
+    "params": {
     "description": "Step specific action modifiers for this test step.",
     "type": "string"
     },
@@ -355,7 +355,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
     * When        |Who      |What
     * ============|=========|====================================
     * 9/06/15     |Bey      |Initial Version
-    * 10/31/15    |Bey      |Change the name of "Data" element to "Vars" - improved readability
+    * 10/31/15    |Bey      |Change the name of "Data" element to "Params" - improved readability
     * ============|=========|====================================
     */
    public static class JSONTestStringsProvider extends FileTestStringsProvider {
@@ -381,7 +381,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
        {
           "id":"JSONTest#",
           "action": "NewTest",
-          "vars": "InputSpecs=File!DDTRoot.xlsx!Root",
+          "params": "InputSpecs=File!DDTRoot.xlsx!Root",
           "description": "Run the first calculation test scenario"
        },
        {
@@ -444,7 +444,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
                locSpecs = jo.get("locSpecs");
                qryFunction = jo.get("qryFunction");
                active = jo.get("active");
-               data = jo.get("vars");
+               data = jo.get("params");
                description = jo.get("description");
 
                // Needs to be replenished each iteration - ?? why ??
@@ -546,7 +546,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
                          <td class="locSpecs"></td>
                          <td class="qryFunction"></td>
                          <td class="active"></td>
-                         <td class="vars">InputSpecs=File:DDTRoot.xls:Calculate</td>
+                         <td class="params">InputSpecs=File:DDTRoot.xls:Calculate</td>
                          <td class="description">Run the Calculator tests</td>
                      </tr>
                      <tr>
@@ -556,7 +556,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
                          <td class="locSpecs"></td>
                          <td class="qryFunction"></td>
                          <td class="active"></td>
-                         <td class="vars">InputSpecs=File:DDTRoot.xls:ChainingFinders</td>
+                         <td class="params">InputSpecs=File:DDTRoot.xls:ChainingFinders</td>
                          <td class="description">Run the Chaining Finders tests</td>
                      </tr>
                   </tbody>
@@ -606,7 +606,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
                locSpecs = cells.select(".locSpecs").text();
                qryFunction = cells.select(".qryFunction").text();
                active = cells.select(".active").text();
-               data = cells.select(".vars").text();
+               data = cells.select(".params").text();
                description = cells.select(".description").text();
                String[] item = {id, action, locType, locSpecs, qryFunction, active, data, description};
                getDataStrings()[rowNo++] = item;
@@ -658,7 +658,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
     * When        |Who      |What
     * ============|=========|====================================
     * 8/30/15     |Bey      |Initial Version
-    * 10/31/15    |Bey      |Change the name of "Data" element to "Vars" - improved readability
+    * 10/31/15    |Bey      |Change the name of "Data" element to "Params" - improved readability
     * ============|=========|====================================
     */
    public static class DelimitedTestStringsProvider extends FileTestStringsProvider {
@@ -873,7 +873,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
        * When        |Who      |What
        * ============|=========|====================================
        * 07/02/14    |Bey      |Initial Version
-       * 10/31/15    |Bey      |Change the name of "Data" element to "Vars" - improved readability
+       * 10/31/15    |Bey      |Change the name of "Data" element to "Params" - improved readability
        * ============|=========|====================================
        */
       public class DDTestParser {
@@ -884,7 +884,7 @@ public abstract class FileTestStringsProvider extends TestStringsProvider {
          static final String LOCSPECS = "LocSpecs";
          static final String QRYFUNCTION = "QryFunction";
          static final String ACTIVE = "Active";
-         static final String DATA = "Vars";
+         static final String DATA = "Params";
          static final String DESCRIPTION = "Description";
 
          private Exception exception;
