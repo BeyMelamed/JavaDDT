@@ -58,7 +58,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void calculator(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"CalcPrep#", "setVars", "", "", "", "", "URL=http://compendiumdev.co.uk/selenium/calculate.php;BaseTitle=The " + Util.dq("Selenium Simplified") + " Calculator", "Set the browser and Base URL for calculator tests"});
       list.add(new String[] {"CalcPrep#", "createWebDriver", "", "", "", "", "URL={url}", "Launch the browser with base URL"});
       list.add(new String[] {"CalcPrep#", "setVars", "", "", "", "", "Number1=1;Number2=2;Action=plus;Answer=3;Function=GetText;CompareMode=NotBlank", "Verify a non blank answer"});
@@ -80,7 +80,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void calculate(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"Calculate#", "sendKeys", "Id", "number1", "", "", "Value={number1}", "Enter {number1} in the Number1 text box"});
       list.add(new String[] {"Calculate#", "sendKeys", "Id", "number2", "", "", "Value={number2}", "Enter {number2} in the Number2 text box"});
       list.add(new String[] {"Calculate#", "findElement", "Id", "function", "", "", "", "Find the {function} web element"});
@@ -93,7 +93,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void chainingFinders(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"ChainPrep#", "createWebDriver", "", "", "", "", "URL=http://www.compendiumdev.co.uk/selenium/find_by_playground.php", "Launch the browser to the find_by_playground.php page"});
       list.add(new String[] {"ChainPrep#", "setVars", "", "", "", "", "Hows=id,name,tagName;Values=div1,pName3,a;Function=GetAttribute;Attribute=Id;FindValue=a3;CompareMode=Equals", "Set variables for this instance of chaining finders test case."});
       list.add(new String[] {"ChainPrep#", "newTest", "", "", "", "", "InputSpecs=Inline!SampleTestStringsGenerator!chainFinders", "Run this instance of of chaining finders test case."});
@@ -105,7 +105,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void chainFinders(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "data", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"Chain#", "verifyWebElement", "{hows}", "{values}", "{function}", "yes", "Value={FindValue};CompareMode={CompareMode};QueryParam={Attribute}", "Run this web element verification using locType of '{hows}', locSpec of '{values}', qryFunction of '{function}', Attribute of '{attribute}', verifying value of '{FindValue}' with comparison method of '{CompareMode}'."});
 
       stringifyTestItems(list);
@@ -113,7 +113,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void cssFinders(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"CSSPrep#", "createWebDriver", "", "", "", "", "URL=http://www.compendiumdev.co.uk/selenium/find_by_playground.php", "Launch the browser to the find_by_playground.php page"});
       list.add(new String[] {"CSSPrep#", "setVars", "", "", "", "", "How=Css;Attribute=Name;Value=#p31;Function=GetAttribute;FindValue=pName31;CompareMode=Equals", "Set variables for this instance of css finders test case."});
       list.add(new String[] {"CSSPrep#", "newTest", "", "", "", "", "InputSpecs=Inline!SampleTestStringsGenerator!cssFinder", "Run this instance of of css finder test case."});
@@ -148,7 +148,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void cssFinder(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "paramss", "description"});
       list.add(new String[] {"CSSFind#", "verifyWebElement", "{how}", "{value}", "{function}", "yes", "Value={FindValue};CompareMode={CompareMode};QueryParam={Attribute}", "Run this web element verification using locType of '{how}', locSpec of '{value}', qryFunction of '{function}', Attribute of '{attribute}', verifying value of '{FindValue}' with comparison method of '{CompareMode}'."});
       list.add(new String[] {"CSSFind#", "verifyElementSize", "{how}", "{value}", "getText", "yes", "Value=3;CompareMode=gt;QueryParam={Attribute};class=integer", "Verify the size of the attribute is > 3"});
       list.add(new String[] {"CSSFind#", "verifyElementSize", "{how}", "{value}", "getText", "yes", "Value=3.And.2000;CompareMode=between;QueryParam={Attribute};class=integer", "Verify the size of the attribute is between 3 and 50."});
@@ -158,7 +158,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void frameSwitching(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"SwitchFrames#",  "createWebDriver", "", "", "", "", "URL=http://www.compendiumdev.co.uk/selenium/frames", "Launch the browser to the 'frames' page"});
       list.add(new String[] {"SwitchFrames#", "verifyWebDriver", "", "", "getTitle", "yes", "Value=Frameset Example Title (Example 6);CompareMode=Equals", "Verify the title of the 'frames' page."});
       list.add(new String[] {"SwitchFrames#", "switchToFrame", "", "", "", "yes", "Value=content", "Switch to the content frame."});
@@ -179,7 +179,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void nonBrowserPassingTests(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"Passing#",  "verify", "", "", "", "", "Value=12345;ActualValue=23456;Class=Int;CompareMode=>=", "Verify 23456 is greater than or equal to 12345"});
       list.add(new String[] {"Passing#",  "verify", "", "", "", "", "Value=-12,345;ActualValue=23,456,456,789;Class=Long;CompareMode=GT", "Verify Long 23,456,456,789 is greater than -12345 with 1000's separator"});
       list.add(new String[] {"Passing#",  "verify", "", "", "", "", "Value=-12,345.0001;ActualValue=23,456,456,789.00007;Class=Decimal;CompareMode=!=", "Verify Decimal 23,456,456,789.00007 is not equal to -12345.0001 with 1000's separator"});
@@ -200,7 +200,7 @@ public class SampleTestStringsGenerator extends InlineTestStringsProvider {
 
    public void nonBrowserFailingTests(ArrayList<String[]> list) {
       // Template:
-      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "vars", "description"});
+      //list.add(new String[] {"id", "action", "locType", "locSpecs", "qryFunction", "active", "params", "description"});
       list.add(new String[] {"Failing#",  "verify", "", "", "", "", "Value=12345;ActualValue=23456;Class=Int;CompareMode=<", "Verify 23456 is less than 12345"});
       list.add(new String[] {"Failing#",  "verify", "", "", "", "", "Value=-12,345;ActualValue=23,456,456,789;Class=Long;CompareMode=Equals", "Verify Long 23,456,456,789 equals -12345 with 1000's separator"});
       list.add(new String[] {"Failing#",  "verify", "", "", "", "", "Value=-12,345.0001;ActualValue=23,456,456,789.00007;Class=Decimal;CompareMode=LT", "Verify Decimal 23,456,456,789.00007 is less than -12345.0001 with 1000's separator"});
