@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -6,10 +7,10 @@
 
     <groupId>com.DynaBytes.Automation</groupId>
     <artifactId>JavaDDT</artifactId>
-    <version>1.2.3c</version>
+    <version>1.3.0</version>
     <packaging>jar</packaging>
     <dependencies>
-        <!-- Junit 4.11 needs hamcrest 1.3 -->
+        <!-- Junit >= 4.11 needs hamcrest 1.3 -->
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
@@ -19,7 +20,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
 
@@ -116,12 +117,6 @@
         </dependency>
 
         <dependency>
-            <!-- Old Phantom JS - incompatible with Selenium 2.4.4 and higher
-            <groupId>com.github.detro.ghostdriver</groupId>
-            <artifactId>phantomjsdriver</artifactId>
-            <version>1.1.0</version>
-            -->
-
             <!--> Newer Phantom JS - compatible with Selenium 2.4.4 and higher -->
             <groupId>com.codeborne</groupId>
             <artifactId>phantomjsdriver</artifactId>
@@ -148,15 +143,24 @@
             <version>1.0</version>
         </dependency>
 
+        <!-- Encryption - See http://jasypt.org/maven.html -->
+        <dependency>
+            <groupId>org.jasypt</groupId>
+            <artifactId>jasypt</artifactId>
+            <version>1.9.2</version>
+            <scope>compile</scope>
+        </dependency>
+
     </dependencies>
     <build>
       <plugins>
+        <!--
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-jar-plugin</artifactId>
             <version>2.2</version>
-            <!-- nothing here -->
-        </plugin>
+            nothing
+        </plugin> -->
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
