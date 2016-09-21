@@ -1,3 +1,5 @@
+import javafx.scene.input.KeyCode;
+
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Field;
@@ -31,6 +33,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * When      |Who            |What
  * ==========|===============|========================================================
  * 02/03/14  |Bey            |Initial Version
+ * 12/21/15  |Bey            |Added functionKey function
  * ==========|===============|========================================================
  */
 public class KeyboardEmulator extends Thread {
@@ -47,6 +50,9 @@ public class KeyboardEmulator extends Thread {
    private static String text;
    private static String shiftChars = "!@#$%^&*()_+{}:\"<>?";
    private static String unShiftChars = "1234567890-=[];',./";
+   private final static KeyCode[] functionKeys = {KeyCode.F1, KeyCode.F2, KeyCode.F3, KeyCode.F4, KeyCode.F5, KeyCode.F6, KeyCode.F7, KeyCode.F8, KeyCode.F9,
+   KeyCode.F10, KeyCode.F11, KeyCode.F12, KeyCode.F13, KeyCode.F14, KeyCode.F15, KeyCode.F16, KeyCode.F17, KeyCode.F18, KeyCode.F19, KeyCode.F20, KeyCode.F21,
+         KeyCode.F22, KeyCode.F23, KeyCode.F24};
 
    public static void setKeyboard (Robot value) {
       kb = value;
@@ -79,6 +85,60 @@ public class KeyboardEmulator extends Thread {
          keyboard.keyPress(F5);
       }
       catch (AWTException e) {
+
+      }
+   }
+
+   // Send a function key, optionally with a combination of contro, shift or alt key depressed.
+   // key            - A string like "F5" - must start with f or F followed by number that is between 1 and 24
+   // ctrlSjoftAlt   - a string containing "ctrl" and / or "shift" and / or "alt"
+   // Both params are case insensitive
+   public static void functionKey(String key, String ctrlShiftAlt) {
+      String sTmp = key.toLowerCase();
+      int iTmp = 0;
+      KeyCode keyCode;
+      boolean usedCtrl = false, usedShift = false, usedAlt = false;
+      if (sTmp.startsWith("f")) {
+         // Get the numeric value of the function key, will be used as index into the KeyCode array
+         iTmp = Integer.valueOf(sTmp.substring(1, sTmp.length()));
+         if (iTmp < 25 && iTmp > 0) {
+            keyCode = functionKeys[iTmp-1];
+
+            // Determine whether or not to mask with ctrl, shift, alt ...
+            try {
+               Robot keyboard = getKeyboard();
+               keyboard.waitForIdle();
+               if (ctrlShiftAlt.contains("ctrl")) {
+                  keyboard.keyPress(KeyEvent.CTRL_DOWN_MASK);
+                  usedCtrl = true;
+               }
+
+               if (ctrlShiftAlt.contains("shift")) {
+                  keyboard.keyPress(KeyEvent.SHIFT_DOWN_MASK);
+                  usedShift = true;
+               }
+
+               if (ctrlShiftAlt.contains("alt")) {
+                  keyboard.keyPress(KeyEvent.ALT_DOWN_MASK);
+                  usedAlt = true;
+               }
+
+               //keyboard.keyPress(KeyEvent.keyCode);
+
+               // Determine what key to release
+
+               if (usedCtrl)
+                  keyboard.keyRelease(CTRL);
+               if (usedShift)
+                  keyboard.keyRelease(Shift);
+               if (usedAlt)
+                  keyboard.keyRelease(KeyEvent.VK_ALT);
+
+            }
+            catch (Exception e) {
+               //ignore
+            }
+         }
 
       }
    }
