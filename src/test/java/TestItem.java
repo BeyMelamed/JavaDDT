@@ -42,6 +42,7 @@ import static org.apache.commons.lang.StringUtils.*;
  * 10/28/14    |Bey      |Inherit from DDTBase
  * 07/24/15    |Bey      |Level property handling in reporting items
  * 07/27/15    |Bey      |Implement Extent Reporting
+ * 06/26/16    |Bey      |Implement shouldFail boolean
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -74,6 +75,7 @@ public class TestItem extends DDTBase{
    private TestItem parentTestItem;          // The instance's parent testItem
    private TestStringsProviderSpecs providerSpecs;
    private ExtentTest extentTest;            // This is needed when the reporting session is the Extent reporting
+
    DDTDate.DDTDuration duration;
 
    public static final String LevelToken = "level";
@@ -439,6 +441,11 @@ public class TestItem extends DDTBase{
       if (result < 1L)
          result = DDTSettings.Settings().waitTime();
 
+      return result;
+   }
+
+   public boolean shouldFail() {
+      boolean result = dataProperties.getStringAsBoolean("shouldfail");
       return result;
    }
 

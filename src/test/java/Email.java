@@ -128,6 +128,28 @@ public class Email {
          messageBodyPart.setFileName(source.getName());  // When using setFileName(fileName) - the name is the entire path with non-alpha characters represented as under scores
          multipart.addBodyPart(messageBodyPart);
 
+         // If any other attachments are available (they should be specified with full path in the ddt.properties file in a folder accessible from here...)
+         // This is a comma delimited list of file names...  where (optionally) the string "%res%" stands for the project's Resources folder  and %data% for the data folder
+
+         String attachments = settings.attachments();
+         if (!attachments.isEmpty())  {
+            String[] fileNames = attachments.split(",");
+            for (int i=0; i < fileNames.length; i++) {
+               messageBodyPart = new MimeBodyPart();
+               source = new FileDataSource(fileNames[i].replace("%res%", settings.resourcesFolder()).replace("%data%", settings.dataFolder()));
+               try {
+                  source.getInputStream().read(new byte[1]);
+                  source.getInputStream().close();
+                  messageBodyPart.setDataHandler(new DataHandler(source));
+                  messageBodyPart.setFileName(source.getName());  // When using setFileName(fileName) - the name is the entire path with non-alpha characters represented as under scores
+                  multipart.addBodyPart(messageBodyPart);
+               }
+               catch (Exception e) {
+                  // Ignore this file...
+                  System.out.println("Attachement " + source.getName() + " Not Found - Skipped!");
+               }
+            }
+         }
          // Place the entire kit & caboodle in the message
          message.setContent(multipart );
 

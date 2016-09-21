@@ -281,8 +281,8 @@ public abstract class UILocator extends DDTBase{
           * Implement a version of Chaining made of comma delimited 'how' and 'searchValue' fragments.
           */
 
-         String[] hows = how.split("`");
-         String[] searchValues = searchValue.split("`");
+         String[] hows = how.split(",");
+         String[] searchValues = searchValue.split(",");
          chainedSpecs = new By[hows.length];
 
          try {

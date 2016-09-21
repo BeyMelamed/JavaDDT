@@ -11,7 +11,6 @@ import java.util.Locale;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
-import static org.apache.commons.lang3.StringUtils.trim;
 
 /**
  * Created with IntelliJ IDEA.
@@ -61,6 +60,28 @@ public class Verifier extends DDTBase{
    private boolean stripWhiteSpace;
    private boolean andVerifier;
    private boolean orVerifier;
+   private boolean shouldFail;
+
+   public Verifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
+	      setEv(ev);
+	      setAv(av);
+	      setComp(md);
+	      setOpt(opt);
+	      setCls(cls);
+	      setStripWhiteSpace(stripWhiteSpace);
+	      setupMultiVerification();
+	   }
+
+	   public Verifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace, boolean shouldFail) {
+	      setEv(ev);
+	      setAv(av);
+	      setComp(md);
+	      setOpt(opt);
+	      setCls(cls);
+	      setStripWhiteSpace(stripWhiteSpace);
+	      setupMultiVerification();
+	      setShouldFail(shouldFail);
+	   }
 
    /**
     *   Prepare string array for multiple verifications of 'or' or 'and' and set the type of multiple operation if any
@@ -120,29 +141,6 @@ public class Verifier extends DDTBase{
       setEv(s);
    }
 
-   /**
-    * Convenience method to launch verification
-    * @param ev - Expected Value
-    * @param av - Actual Value
-    * @param md - Comparison Mode
-    * @param opt - Verification option (applies to string)
-    * @param cls - object class name ("Integer", "Date", "Amount"...)
-    * @param stripWhiteSpace - if true, strip actual value and expected values of all white space characters before comparison / verification.
-    * @return    - Verifier instance with verification result - us isPass() to determine success or failure
-    */
-   public static Verifier verify(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
-      Verifier v = new Verifier(ev, av, md, opt, cls, stripWhiteSpace);
-      try {
-         v.verify();
-      }
-      catch (Exception e) {
-         v.addError(trim(v.getErrors() + " " + e.getCause().toString()));
-      }
-      finally {
-         return v;
-      }
-   }
-
    public void clear() {
       super.clear();
       actualValue = "";
@@ -151,6 +149,7 @@ public class Verifier extends DDTBase{
       option = "";
       cls = "";
       stripWhiteSpace = false;
+      setShouldFail(false);
    }
    /**
     * Convenience method to launch verification
@@ -188,6 +187,9 @@ public class Verifier extends DDTBase{
       if (isBlank(strip))
          strip = DDTSettings.Settings().stripWhiteSpace() ? "true" : "false";
       boolean stripWhiteSpace = Util.asBoolean(strip);
+
+      if(testItem.shouldFail())
+         return new Verifier(ev, "", md, opt, cls, stripWhiteSpace, true);
 
       // The Actual Value (second param) will be set by caller
       return new Verifier(ev, "", md, opt, cls, stripWhiteSpace);
@@ -230,18 +232,10 @@ public class Verifier extends DDTBase{
          strip = DDTSettings.Settings().stripWhiteSpace() ? "true" : "false";
       boolean stripWhiteSpace = Util.asBoolean(strip);
 
-      // The Actual Value (second param) will be set by caller
-      return new Verifier(ev, "", md, opt, cls, stripWhiteSpace);
-   }
+      boolean shouldFail = testContext.getBoolean("shouldfail");
 
-   public Verifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
-      setEv(ev);
-      setAv(av);
-      setComp(md);
-      setOpt(opt);
-      setCls(cls);
-      setStripWhiteSpace(stripWhiteSpace);
-      setupMultiVerification();
+      // The Actual Value (second param) will be set by caller
+      return new Verifier(ev, "", md, opt, cls, stripWhiteSpace, shouldFail);
    }
 
    public String toString() {
@@ -356,8 +350,40 @@ public class Verifier extends DDTBase{
             break;
          }
          default: {}
+         adjustForExpectedFailure();
       }
    }// verifyBlank
+
+   private void adjustForExpectedFailure() {
+      // Adjust only if should fail
+      if(!shouldFail)
+         return;
+
+      String suffix = " - But Failure Expected!";
+
+      if(getErrors().isEmpty()) {
+         // Reverse PASS
+         String blurb = (getComments().isEmpty() ? "Verification Passed" : getComments() + suffix);
+         clearErrors();
+         addError(blurb);
+         clearComments();
+      }
+      else {
+         // Reverse FAIL
+         String blurb = getErrors() + suffix;
+         clearComments();
+         addComment(blurb);
+         clearErrors();
+      }
+   }
+
+   public void setShouldFail(boolean value) {
+      shouldFail = value;
+   }
+
+   boolean getShouldFail() {
+      return shouldFail;
+   }
 
    /**
     * Verifies whether expectation is met based on the instance's values.
@@ -373,6 +399,7 @@ public class Verifier extends DDTBase{
       // This is done before having to convert the (possibly empty) actual value to some object...
       if (isBlankVerification()) {
          verifyBlank();
+         adjustForExpectedFailure();
          return;
       }
 
@@ -383,6 +410,7 @@ public class Verifier extends DDTBase{
             case "int" :case "integer" :
             {
                IntegerVerifier verifier = new IntegerVerifier(getEv(), getAv(), getComp(), getOpt(), getCls(), getStripWhiteSpace());
+               verifier.setShouldFail(getShouldFail());
                if (isBlank(verifier.getErrors()))
                   verifier.verify();
                addComment(verifier.getComments());
@@ -432,6 +460,8 @@ public class Verifier extends DDTBase{
 
             default: addError("Invalid numeric object class specified: " +Util.sq(getCls()) + ", options are: " + NumberVerifier.ValidFormats);
          } // Switch
+
+         adjustForExpectedFailure();
 
       } //Try
       catch (Exception e) {
@@ -597,14 +627,26 @@ public class Verifier extends DDTBase{
             }
             default: addError("Invalid comparison mode specified: "+Util.sq(getComp()));
          } // Switch
+
+         adjustForExpectedFailure();
+
       } // Try
       catch (Exception e) {
          addError("Verifier generated general exception " + e.getCause().toString());
       }
    } //VerifyStrings - the default verification logic
 
-   private class NumberVerifier extends Verifier {
+   public class NumberVerifier extends Verifier {
       int comparisonResult=0;
+
+      
+      
+      
+      
+      public NumberVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
+          super(ev, av, md, opt, cls, stripWhiteSpace);
+          removeGroupingSeparator();
+       }
 
       public int getComparisonResult() {
          return comparisonResult;
@@ -615,11 +657,6 @@ public class Verifier extends DDTBase{
       }
 
       private static final String ValidFormats =   "'int', 'long', 'double', 'float', 'decimal', 'currency', 'date'";
-      private NumberVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
-         super(ev, av, md, opt, cls, stripWhiteSpace);
-         removeGroupingSeparator();
-      }
-
       private void removeGroupingSeparator() {
          DecimalFormat format = new java.text.DecimalFormat();
          DecimalFormatSymbols symbols = format.getDecimalFormatSymbols();
@@ -738,6 +775,7 @@ public class Verifier extends DDTBase{
                }
                default: addError("Invalid comparison mode specified: "  +Util.sq(getComp()));
             } // Switch
+            //adjustForExpectedFailure();
          } // Try
          catch (Exception e) {
             addError("Verifier generated general exception " + e.getCause().toString());
@@ -745,7 +783,7 @@ public class Verifier extends DDTBase{
       } // Verify
    } // NumberVerifier
 
-   private class IntegerVerifier extends NumberVerifier {
+   public class IntegerVerifier extends NumberVerifier {
 
       private IntegerVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
          super(ev, av, md, opt, cls, stripWhiteSpace);
@@ -794,7 +832,7 @@ public class Verifier extends DDTBase{
       }
    }
 
-   private class LongVerifier extends NumberVerifier {
+   public class LongVerifier extends NumberVerifier {
 
       private LongVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
          super(ev, av, md, opt, cls, stripWhiteSpace);
@@ -837,7 +875,7 @@ public class Verifier extends DDTBase{
       }
    }
 
-   private class DecimalVerifier extends NumberVerifier {
+   public class DecimalVerifier extends NumberVerifier {
 
       private DecimalVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
          super(ev, av, md, opt, cls, stripWhiteSpace);
@@ -878,9 +916,10 @@ public class Verifier extends DDTBase{
             setComparisonResult(actual.compareTo(expected));
          verify(actual);
       }
+
    }  // Decimal Verifier
 
-   private class AmountVerifier extends NumberVerifier {
+   public class AmountVerifier extends NumberVerifier {
 
       private AmountVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
          super(ev, av, md, opt, cls, stripWhiteSpace);

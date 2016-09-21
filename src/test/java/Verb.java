@@ -58,7 +58,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * When        |Who      |What
  * ============|=========|====================================
  * 10/29/14    |Bey      |Initial Version
- * 06/06/15    |Bey      |Introduce WaitUntio and BranchOnValue, verb names are now case-insensitive
+ * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
  * ============|=========|====================================
  */
 
@@ -75,49 +75,57 @@ public abstract class Verb extends DDTBase {
       return verbs;
    }
 
+   public static void initialize() {
+      initializeVerbs();
+   }
+
    /**
     * @TODO - Use reflection to discover all Verb subclasses instead of hard code those
     * Initialize the verbs structure - need to be modified when a new verb is introduced.
     */
    private static void initializeVerbs() {
       //Class<?>[] subClasses = Verb.class.getDeclaredClasses();
+
       verbs = new Hashtable<String, Verb>();
-      verbs.put("branchOnElementValue".toLowerCase(), new BranchOnElementValue());
-      verbs.put("click".toLowerCase(), new Click());
-      verbs.put("clickCell.toLowerCase()", new ClickCell());
-      verbs.put("createWebDriver".toLowerCase(), new CreateWebDriver());
-      verbs.put("ensurePageLoaded".toLowerCase(), new EnsurePageLoaded());
-      verbs.put("findCell".toLowerCase(), new FindCell());
-      verbs.put("findElement".toLowerCase(), new FindElement());
-      verbs.put("findOption".toLowerCase(), new FindOption());
-      verbs.put("generateReport".toLowerCase(), new GenerateReport());
-      verbs.put("handleAlert".toLowerCase(), new HandleAlert());
-      verbs.put("hover".toLowerCase(), new Hover());
-      verbs.put("maximize".toLowerCase(), new Maximize());
-      verbs.put("navigateToPage".toLowerCase(), new NavigateToPage());
-      verbs.put("newTest".toLowerCase(), new NewTest());
-      verbs.put("notImplemented".toLowerCase(), new NotImplemented());
-      verbs.put("refreshSettings".toLowerCase(), new RefreshSettings());
-      verbs.put("quit".toLowerCase(), new Quit());
-      verbs.put("runCommand".toLowerCase(), new RunCommand());
-      verbs.put("runExternalMethod".toLowerCase(), new RunExternalMethod());
-      verbs.put("runJS".toLowerCase(), new RunJS());
-      verbs.put("saveElementProperty".toLowerCase(), new SaveElementProperty());
-      verbs.put("saveWebDriverProperty".toLowerCase(), new SaveWebDriverProperty());
-      verbs.put("scrollWebPage".toLowerCase(), new ScrollWebPage());
-      verbs.put("selectOption".toLowerCase(), new SelectOption());
-      verbs.put("sendKeys".toLowerCase(), new TypeKeys()); // *** Note Exception in verb name ***
-      verbs.put("setPageSize".toLowerCase(), new SetPageSize());
-      verbs.put("setVars".toLowerCase(), new SetVars());
-      verbs.put("switchTo".toLowerCase(), new SwitchTo());
-      verbs.put("takeScreenShot".toLowerCase(), new TakeScreenShot());
-      verbs.put("toggle".toLowerCase(), new Toggle());
-      verbs.put("verify".toLowerCase(), new Verify());
-      verbs.put("verifyElementSize".toLowerCase(), new VerifyElementSize());
-      verbs.put("verifyOption".toLowerCase(), new VerifyOption());
-      verbs.put("verifyWebDriver".toLowerCase(), new VerifyWebDriver());
-      verbs.put("verifyWebElement".toLowerCase(), new VerifyWebElement());
-      verbs.put("wait".toLowerCase(), new Wait());
+
+      java.lang.Class<?>[] subClasses = Verb.class.getDeclaredClasses();
+      int nClasses = subClasses.length;
+      System.out.println(nClasses -1 + " Verbs found in test harness.");  // We exclude the VerbException instance
+      Verb inst;
+      String name;
+      String key;
+      for (int i = 0; i < nClasses; i++) {
+         if (subClasses[i].toString().toLowerCase().contains("verbexception"))
+            continue;
+
+         try {
+            java.lang.Class<?> c =  (Class<?>) subClasses[i];
+            name = c.getClass().getName();
+            inst = (Verb) c.newInstance();
+            name = c.getName();
+            key = Util.lastPart(name, ".").replace("Verb$", "");
+
+            try {
+               inst = (Verb) c.newInstance();
+               verbs.put(key.toLowerCase(), inst);
+               System.out.println("Added Verb '" + key + "' to the Verbs 'Dictionary'");
+            }
+            catch (Exception e) {
+               System.out.println("*** - Failed instantiating '" + name + "' ***");
+               continue;
+            }
+         }
+         catch (IllegalAccessException e) {
+            System.out.println("*** - Failed instantiating instance No. " + i+1 + " *** " + subClasses[i].toString() + " *** (IllegalAccessException)");
+            continue;
+         }
+         catch (InstantiationException e) {
+            System.out.println("*** - Failed instantiating instance No. " + i+1 + " *** " + subClasses[i].toString() + " *** (InstantiationException)");
+            continue;
+         }
+      }
+
+      System.out.println(verbs.size() + " Verbs loaded into the 'Dictionary'");
    }
 
    public static void invokeForTestItem(TestItem testItem) {
@@ -2604,6 +2612,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 09/18/16    |Bey      |Added Encryption / Decryption logic
     * ============|=========|====================================
     */
 
@@ -2622,6 +2631,8 @@ public abstract class Verb extends DDTBase {
          String keys = getContext().getString("value");  // The value to enter
          String origKeys = keys;
          boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
+         boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
+         boolean decrypt = getContext().getStringAsBoolean("decrypt");
          boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
          boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
 
@@ -2645,19 +2656,19 @@ public abstract class Verb extends DDTBase {
          else
             tabOut = getContext().getStringAsBoolean("tabout");
 
-         if (tabOut)
-            keys += "\t";
-
-         if (enter)
-            keys += "\n";
-
-         /* switch (clipboardAction.toLowerCase()) {
-            case "copy" : keys = Keys.CONTROL('a') + keys = Keys.chord(keys.control, 'c');
-            case "paste" : keys = Keys.chord(keys. .control, 'v') ;
-            default: {}
-         }  */
-
          try {
+            if (encrypt)
+               keys = Util.encrypt(keys);
+
+            if (decrypt)
+               keys = Util.decrypt(keys);
+
+            if (tabOut)
+               keys += "\t";
+
+            if (enter)
+               keys += "\n";
+
             if (isNotBlank(getContext().getString("LocSpecs"))) {
                // Recursive Find - notice the case of this call findElement is a static call!
                FindElement.findElement(this);
@@ -3052,6 +3063,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 09/18/16    |Bey      |Add encryption option
     * ============|=========|====================================
     */
 
@@ -3070,6 +3082,14 @@ public abstract class Verb extends DDTBase {
          try {
             Verifier verifier = Verifier.getVerifier(getContext());
             String actualValue = getContext().getString("actualvalue");
+            boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
+            boolean decrypt = getContext().getStringAsBoolean("decrypt"); // Should data be decrypted? (default is no)
+
+            if (encrypt)
+               actualValue = Util.encrypt(actualValue);
+
+            if (decrypt)
+               actualValue = Util.decrypt(actualValue);
 
             verifier.setAv(actualValue);
             verifier.verify();

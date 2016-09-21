@@ -395,7 +395,7 @@ public class DDTReporter {
 
    /**
     * Generate the following string array for creation of email and html (if reporting format calls for it):
-    * [0] (blurb) Attached is a summary of test results run titled: "VM Turbo Section"
+    * [0] (blurb) {Settings.ReportTextMessage} "VM Turbo Section"
     * <p/>
     * [1] PROJECT: 'Selenium Based DDT Automation'
     * [2] MODULE: 'VM Turbo Section'
@@ -442,12 +442,19 @@ public class DDTReporter {
          rangeClause += " - Actions excluded from reporting: " + settings.dontReportActions().replace(",", ", ");
       }
 
+      String blurb = DDTSettings.Settings().reportTextMessage();
+      if (blurb.isEmpty())
+         blurb = "Attached is a summary of test results titled: ";
+      else
+         blurb += "\n";
+      blurb += description;
+
       String summary = rangeClause;
 
       summary += " - Item status included: " + settings.statusToReport() + " (un-reported action steps not counted.)";
       summary = summary.replaceAll(", , ", ", ");
 
-      result[_BLURB] = "Attached is a summary of test results titled: " + Util.sq(description);
+      result[_BLURB] = blurb;
       result[_PROJECT] = projectName;
       result[_MODULE] = moduleName;
       result[_SECTION] = sectionSummary;
@@ -527,6 +534,7 @@ public class DDTReporter {
       String summary = summaryItems[_STATUS];
 
       String topBlurb =
+            summaryItems[_BLURB] + "<br>" + "<br>" +
             "<b>PROJECT:</b>      " + summaryItems[_PROJECT] + "<br>" +
             "<b>MODULE</b>:       " + summaryItems[_MODULE] + "<br>" +
             "<b>SECTION</b>:      " + summaryItems[_SECTION] + "<br>" +
@@ -538,9 +546,9 @@ public class DDTReporter {
 
       String extraEmailBody = (isBlank(emailBody) ? "<br>" + topBlurb : "<br>" + topBlurb + "<br>" + emailBody) + "</br>";
 
-      String messageBody = "Attached is a summary of test results run ";
+      String messageBody = "";
       if (isNotEmpty(description))
-         messageBody += "titled: " + Util.dq(description) + "<br>";
+         messageBody = "<br>Report Title: " + Util.dq(description) + "<br>";
 
       messageBody += extraEmailBody;  // extraBlurb = no reportable steps
 

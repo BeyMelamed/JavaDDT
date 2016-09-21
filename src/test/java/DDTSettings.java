@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.Hashtable;
 import java.util.Properties;
+
 import static org.apache.commons.lang3.StringUtils.*;
 
 /**
@@ -38,6 +39,9 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 07/23/15    |Bey      |Add Locale Code (for now, only date localization)
  * 08/22/15    |Bey      |Add Version and property file handling for both, DDTProperties and BuildProperties
  * 08/24/15    |Bey      |Change TakeImage (from boolean to policy string) to enable image story of UI steps.
+ * 12/19/15    |Bey      |Change ProjectFolder derivation to the current project folder
+ * 06/28/16    |Bey      |Add email and report "blurb" variable ReportTextMessage
+ * 06/28/16    |Bey      |Add an optional list of attachments (in addition to extent report)
  * ============|=========|====================================
  */
 public class DDTSettings {
@@ -45,12 +49,12 @@ public class DDTSettings {
    private static Properties buildProperties;
    private final String DDTVersion = "Please Set Version in ddt.properties file!";
    private final String FileSeparator = File.separator;
-   private final String ProjectFolder = System.getProperty("user.dir") + FileSeparator;
-   private final String ResourcesFolder = ProjectFolder +  "src" + FileSeparator + "main" + FileSeparator + "Resources" + FileSeparator;
-   private final String DataFolder = ProjectFolder +  "Data" + FileSeparator;
-   private final String ScriptsFolder = ProjectFolder +  "Scripts" + FileSeparator;
-   private final String ImagesFolder = ResourcesFolder +  "Images" + FileSeparator;
-   private final String ReportsFolder = ResourcesFolder + "Reports" + FileSeparator;
+   private final String ProjectFolder = getProjectFolder();
+   private final String ResourcesFolder = ProjectFolder +  "src" + FileSeparator + "test" + FileSeparator + "resources" + FileSeparator;
+   private final String DataFolder = ProjectFolder +  "data" + FileSeparator;
+   private final String ScriptsFolder = ProjectFolder +  "scripts" + FileSeparator;
+   private final String ImagesFolder = ResourcesFolder +  "images" + FileSeparator;
+   private final String ReportsFolder = ResourcesFolder + "reports" + FileSeparator;
    private final String ClassLoadFolder = ProjectFolder + "target" + FileSeparator + "classes" + FileSeparator;
    private final String TargetFolder = ProjectFolder + "target" + FileSeparator;
    private final String XslFileName = "Automation.Xsl";
@@ -63,7 +67,7 @@ public class DDTSettings {
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
    private final String IEPropertyKey = "webdriver.ie.driver";
-   private final String BrowserName = "CHROME"; // FIREFOX, IE, CHROME
+   private final String BrowserName = "IE"; // FIREFOX, IE, CHROME
    private final long WaitTime = 1; // in seconds
    private final int WaitInterval = 100; // in millis
    private final int DefaultPause = 0; // in millis
@@ -92,8 +96,10 @@ public class DDTSettings {
    private final boolean StripWhiteSpace = true;
    private final String ReportingStyle = "Default";
    private final String ReportFileName = "DDTTestResults.html";
+   private final String ReportTextMessage = "Below, please find a summary of DDT Test Session (or Section): ";
    private final String LocaleCode = "en";
    private final boolean IsNestedReporting = false;
+   private final String Attachments = "";
 
    private String ddtVersion;
    private String resourcesFolder;
@@ -126,6 +132,7 @@ public class DDTSettings {
    private String emailRecipients;
    private String emailHost;
    private String emailPort;
+   private String attachments;
    private boolean emailAuthenticationRequired;
    private String statusToReport;
    private String dontReportActions;
@@ -141,6 +148,7 @@ public class DDTSettings {
    private boolean stripWhiteSpace;
    private String reportingStyle;
    private String reportFileName;
+   private String reportTextMessage;
    private String localeCode;
    private static DDTSettings ddtSettings;
    private boolean isNestedReporting;
@@ -149,6 +157,12 @@ public class DDTSettings {
       loadProperties();
    }
 
+   // Determine the current project folder and return it with a file separator appended.
+   private static String getProjectFolder() {
+      String s = System.getProperty("user.dir");
+      System.out.println("JavaDDT's Project Folder Is: " + s + File.separator);
+      return s + File.separator;
+   }
    // Load Properties from a file (path)
    private static Properties readProperties(String path) {
       if (isNotEmpty(path)) {
@@ -161,9 +175,11 @@ public class DDTSettings {
             return p;
          }
          catch (FileNotFoundException e) {
+            System.out.println("*** Properties file (" + path + ") Not Found ***");
             return null;
          }
          catch (IOException e)  {
+            System.out.println("*** Properties file (" + path + ") Cannot Be Opened ***");
             return null;
          }
       }
@@ -175,7 +191,7 @@ public class DDTSettings {
    private  void loadProperties() {
       String blurb = "Properties file missing - Using Defaults!";
       properties = readProperties(ResourcesFolder + "ddt.properties");
-      if (properties == null){
+      if (properties != null){
         blurb = "Properties loaded from ddt.Properties file.";
       }
       System.out.println(blurb);
@@ -186,9 +202,9 @@ public class DDTSettings {
       if (buildProperties instanceof Properties)
          return;
 
-      String propsFileName = TargetFolder + FileSeparator + "maven-archiver" + FileSeparator + "pom.properties";
+      String propsFileName = ResourcesFolder + "ddt.properties";
       propsFileName = propsFileName.replace("\\\\","\\");
-            propsFileName = asValidOSPath(propsFileName, true);
+      propsFileName = asValidOSPath(propsFileName, true);
       buildProperties = readProperties(propsFileName);
       if (buildProperties instanceof Properties)
          System.out.println("Build Properties loaded from: " + propsFileName);
@@ -204,6 +220,7 @@ public class DDTSettings {
     * @return Properties that has the version entry - used when the build itself does not have those
     */
    private Properties defaultBuildProperties() {
+      String currentVersion = DDTSettings.ddtSettings.getVersion();
       Properties p = new Properties();
       p.setProperty("version", "1.0.0");
       p.setProperty("groupId","com.DynaBytes.Automation");
@@ -256,6 +273,7 @@ public class DDTSettings {
     * Initializes various aspects of the project's settings
     */
    private static void initialize() {
+      Verb.initialize();
       ddtSettings.setIsLocal(true); // Turn off when testing remotely
       // Initialize various folders
       initializeFolders(ddtSettings);
@@ -660,6 +678,18 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$classLoadDir",classLoadFolder);
    }
 
+   private void setAttachments(String value) {
+      attachments = value;
+   }
+
+   public String attachments() {
+      if (isBlank(attachments)) {
+         String s = getPropertyOrDefaultValue(Attachments, "Attachments", true);
+         setAttachments(s);
+      }
+      return attachments;
+   }
+
    public String classLoadFolder() {
       if (isBlank(classLoadFolder)) {
          String s = getPropertyOrDefaultValue(ClassLoadFolder, "ClassLoadFolder", false);
@@ -1061,6 +1091,18 @@ public class DDTSettings {
       return dateFormat;
    }
 
+   private void setReportTextMessage(String value) {
+      reportTextMessage = value;
+   }
+
+   public String reportTextMessage() {
+      if (isBlank(reportTextMessage)) {
+         String s = getPropertyOrDefaultValue(ReportTextMessage, "ReportTextMessage", true);
+         setReportTextMessage(s);
+      }
+      return reportTextMessage.replace("{crlf}", System.lineSeparator());
+   }
+
    private void setTimeStampFormat(String value) {
       timeStampFormat = value;
    }
@@ -1149,6 +1191,5 @@ public class DDTSettings {
       setIsNestedReporting(Util.asBoolean(s));
       return isNestedReporting;
    }
-
 
 }

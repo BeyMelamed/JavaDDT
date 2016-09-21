@@ -5,6 +5,7 @@ import org.json.simple.JSONObject;
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.CapabilityType;
 import java.io.*;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import static java.util.Map.Entry;
@@ -41,10 +42,10 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * ============|=========|====================================
  * 12/31/13    |Bey      |Initial Version
  * 12/26/14    |Bey      |Cleanup - remove unused methods & imports
+ * 09/18/16    |Bey      |Added Encryption / Decryption support
  * ============|=========|====================================
  */
 public class Util {
-
    public static String sq(String str) { return surroundedBy("'", str, "'"); }
 
    public static String dq(String str) { return surroundedBy("\"", str, "\""); }
@@ -88,6 +89,21 @@ public class Util {
       return "<" + tag + (isBlank(properties) ? "" : " " + properties)  + ">" + contents + "</" + tag + ">";
    }
 
+   /**
+    * Returns the last part of a delimited string
+    * Example: lastPart = lastPart("one,two,three", ",") // result = three
+    * @param value = the delimited string
+    * @param delim = the delimiting string
+    * @return        String
+    */
+   public static String lastPart(String value, String delim) {
+      String result = value;
+      if (delim == null || delim.isEmpty() || !value.contains(delim))
+         return result;
+      String[] parts = value.split(delim);
+      result = parts[parts.length-1];
+      return result;
+   }
    /**
     * Replaces a string with xml special characters converted to their corresponding code
     * @param text
@@ -613,4 +629,23 @@ public class Util {
       }
       return result;
    }
+
+   /**
+    * @param text - an unencrypted text to be encrypted (Base64 logic)
+    * @return an encrypted string - using Base64 logic)
+    */
+   public static String encrypt(String text) throws NoSuchAlgorithmException {
+      String result = new String( Base64.encode(text.getBytes()));
+      return result;
+   }
+
+   /**
+    * @param text - an encrypted text to be decrypted (Base64 logic)
+    * @return a decrypted string - using Base64 logic)
+    */
+   public static String decrypt(String text) {
+      String result = new String(Base64.decode(text.getBytes()));
+      return result;
+   }
+
 }
