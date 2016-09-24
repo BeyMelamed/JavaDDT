@@ -36,7 +36,8 @@ import java.util.Properties;
  * Please note the dependency of the code on the various email settings for situations where the email host requires authentication vs when it is self authenticating
  * When      |Who            |What
  * ==========|===============|========================================================
- * 1/3/14    |Bey            |Initial Version
+ * 01/03/14  |Bey            |Initial Version
+ * 09/23/16  |Bey            |Resolve issue with line breaks not appearing in message body
  * ==========|===============|========================================================
  */
 public class Email {
@@ -113,7 +114,9 @@ public class Email {
             sb = null;
          }
          // Fill the body of the message
-         messageBodyPart.setContent(messageBody + failedTestSection,"text/html");
+         // Replace {endOfLine} with email breaks...
+         String body = messageBody.replace(System.lineSeparator(), "<br>");
+         messageBodyPart.setContent(body + failedTestSection,"text/html");
 
          // Create a multipart message
          Multipart multipart = new MimeMultipart();
