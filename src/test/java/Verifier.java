@@ -46,6 +46,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 05/12/14    |Bey      |Added 'stripWhiteSpace' parameter (and data token)
  * 10/28/14    |Bey      |Inherit from DDTBase
  * 06/12/15    |Bey      |VerifyString -  introduce Not Equal comparison
+ * 09/23/16    |Bey      |Fixed 'between' bug & avoid reversal of specs definition errors
  * ============|=========|====================================
  */
 public class Verifier extends DDTBase{
@@ -61,6 +62,7 @@ public class Verifier extends DDTBase{
    private boolean andVerifier;
    private boolean orVerifier;
    private boolean shouldFail;
+   private boolean isSpecError;
 
    public Verifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
 	      setEv(ev);
@@ -148,6 +150,7 @@ public class Verifier extends DDTBase{
       compareMode = "";
       option = "";
       cls = "";
+      isSpecError = false;
       stripWhiteSpace = false;
       setShouldFail(false);
    }
@@ -350,19 +353,20 @@ public class Verifier extends DDTBase{
             break;
          }
          default: {}
-         adjustForExpectedFailure();
       }
+      adjustForExpectedFailure();
    }// verifyBlank
 
    private void adjustForExpectedFailure() {
-      // Adjust only if should fail
-      if(!shouldFail)
+      // Adjust only if should fail and it is not a specification error of some sort
+      if(!shouldFail || isSpecError)
          return;
 
       String suffix = " - But Failure Expected!";
 
       if(getErrors().isEmpty()) {
          // Reverse PASS
+         // System.out.println("** Reversing Pass **");
          String blurb = (getComments().isEmpty() ? "Verification Passed" : getComments() + suffix);
          clearErrors();
          addError(blurb);
@@ -370,6 +374,7 @@ public class Verifier extends DDTBase{
       }
       else {
          // Reverse FAIL
+         // System.out.println("** Reversing Fail ** = Errors: '" + getErrors() + "'");
          String blurb = getErrors() + suffix;
          clearComments();
          addComment(blurb);
@@ -399,7 +404,6 @@ public class Verifier extends DDTBase{
       // This is done before having to convert the (possibly empty) actual value to some object...
       if (isBlankVerification()) {
          verifyBlank();
-         adjustForExpectedFailure();
          return;
       }
 
@@ -617,21 +621,27 @@ public class Verifier extends DDTBase{
                if (getValues().length == 2) {
                   fromValue = values[0];
                   toValue = values[1];
-                  if (fromValue.hashCode() > actual.hashCode() || toValue.hashCode() < actual.hashCode())
+                  if (fromValue.hashCode() > actual.hashCode() || toValue.hashCode() < actual.hashCode()) {
                      addError(getStandardError());
-                  else
+                  }
+                  else {
                      addComment(getStandardComment());
-               } else
+                  }
+               } else {
+                  isSpecError = true;
                   addError("Invalid 'Between' String specifications.");
+               }
                break;
             }
-            default: addError("Invalid comparison mode specified: "+Util.sq(getComp()));
+            default: {
+                  isSpecError = true;
+                  addError("Invalid comparison mode specified: " + Util.sq(getComp()));
+            }
          } // Switch
-
-         adjustForExpectedFailure();
 
       } // Try
       catch (Exception e) {
+         isSpecError = true;
          addError("Verifier generated general exception " + e.getCause().toString());
       }
    } //VerifyStrings - the default verification logic
@@ -639,10 +649,6 @@ public class Verifier extends DDTBase{
    public class NumberVerifier extends Verifier {
       int comparisonResult=0;
 
-      
-      
-      
-      
       public NumberVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
           super(ev, av, md, opt, cls, stripWhiteSpace);
           removeGroupingSeparator();
@@ -765,19 +771,26 @@ public class Verifier extends DDTBase{
                         else
                            addComment(getStandardComment());
                      }
-                     else
+                     else {
+                        isSpecError = true;
                         addError("Invalid numeric specifications - " + blurb);
+                     }
                   }
-                  else
+                  else {
+                     isSpecError = true;
                      addError("Invalid 'Between' specifications.");
+                  }
                   break;
 
                }
-               default: addError("Invalid comparison mode specified: "  +Util.sq(getComp()));
+               default: {
+                  isSpecError = true;
+                  addError("Invalid comparison mode specified: "  +Util.sq(getComp()));
+               }
             } // Switch
-            //adjustForExpectedFailure();
          } // Try
          catch (Exception e) {
+            isSpecError = true;
             addError("Verifier generated general exception " + e.getCause().toString());
          }
       } // Verify
@@ -815,6 +828,7 @@ public class Verifier extends DDTBase{
          }
 
          if (!isBlank(blurb)) {
+            isSpecError = true;
             addError(blurb + "Verification aborted.");
          }
       }
@@ -863,6 +877,7 @@ public class Verifier extends DDTBase{
          }
 
          if (!isBlank(blurb)) {
+            isSpecError = true;
             addError(blurb + "Verification aborted.");
          }
       }
@@ -907,6 +922,7 @@ public class Verifier extends DDTBase{
          }
 
          if (!isBlank(blurb)) {
+            isSpecError = true;
             addError(blurb + "Verification aborted.");
          }
       }  // setValuesFromStrings
@@ -957,6 +973,7 @@ public class Verifier extends DDTBase{
          }
 
          if (!isBlank(blurb)) {
+            isSpecError = true;
             addError(blurb + "Verification aborted.");
          }
       } // setValuesFromStrings
@@ -991,6 +1008,7 @@ public class Verifier extends DDTBase{
             actual = new SimpleDateFormat(dateFormat).parse(getAv());
          }
          catch (ParseException e ) {
+            isSpecError = true;
             addError(e.getCause().toString());
          }
       }// setValuesFromStrings
@@ -1086,14 +1104,20 @@ public class Verifier extends DDTBase{
                      else
                         addComment(getStandardComment());
                   }
-                  else
+                  else {
+                     isSpecError = true;
                      addError("Invalid 'Between' dates specifications.");
+                  }
                   break;
                }
-               default: addError("Invalid comparison mode specified: "+Util.sq(getComp()));
+               default: {
+                  isSpecError = true;
+                  addError("Invalid comparison mode specified: "+Util.sq(getComp()));
+               }
             } // Switch
          } // Try
          catch (Exception e) {
+            isSpecError = true;
             addError("Verifier generated general exception " + e.getCause().toString());
          }
       } // verify()
