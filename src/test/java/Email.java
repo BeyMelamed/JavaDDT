@@ -38,6 +38,7 @@ import java.util.Properties;
  * ==========|===============|========================================================
  * 01/03/14  |Bey            |Initial Version
  * 09/23/16  |Bey            |Resolve issue with line breaks not appearing in message body
+ * 10/14/16  |Bey            |Enable encryption of email sender password
  * ==========|===============|========================================================
  */
 public class Email {
@@ -46,7 +47,8 @@ public class Email {
 
       DDTSettings settings = DDTSettings.Settings();
       final String sender = settings.emailSender();
-      final String password = settings.emailPassword();
+      boolean emailPasswordEncrypted = settings.emailPasswordEncrypted();
+      final String password = emailPasswordEncrypted ? Util.decrypt(settings.emailPassword()) :  settings.emailPassword();
       String[] recipients = settings.emailRecipients().split(",");
       String host = settings.emailHost();
       String port = settings.emailPort();
@@ -56,7 +58,6 @@ public class Email {
 
       // Use system properties and add some related to email protocol
       Properties props = System.getProperties();
-
       // Setup mail server
       props.setProperty("mail.smtp.host", host);
       props.setProperty("mail.smtp.port", port);
@@ -159,7 +160,8 @@ public class Email {
          // Send message
          Transport.send(message);
       }
-      catch (MessagingException e) {
+      catch (Throwable e) {
+         System.out.println("\nFailed Email Transmission: " + e.getMessage() + "\n");
          e.printStackTrace();
       }
 
