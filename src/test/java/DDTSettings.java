@@ -43,6 +43,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 06/28/16    |Bey      |Add email and report "blurb" variable ReportTextMessage
  * 06/28/16    |Bey      |Add an optional list of attachments (in addition to extent report)
  * 09/23/16    |Bey      |Resolve issue with line breaks not appearing in email message body
+ * 10/14/16    |Bey      |Enable encryption of email sender password
  * ============|=========|====================================
  */
 public class DDTSettings {
@@ -75,6 +76,7 @@ public class DDTSettings {
    private final String ProjectName = "Selenium Based DDT Automation";
    private final String EmailSender = "retsettdd@gmail.com";
    private final String EmailPassword = "Kishkes01";
+   private final boolean EmailPasswordEncrypted = true;
    private final String EmailRecipients = "beymelamed01@optimum.net";
    private final String EmailHost = "smtp.gmail.com";
    private final String EmailPort = "587";
@@ -135,6 +137,7 @@ public class DDTSettings {
    private String emailPort;
    private String attachments;
    private boolean emailAuthenticationRequired;
+   private boolean emailPasswordEncrypted;
    private String statusToReport;
    private String dontReportActions;
    private String reportElements;
@@ -875,6 +878,17 @@ public class DDTSettings {
       String s = getPropertyOrDefaultValue(Util.booleanString(EmailAuthenticationRequired), "EmailAuthenticationRequired", false);
       setEmailAuthenticationRequired(Util.asBoolean(s));
       return emailAuthenticationRequired;
+   }
+
+   private void setEmailPasswordEncrypted(boolean value) {
+      emailPasswordEncrypted = value;
+   }
+
+   public boolean emailPasswordEncrypted() {
+      // no lazy initialization as a boolean can never be null - it is a primitive
+      String s = getPropertyOrDefaultValue(Util.booleanString(EmailPasswordEncrypted), "EmailPasswordEncrypted", false);
+      setEmailPasswordEncrypted(Util.asBoolean(s));
+      return emailPasswordEncrypted;
    }
 
    private void setTakeImagePolicy(String value) {
