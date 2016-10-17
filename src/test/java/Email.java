@@ -38,7 +38,7 @@ import java.util.Properties;
  * ==========|===============|========================================================
  * 01/03/14  |Bey            |Initial Version
  * 09/23/16  |Bey            |Resolve issue with line breaks not appearing in message body
- * 10/16/16  |Bey            |Adjust ddtSettings getters
+ * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * ==========|===============|========================================================
  */
 public class Email {
