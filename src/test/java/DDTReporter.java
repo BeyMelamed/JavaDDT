@@ -55,7 +55,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 07/24/15    |Bey      |Various improvements & bugs (desciption handling)
  * 07/26/15    |Bey      |Implement Extent Reports
  * 08/21/15    |Bey      |Improve handling of Extent Reports (multiple files per test session)
- * 10/16/16    |Bey      |Adjust ddtSettings getters
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|====================================
  */
 public class DDTReporter {
