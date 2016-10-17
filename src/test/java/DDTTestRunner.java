@@ -47,7 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 07/27/15  |Bey            |Implementation of Extent reporting and nested reporting
  * 07/31/15  |Bey            |Fix bug - Final Report - use level < 2 instead of < 1 (also, remove verbs hashtable variable)
  * 08/24/15  |Bey            |Adjust handling of takeing images as per takeImagePolicy in DDTSettings (replacing takeImageOnFile boolean)
- * 10/16/16  |Bey            |Adjust ddtSettings getters
+ * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
