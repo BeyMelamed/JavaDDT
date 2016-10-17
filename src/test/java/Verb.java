@@ -59,7 +59,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * ============|=========|====================================
  * 10/29/14    |Bey      |Initial Version
  * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
- * 10/16/16    |Bey      |Adjust ddtSettings getters
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|====================================
  */
 
