@@ -44,6 +44,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 06/28/16    |Bey      |Add an optional list of attachments (in addition to extent report)
  * 09/23/16    |Bey      |Resolve issue with line breaks not appearing in email message body
  * 10/14/16    |Bey      |Enable encryption of email sender password
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|====================================
  */
 public class DDTSettings {
