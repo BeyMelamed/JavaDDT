@@ -47,7 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 10/28/14    |Bey      |Inherit from DDTBase
  * 06/12/15    |Bey      |VerifyString -  introduce Not Equal comparison
  * 09/23/16    |Bey      |Fixed 'between' bug & avoid reversal of specs definition errors
- * 10/16/16    |Bey      |Adjust ddtSettings getters
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|====================================
  */
 public class Verifier extends DDTBase{
