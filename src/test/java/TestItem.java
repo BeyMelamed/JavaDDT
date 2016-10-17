@@ -43,7 +43,7 @@ import static org.apache.commons.lang.StringUtils.*;
  * 07/24/15    |Bey      |Level property handling in reporting items
  * 07/27/15    |Bey      |Implement Extent Reporting
  * 06/26/16    |Bey      |Implement shouldFail boolean
- * 10/16/16    |Bey      |Adjust ddtSettings getters
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
