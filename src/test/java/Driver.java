@@ -48,7 +48,7 @@ import java.util.Set;
  * When      |Who            |What
  * ==========|===============|========================================================
  * 02/13/14  |Bey            |Initial Version
- * 10/16/16  |Bey            |Adjust ddtSettings getters
+ * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
