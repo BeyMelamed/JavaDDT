@@ -60,6 +60,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * 10/29/14    |Bey      |Initial Version
  * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
+ * 10/17/16    |Bey      |Enable table cell DoubleClick
  * ============|=========|====================================
  */
 
@@ -686,11 +687,13 @@ public abstract class Verb extends DDTBase {
                if (getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).perform();
                   getElement().click();
+                  String blurb = "";
                   if (doubleClick) {
                       Thread.sleep(100);
                       getElement().click();
+                     blurb = "Double ";
                   }
-                  Verb.basicAddComment(this, "Element " + prefix + "Clicked");
+                  Verb.basicAddComment(this, "Element " + prefix + blurb + "Clicked");
                } else
                   Verb.basicAddError(this, "Element not enabled - action failed");
             } else Verb.basicAddError(this, "Failed to find Web Element - Element not clicked!");
@@ -734,6 +737,7 @@ public abstract class Verb extends DDTBase {
                // Need to find the element with the tag
                String desiredTag = getContext().getString("tag");
                boolean foundElement = true;
+               boolean doubleClick = getContext().getBoolean("double");
                if (!StringUtils.isBlank(desiredTag) && !desiredTag.equalsIgnoreCase(getElement().getTagName())) {
                   // Find the element to click within the cell.
                   // It must be an element with the desired tag AND get verified for the appropriate expected value.
@@ -763,7 +767,13 @@ public abstract class Verb extends DDTBase {
                if (foundElement && getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).build().perform();
                   getElement().click();
-                  Verb.basicAddComment(this, "Cell Clicked");
+                  String blurb = "";
+                  if (doubleClick) {
+                     Thread.sleep(100);
+                     getElement().click();
+                     blurb = "Double ";
+                  }
+                  Verb.basicAddComment(this, "Cell " + blurb + "Clicked");
                } else
                   Verb.basicAddError(this, "(Cell) Element not enabled or cell's sub element not found - Action failed");
             } else Verb.basicAddError(this, "Failed to find (cell) Web Element - Action failed");
