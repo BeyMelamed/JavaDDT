@@ -49,6 +49,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 10/20/14  |Bey            |Fix Time Zone Adjustment bug (avoid double timezone adjustment) + Streamline class - removed unused code.
  * 10/28/14  |Bey            |Inheritance from DDTBase
  * 07/23/15  |Bey            |Add Locale specification - for now, on the Settings level only (not on the fly)
+ * 10/16/16  |Bey            |Adjust ddtSettings getters
  * ==========|===============|========================================================
  */
 public class DDTDate extends DDTBase{
@@ -176,7 +177,7 @@ public class DDTDate extends DDTBase{
     }
 
     private String defaultDateFormat() {
-    return DDTSettings.Settings().dateFormat();
+    return DDTSettings.Settings().getDateFormat();
     }
 
 
@@ -185,7 +186,7 @@ public class DDTDate extends DDTBase{
     private void initializeLocale() {
        // For now, set locale code only on the Settings level.
        // If needed, add feature to update on the fly...
-       setLocaleCode(DDTSettings.Settings().localeCode());
+       setLocaleCode(DDTSettings.Settings().getLocaleCode());
        setLocale(getLocaleCode());
 
     }
