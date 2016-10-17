@@ -38,7 +38,7 @@ import java.util.Properties;
  * ==========|===============|========================================================
  * 01/03/14  |Bey            |Initial Version
  * 09/23/16  |Bey            |Resolve issue with line breaks not appearing in message body
- * 10/14/16  |Bey            |Enable encryption of email sender password
+ * 10/16/16  |Bey            |Adjust ddtSettings getters
  * ==========|===============|========================================================
  */
 public class Email {
@@ -46,13 +46,13 @@ public class Email {
    public static void sendMail(String subject, String messageBody, String fileName, List<String> failedTests) throws MessagingException {
 
       DDTSettings settings = DDTSettings.Settings();
-      final String sender = settings.emailSender();
-      boolean emailPasswordEncrypted = settings.emailPasswordEncrypted();
-      final String password = emailPasswordEncrypted ? Util.decrypt(settings.emailPassword()) :  settings.emailPassword();
-      String[] recipients = settings.emailRecipients().split(",");
-      String host = settings.emailHost();
-      String port = settings.emailPort();
-      boolean emailAuthenticationRequired = settings.emailAuthenticationRequired();
+      final String sender = settings.getEmailSender();
+      boolean emailPasswordEncrypted = settings.getEmailPasswordEncrypted();
+      final String password = emailPasswordEncrypted ? Util.decrypt(settings.getEmailPassword()) :  settings.getEmailPassword();
+      String[] recipients = settings.getEmailRecipients().split(",");
+      String host = settings.getEmailHost();
+      String port = settings.getEmailPort();
+      boolean emailAuthenticationRequired = settings.getEmailAuthenticationRequired();
       String trueOrFalse = emailAuthenticationRequired ? "true" : "false";
       Session session;
 
@@ -135,12 +135,12 @@ public class Email {
          // If any other attachments are available (they should be specified with full path in the ddt.properties file in a folder accessible from here...)
          // This is a comma delimited list of file names...  where (optionally) the string "%res%" stands for the project's Resources folder  and %data% for the data folder
 
-         String attachments = settings.attachments();
+         String attachments = settings.getAttachments();
          if (!attachments.isEmpty())  {
             String[] fileNames = attachments.split(",");
             for (int i=0; i < fileNames.length; i++) {
                messageBodyPart = new MimeBodyPart();
-               source = new FileDataSource(fileNames[i].replace("%res%", settings.resourcesFolder()).replace("%data%", settings.dataFolder()));
+               source = new FileDataSource(fileNames[i].replace("%res%", settings.getResourcesFolder()).replace("%data%", settings.getDataFolder()));
                try {
                   source.getInputStream().read(new byte[1]);
                   source.getInputStream().close();
