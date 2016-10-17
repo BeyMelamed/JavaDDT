@@ -43,6 +43,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 12/31/13    |Bey      |Initial Version
  * 12/26/14    |Bey      |Cleanup - remove unused methods & imports
  * 09/18/16    |Bey      |Added Encryption / Decryption support
+ * 10/16/16    |Bey      |Adjust ddtSettings getters
  * ============|=========|====================================
  */
 public class Util {
@@ -330,7 +331,7 @@ public class Util {
     */
    public static DDTTestContext  parseDelimitedString(String delimStr) {
 
-      DDTTestContext ht = new DDTTestContext(delimStr, DDTSettings.Settings().itemDelim(), DDTSettings.Settings().validDelims());
+      DDTTestContext ht = new DDTTestContext(delimStr, DDTSettings.Settings().getItemDelim(), DDTSettings.Settings().getValidDelims());
 
       return ht;
    }
@@ -456,7 +457,7 @@ public class Util {
       // create screenshot using a casted driver
       TakesScreenshot snapper = (TakesScreenshot)theDriver;
 
-      if (DDTSettings.Settings().isLocal())  {
+      if (DDTSettings.Settings().getIsLocal())  {
          File tempImageFile = snapper.getScreenshotAs(OutputType.FILE);
          if (tempImageFile.length() < (1L)) {
             return "ERROR: Failed to take screen shot on remote driver";
@@ -570,7 +571,7 @@ public class Util {
     * @return an array of File objects
     */
    public static String[] setupReportingSessionFolders(String[] folderNames) {
-      String reportsFolder = DDTSettings.Settings().reportsFolder();
+      String reportsFolder = DDTSettings.Settings().getReportsFolder();
       String dailyFolder = new SimpleDateFormat("yyyyMMdd").format(new Date());
       String baseFolder = reportsFolder + dailyFolder; //
       int sessionNumber = 1;

@@ -47,6 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 07/27/15  |Bey            |Implementation of Extent reporting and nested reporting
  * 07/31/15  |Bey            |Fix bug - Final Report - use level < 2 instead of < 1 (also, remove verbs hashtable variable)
  * 08/24/15  |Bey            |Adjust handling of takeing images as per takeImagePolicy in DDTSettings (replacing takeImageOnFile boolean)
+ * 10/16/16  |Bey            |Adjust ddtSettings getters
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -174,7 +175,7 @@ public class DDTTestRunner {
          if (stringProviderSpecs.isSetupValid()) {
 
             // With valid stringProviderSpecs, attempt to get the strings making up the new test and err out if not successful
-            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().dataFolder());
+            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().getDataFolder());
             if (testItemStrings.length > 0) {
                // A new test items aggregate
                TestItem.TestItems testItems = new TestItem.TestItems();
@@ -670,7 +671,7 @@ public class DDTTestRunner {
                // Handle screen shots based on settings - but only if this is a UI test
                // NOTE: TakeScreenShot verb is NOT considered UI step!
                if (testItem.isUITest()) {
-                  String takeImagePolicy = DDTSettings.Settings().takeImagePolicy();
+                  String takeImagePolicy = DDTSettings.Settings().getTakeImagePolicy();
                   String blurb = "";
                   if ((takeImagePolicy.equalsIgnoreCase("always")) || (testItem.isFailure() && (takeImagePolicy.equalsIgnoreCase("onfail")))) {
                      // No sense in taking a screen shot with uninitialized web driver...
@@ -800,7 +801,7 @@ public class DDTTestRunner {
    }
 
    public void pause() {
-      int millisToPause = DDTSettings.Settings().defaultPause();
+      int millisToPause = DDTSettings.Settings().getDefaultPause();
       if (millisToPause > 0) {
          try {
             //System.out.println("Pausing for " + String.valueOf(millisToPause + " milliseconds"));

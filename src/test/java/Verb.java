@@ -59,6 +59,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * ============|=========|====================================
  * 10/29/14    |Bey      |Initial Version
  * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
+ * 10/16/16    |Bey      |Adjust ddtSettings getters
  * ============|=========|====================================
  */
 
@@ -800,7 +801,7 @@ public abstract class Verb extends DDTBase {
          if (isBlank(browserName))
             browserName = (String) DDTTestRunner.getVarsMap().get("browser");
 
-         if (isBlank(browserName)) browserName = DDTSettings.Settings().browserName();
+         if (isBlank(browserName)) browserName = DDTSettings.Settings().getBrowserName();
 
          Driver.BrowserName browserType = Driver.asBrowserName(browserName);
          if (browserType == null) browserType = Driver.BrowserName.FIREFOX;
@@ -927,7 +928,7 @@ public abstract class Verb extends DDTBase {
             }
             phase++;
 
-            boolean reportEachTableCell = DDTSettings.Settings().reportEachTableCell();
+            boolean reportEachTableCell = DDTSettings.Settings().getReportEachTableCell();
             // Get a template verifier
             Verifier verifier = Verifier.getVerifier(getContext());
 
@@ -1451,10 +1452,10 @@ public abstract class Verb extends DDTBase {
 
          Long waitInSeconds = getContext().getStringAsLong("WaitTime");
          if (0L == waitInSeconds)
-            waitInSeconds = DDTSettings.Settings().waitTime();
+            waitInSeconds = DDTSettings.Settings().getWaitTime();
          int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
          if (waitIntervalMillis ==0)
-            waitIntervalMillis = DDTSettings.Settings().waitInterval();
+            waitIntervalMillis = DDTSettings.Settings().getWaitInterval();
 
          WebDriver driver = Driver.getDriver();
 
@@ -1808,7 +1809,7 @@ public abstract class Verb extends DDTBase {
             }
 
             // With valid stringProviderSpecs, attempt to get the strings making up the new test and err out if not successful
-            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().dataFolder());
+            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().getDataFolder());
             if (testItemStrings.length < 1) {
                Verb.basicAddError(this, "Failed to get test item strings from Test Strings Provider.");
                return;
@@ -1984,10 +1985,10 @@ public abstract class Verb extends DDTBase {
 
          // Enable short-hand reference to the scripts folder - facilitate organization of script files.
          if (file.toLowerCase().startsWith("%script%"))
-            file = DDTSettings.Settings().scriptsFolder()+ file.substring(8);
+            file = DDTSettings.Settings().getScriptsFolder()+ file.substring(8);
          if (!file.contains("\\") && !file.contains("/")) {
             // User implies invoke a file in the project's Scripts folder
-            file = DDTSettings.Settings().scriptsFolder() + file;
+            file = DDTSettings.Settings().getScriptsFolder() + file;
          }
 
          // @TODO Figure out how to handle Linux / Unix executables more elegantly (the code below works with fully qualified path as in "/bin/sh" instead of "sh" for system commands
@@ -2652,7 +2653,7 @@ public abstract class Verb extends DDTBase {
 
          boolean tabOut;
          if (!tabOutSpecified)
-            tabOut = DDTSettings.Settings().tabOut();
+            tabOut = DDTSettings.Settings().getTabOut();
          else
             tabOut = getContext().getStringAsBoolean("tabout");
 

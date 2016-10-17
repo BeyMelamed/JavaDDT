@@ -48,6 +48,7 @@ import java.util.Set;
  * When      |Who            |What
  * ==========|===============|========================================================
  * 02/13/14  |Bey            |Initial Version
+ * 10/16/16  |Bey            |Adjust ddtSettings getters
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
@@ -200,7 +201,7 @@ public class Driver extends Thread {
                         }
                         capabilities.setCapability(
                                 PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY,
-                                DDTSettings.Settings().resourcesFolder() + "phantomjs.exe");
+                                DDTSettings.Settings().getResourcesFolder() + "phantomjs.exe");
 
                         // Launch driver (will take care and ownership of the phantomjs process)
                         aDriver = new PhantomJSDriver(capabilities);
@@ -305,15 +306,15 @@ public class Driver extends Thread {
         String propertyKey;
         switch (browserName) {
             case IE: {
-                propertyKey = DDTSettings.Settings().iePropertyKey();
+                propertyKey = DDTSettings.Settings().getIEPropertyKey();
                 break;
             }
             case GOOGLECHROME: {
-                propertyKey = DDTSettings.Settings().chromePropertyKey();
+                propertyKey = DDTSettings.Settings().getChromePropertyKey();
                 break;
             }
             default: {
-                propertyKey = DDTSettings.Settings().chromePropertyKey();
+                propertyKey = DDTSettings.Settings().getChromePropertyKey();
             }
         }
 
@@ -322,15 +323,15 @@ public class Driver extends Thread {
 
             switch (browserName) {
                 case IE: {
-                    fileLocation = DDTSettings.Settings().ieDriverFileName();
+                    fileLocation = DDTSettings.Settings().getIEDriverFileName();
                     break;
                 }
                 case GOOGLECHROME: {
-                    fileLocation = DDTSettings.Settings().chromeDriverFileName();
+                    fileLocation = DDTSettings.Settings().getChromeDriverFileName();
                     break;
                 }
                 default: {
-                    fileLocation = DDTSettings.Settings().chromeDriverFileName();
+                    fileLocation = DDTSettings.Settings().getChromeDriverFileName();
                 }
             }
 

@@ -43,6 +43,7 @@ import static org.apache.commons.lang.StringUtils.*;
  * 07/24/15    |Bey      |Level property handling in reporting items
  * 07/27/15    |Bey      |Implement Extent Reporting
  * 06/26/16    |Bey      |Implement shouldFail boolean
+ * 10/16/16    |Bey      |Adjust ddtSettings getters
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -80,7 +81,7 @@ public class TestItem extends DDTBase{
 
    public static final String LevelToken = "level";
 
-   public static final boolean isNestedReporting = DDTSettings.Settings().nestedReporting();
+   public static final boolean isNestedReporting = DDTSettings.Settings().getNestedReporting();
    /**
     * Class function playing part in customizing the way a test item appears in reports -
     * User has control over this by changing strings in the ddt.prperties file
@@ -88,8 +89,8 @@ public class TestItem extends DDTBase{
     * @return
     */
    public static String reportItemFromTemplate(TestItem item) {
-      String[] reportElements = DDTSettings.Settings().reportElements().split(",");
-      String result = DDTSettings.Settings().testItemReportTemplate();
+      String[] reportElements = DDTSettings.Settings().getReportElements().split(",");
+      String result = DDTSettings.Settings().getTestItemReportTemplate();
       String open = "{";
       String close = "}";
 
@@ -374,7 +375,7 @@ public class TestItem extends DDTBase{
          if (test.getTest().hasEnded)
             return;
 
-         String reportStyle = DDTSettings.Settings().reportingStyle();
+         String reportStyle = DDTSettings.Settings().getReportingStyle();
          if (!reportStyle.equalsIgnoreCase("extent") || isEmpty())
             return;
 
@@ -439,7 +440,7 @@ public class TestItem extends DDTBase{
       result = dataProperties.getStringAsLong("waittime");
 
       if (result < 1L)
-         result = DDTSettings.Settings().waitTime();
+         result = DDTSettings.Settings().getWaitTime();
 
       return result;
    }
@@ -838,9 +839,9 @@ public class TestItem extends DDTBase{
       String result = getProviderSpecs().getFileName();
       if (isBlank(result))
          return "";
-      result = result.replace("%data%", DDTSettings.Settings().dataFolder());
+      result = result.replace("%data%", DDTSettings.Settings().getDataFolder());
       if ((indexOf(result,'/') < 0) && (indexOf(result,"\\")) < 0 )
-         result = DDTSettings.Settings().dataFolder() + result;
+         result = DDTSettings.Settings().getDataFolder() + result;
       return result;
    }
 
@@ -933,7 +934,7 @@ public class TestItem extends DDTBase{
             result = getParentItem().getInputProvider();
          }
          else
-            result = DDTSettings.Settings().inputFileName();
+            result = DDTSettings.Settings().getInputFileName();
          return result;
       }
 

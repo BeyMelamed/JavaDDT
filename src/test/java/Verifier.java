@@ -47,6 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 10/28/14    |Bey      |Inherit from DDTBase
  * 06/12/15    |Bey      |VerifyString -  introduce Not Equal comparison
  * 09/23/16    |Bey      |Fixed 'between' bug & avoid reversal of specs definition errors
+ * 10/16/16    |Bey      |Adjust ddtSettings getters
  * ============|=========|====================================
  */
 public class Verifier extends DDTBase{
@@ -133,13 +134,13 @@ public class Verifier extends DDTBase{
 
    private void adjustEvForAndComparison() {
       //String andDelim = (String) DDTTestRunner.getVarsMap().get("$and");
-      String s = getEv().toLowerCase().replace(andDelim(), DDTSettings.Settings().andToken());
+      String s = getEv().toLowerCase().replace(andDelim(), DDTSettings.Settings().getAndToken());
       setEv(s);
    }
 
    private void adjustEvForOrComparison() {
       //String orDelim = (String) DDTTestRunner.getVarsMap().get("$or");
-      String s = getEv().replace(orDelim(),  DDTSettings.Settings().orToken());
+      String s = getEv().replace(orDelim(),  DDTSettings.Settings().getOrToken());
       setEv(s);
    }
 
@@ -172,7 +173,7 @@ public class Verifier extends DDTBase{
       if (isBlank(md))
          md = "";
       if (isBlank(md))
-         md = DDTSettings.Settings().defaultComparison();
+         md = DDTSettings.Settings().getDefaultComparison();
 
       // User may have specified some option for the output (lowecase, ignorecase, etc.)
       String opt =  testItem.getDataProperties().getString("option");
@@ -188,7 +189,7 @@ public class Verifier extends DDTBase{
       // If the user did not specify anything (blank) then use the settings, else use the specified value
       String strip = testItem.getDataProperties().getString("stripWhiteSpace");
       if (isBlank(strip))
-         strip = DDTSettings.Settings().stripWhiteSpace() ? "true" : "false";
+         strip = DDTSettings.Settings().getStripWhiteSpace() ? "true" : "false";
       boolean stripWhiteSpace = Util.asBoolean(strip);
 
       if(testItem.shouldFail())
@@ -216,7 +217,7 @@ public class Verifier extends DDTBase{
       if (isBlank(md))
          md = "";
       if (isBlank(md))
-         md = DDTSettings.Settings().defaultComparison();
+         md = DDTSettings.Settings().getDefaultComparison();
 
       // User may have specified some option for the output (lowecase, ignorecase, etc.)
       String opt =  testContext.getString("option");
@@ -232,7 +233,7 @@ public class Verifier extends DDTBase{
       // If the user did not specify anything (blank) then use the settings, else use the specified value
       String strip = testContext.getString("stripWhiteSpace");
       if (isBlank(strip))
-         strip = DDTSettings.Settings().stripWhiteSpace() ? "true" : "false";
+         strip = DDTSettings.Settings().getStripWhiteSpace() ? "true" : "false";
       boolean stripWhiteSpace = Util.asBoolean(strip);
 
       boolean shouldFail = testContext.getBoolean("shouldfail");
@@ -277,7 +278,7 @@ public class Verifier extends DDTBase{
 
    public String getComp() {
       if (isBlank(this.compareMode))
-         setComp(DDTSettings.Settings().defaultComparison());
+         setComp(DDTSettings.Settings().getDefaultComparison());
       return this.compareMode;
    }
 
@@ -310,11 +311,11 @@ public class Verifier extends DDTBase{
    }
 
    public static String andDelim () {
-      return DDTSettings.Settings().andDelim();
+      return DDTSettings.Settings().getAndDelim();
    }
 
    public static String orDelim () {
-      return DDTSettings.Settings().orDelim();
+      return DDTSettings.Settings().getOrDelim();
    }
 
    public String[] getValues() {
@@ -516,7 +517,7 @@ public class Verifier extends DDTBase{
 
       // If comparison method not specified, get it from the settings.
       if (isBlank(compareMode))
-         compareMode = DDTSettings.Settings().defaultComparison().toLowerCase();
+         compareMode = DDTSettings.Settings().getDefaultComparison().toLowerCase();
 
       // Case sensitivity considerations
       if (getOpt().toLowerCase().equals("ignorecase")
@@ -689,7 +690,7 @@ public class Verifier extends DDTBase{
 
          // If comparison method not specified, get it from the settings.
          if (StringUtils.isBlank(compareMode))
-            compareMode = DDTSettings.Settings().defaultComparison().toLowerCase();
+            compareMode = DDTSettings.Settings().getDefaultComparison().toLowerCase();
 
          try {
 
@@ -1003,7 +1004,7 @@ public class Verifier extends DDTBase{
          try {
             String dateFormat = getOpt();
             if (isBlank(dateFormat))
-               dateFormat = DDTSettings.Settings().dateFormat();
+               dateFormat = DDTSettings.Settings().getDateFormat();
             expected = new SimpleDateFormat(dateFormat).parse(getEv());
             actual = new SimpleDateFormat(dateFormat).parse(getAv());
          }
@@ -1093,7 +1094,7 @@ public class Verifier extends DDTBase{
                {
                   String dateFormat = getOpt();
                   if (isBlank(dateFormat))
-                     dateFormat = DDTSettings.Settings().dateFormat();
+                     dateFormat = DDTSettings.Settings().getDateFormat();
 
                   if (getValues().length == 2) {
                      // Use long because getTime returns a Long (milliseconds)
