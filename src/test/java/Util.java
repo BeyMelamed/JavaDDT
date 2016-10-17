@@ -43,7 +43,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 12/31/13    |Bey      |Initial Version
  * 12/26/14    |Bey      |Cleanup - remove unused methods & imports
  * 09/18/16    |Bey      |Added Encryption / Decryption support
- * 10/16/16    |Bey      |Adjust ddtSettings getters
+ * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * ============|=========|====================================
  */
 public class Util {
