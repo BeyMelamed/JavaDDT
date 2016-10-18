@@ -44,6 +44,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 12/26/14    |Bey      |Cleanup - remove unused methods & imports
  * 09/18/16    |Bey      |Added Encryption / Decryption support
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
+ * 10/18/16    |Bey      |Handle encryption exception in encrypt().
  * ============|=========|====================================
  */
 public class Util {
@@ -635,8 +636,14 @@ public class Util {
     * @param text - an unencrypted text to be encrypted (Base64 logic)
     * @return an encrypted string - using Base64 logic)
     */
-   public static String encrypt(String text) throws NoSuchAlgorithmException {
-      String result = new String( Base64.encode(text.getBytes()));
+   public static String encrypt(String text) {
+      String result = "";
+      try {
+         result = new String(Base64.encode(text.getBytes()));
+      }
+      catch (Throwable exception) {
+         System.out.println("Failed to encrypt " + text);
+      }
       return result;
    }
 
