@@ -70,15 +70,15 @@ public class DDTSettings {
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
    private final String IEPropertyKey = "webdriver.ie.driver";
-   private final String BrowserName = "IE"; // FIREFOX, IE, CHROME
+   private final String BrowserName = "CHROME"; // FIREFOX, IE, CHROME
    private final long WaitTime = 1; // in seconds
    private final int WaitInterval = 100; // in millis
    private final int DefaultPause = 0; // in millis
    private final String ProjectName = "Selenium Based DDT Automation";
-   private final String EmailSender = "retsettdd@gmail.com";
-   private final String EmailPassword = "Kishkes01";
+   private final String EmailSender = "retsetddt@gmail.com";
+   private final String EmailPassword = "S2lzaGtlczAx";
    private final boolean EmailPasswordEncrypted = true;
-   private final String EmailRecipients = "beymelamed01@optimum.net";
+   private final String EmailRecipients = "beymelamed@dyna-bytes.com";
    private final String EmailHost = "smtp.gmail.com";
    private final String EmailPort = "587";
    private final boolean EmailAuthenticationRequired = true;
@@ -170,7 +170,7 @@ public class DDTSettings {
    }
    // Load Properties from a file (path)
    private static Properties readProperties(String path) {
-      if (isNotEmpty(path)) {
+       if (isNotEmpty(path)) {
          Properties p = new Properties();
          InputStream is = null;
          File f = new File(asValidOSPath(path, true));
