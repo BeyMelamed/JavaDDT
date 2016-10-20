@@ -48,6 +48,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 07/31/15  |Bey            |Fix bug - Final Report - use level < 2 instead of < 1 (also, remove verbs hashtable variable)
  * 08/24/15  |Bey            |Adjust handling of takeing images as per takeImagePolicy in DDTSettings (replacing takeImageOnFile boolean)
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
+ * 10/20/16  |Bey            |Avoid issuing System.exit(0) as this prevent build when session passed
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -144,7 +145,8 @@ public class DDTTestRunner {
    public static void endSession() {
       if (isNotBlank(getSessionFailBlurb()))
          runFailed(getSessionFailBlurb());
-      testEnded(getSessionPassBlurb());
+      // else 
+      //	  testEnded(getSessionPassBlurb());
    }
 
    private static void runFailed(String s) {
