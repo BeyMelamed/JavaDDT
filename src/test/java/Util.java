@@ -1,6 +1,5 @@
 
 import org.apache.commons.io.FileUtils;
-import org.bouncycastle.util.encoders.Base64;
 import org.json.simple.JSONObject;
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.CapabilityType;
@@ -45,6 +44,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 09/18/16    |Bey      |Added Encryption / Decryption support
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 10/18/16    |Bey      |Handle encryption exception in encrypt().
+ * 11/18/16    |Bey      |Update encryption handling
  * ============|=========|====================================
  */
 public class Util {
@@ -485,8 +485,7 @@ public class Util {
             return "ERROR: Failed to take screen shot on remote driver";
          }
 
-         Base64 decoder = new Base64();
-         byte[] imgBytes = (byte[]) decoder.decode(tempImageFile);
+         byte[] imgBytes = (byte[]) Base64.getDecoder().decode(tempImageFile);
 
          File tmpFile = new File(imagesFolder, DDTSettings.asValidOSPath(actualFileName, true));
 
@@ -495,6 +494,7 @@ public class Util {
             osf = new FileOutputStream(tmpFile);
             osf.write(imgBytes);
             osf.flush();
+            osf.close();
          } catch (Exception e) {
             return "ERROR: Failed to create File Output Stream " + e.getCause();
          }
@@ -639,7 +639,7 @@ public class Util {
    public static String encrypt(String text) {
       String result = "";
       try {
-         result = new String(Base64.encode(text.getBytes()));
+         result = new String(Base64.getEncoder().encode(text.getBytes()));
       }
       catch (Throwable exception) {
          System.out.println("Failed to encrypt " + text);
@@ -652,7 +652,7 @@ public class Util {
     * @return a decrypted string - using Base64 logic)
     */
    public static String decrypt(String text) {
-      String result = new String(Base64.decode(text.getBytes()));
+      String result = new String(Base64.getDecoder().decode(text.getBytes()));
       return result;
    }
 

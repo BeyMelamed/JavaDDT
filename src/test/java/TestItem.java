@@ -44,6 +44,8 @@ import static org.apache.commons.lang.StringUtils.*;
  * 07/27/15    |Bey      |Implement Extent Reporting
  * 06/26/16    |Bey      |Implement shouldFail boolean
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
+ * 11/02/16    |Bey      |Adjust ExtentTest report hasEnded to getStatus() == LogStatus.UNKNOWN
+ * 12/30/16    |Bey      |Adjust ExtentTest report - Avoid returning when LogStatus.UNKNOWN
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -372,9 +374,7 @@ public class TestItem extends DDTBase{
    public void finalizeExtentTest() {
       ExtentTest test = getExtentTest();
       if (test instanceof ExtentTest) {
-         if (test.getTest().hasEnded)
-            return;
-
+        
          String reportStyle = DDTSettings.Settings().getReportingStyle();
          if (!reportStyle.equalsIgnoreCase("extent") || isEmpty())
             return;

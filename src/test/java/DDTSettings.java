@@ -68,10 +68,12 @@ public class DDTSettings {
    private final String ValidDelims = ";~|!@#$%^&*()_+";
    private final String InputSpecs = "File!DDTRoot.xlsx!Root";
    private final String IEDriverFileName = ResourcesFolder+"IEDriverServer.exe";
+   private final String EdgeDriverFileName = ResourcesFolder+"MicrosoftWebDriver.exe";
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
    private final String IEPropertyKey = "webdriver.ie.driver";
-   private final String BrowserName = "CHROME"; // FIREFOX, IE, CHROME
+   private final String EdgePropertyKey = "webdriver.edge.driver";
+   private final String BrowserName = "CHROME"; // FIREFOX, IE, CHROME, EDGE, HTMLUNIT, etc.
    private final long WaitTime = 1; // in seconds
    private final int WaitInterval = 100; // in millis
    private final int DefaultPause = 0; // in millis
@@ -115,6 +117,7 @@ public class DDTSettings {
    private String classLoadFolder;
    private String xslFileName;
    private String ieDriverFileName;
+   private String edgeDriverFileName;
    private String chromeDriverFileName;
    private String inputSpecs;
    private String validDelims;
@@ -122,6 +125,7 @@ public class DDTSettings {
    private String andDelim;
    private String orDelim;
    private String iePropertyKey;
+   private String edgePropertyKey;
    private String chromePropertyKey;
    private String browserName;
    private boolean isLocal; // if true (local) - drives the screen shots file output type (FILE or BYTE)
@@ -723,6 +727,25 @@ public class DDTSettings {
       return xslFileName;
    }
 
+   public String getEdgeDriverFileName() {
+	      if (isBlank(edgeDriverFileName)) {
+	         String s = getPropertyOrDefaultValue(EdgeDriverFileName, "EdgeDriverFileName", false);
+	         s = s.replace("%proj%", ProjectFolder);
+	         setEdgeDriverFileName(s);
+	      }
+	      return  asValidOSPath(edgeDriverFileName, true);
+	}
+
+	private void setEdgeDriverFileName(String value) {
+	       String tmp = value;
+
+	       if (!isWindowsOS()) {
+	           tmp = tmp.toLowerCase().replace(".exe", "");
+	       }
+
+	       edgeDriverFileName = DDTSettings.asValidOSPath(tmp, true);
+	}
+   
    private void setIEDriverFileName(String value) {
        String tmp = value;
 
@@ -852,6 +875,18 @@ public class DDTSettings {
          setIEPropertyKey(s);
       }
       return iePropertyKey;
+   }
+
+   private void setEdgePropertyKey(String value) {
+	  edgePropertyKey = value;
+   }
+
+   public String getEdgePropertyKey() {
+      if (isBlank(edgePropertyKey)) {
+         String s = getPropertyOrDefaultValue(EdgePropertyKey, "EdgePropertyKey", false);
+         setEdgePropertyKey(s);
+      }
+      return edgePropertyKey;
    }
 
    private void setBrowserName(String value) {

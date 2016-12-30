@@ -1,6 +1,6 @@
 import com.relevantcodes.extentreports.ExtentReports;
 import com.relevantcodes.extentreports.ExtentTest;
-import mx4j.tools.adaptor.http.XSLTProcessor;
+//import mx4j.tools.adaptor.http.XSLTProcessor; ***
 
 import javax.mail.MessagingException;
 import javax.xml.stream.XMLOutputFactory;
@@ -668,8 +668,9 @@ public class DDTReporter {
          //String targetFolder = resultsFolder.endsWith(File.separator) ? resultsFolder : resultsFolder + File.separator;
 
          StringWriter sw = new StringWriter();
-         XSLTProcessor xsltProcessor = new XSLTProcessor();
-         xsltProcessor.setFile(xslFileSpecs);
+         // *** Commented below...
+         //XSLTProcessor xsltProcessor = new XSLTProcessor();
+         //xsltProcessor.setFile(xslFileSpecs);
 
          URL xmlURL =  new File(baseSpecs).toURI().toURL();
          //String xmlSystemId = xmlURL.toExternalForm();

@@ -2,6 +2,7 @@ import com.opera.core.systems.OperaDriver;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.UnsupportedCommandException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.edge.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -19,6 +20,7 @@ import java.net.URL;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by BeyMelamed on 2/13/14 - Modeled after Alan Richardson's original code and adopted for JavaDDT.
@@ -49,17 +51,18 @@ import java.util.Set;
  * ==========|===============|========================================================
  * 02/13/14  |Bey            |Initial Version
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
+ * 11/04/16  |Bey            |Implement EDGE Browser Name
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
     private static WebDriver aDriver = null;
     private static long browserStartTime = 0L;
     private static long savedTimecount = 0L;
-    public static final long DEFAULT_TIMEOUT_SECONDS = 10;
+    public static final long DEFAULT_TIMEOUT_SECONDS = 100;
     private static boolean avoidRecursiveCall = false;
     public static final String BROWSER_PROPERTY_NAME = "Driver";
 
-    public enum BrowserName {FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, HTMLUNIT, HEADLESS}
+    public enum BrowserName {FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, EDGE, HTMLUNIT, HEADLESS}
 
     private static String driverName;
 
@@ -115,6 +118,9 @@ public class Driver extends Thread {
                 break;
             case "IE":
                 result = BrowserName.IE;
+                break;
+            case "EDGE":
+                result = BrowserName.EDGE;
                 break;
             case "OPERA":
                 result = BrowserName.OPERA;
@@ -214,6 +220,14 @@ public class Driver extends Thread {
 
                         aDriver = new InternetExplorerDriver();
                         currentDriver = BrowserName.IE;
+                        break;
+
+                    case EDGE:
+                        System.setProperty(DDTSettings.Settings().getEdgePropertyKey(), DDTSettings.Settings().getEdgeDriverFileName());
+                    	setDriverPropertyIfNecessary(BrowserName.EDGE);
+
+                        aDriver = new EdgeDriver();
+                        currentDriver = BrowserName.EDGE;
                         break;
 
                     case GOOGLECHROME:
@@ -352,6 +366,8 @@ public class Driver extends Thread {
 
     public static WebDriver get(String aURL, boolean maximize) {
         get();
+        aDriver.manage().timeouts().implicitlyWait(DDTSettings.Settings().getWaitTime(), TimeUnit.SECONDS);        
+        
         aDriver.get(aURL);
 
         if (maximize) {
