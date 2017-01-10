@@ -61,6 +61,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 10/17/16    |Bey      |Enable table cell DoubleClick
+ * 01/01/17    |Bey      |NewTest verb: Provide for default test id (items container name)
  * ============|=========|====================================
  */
 
@@ -1762,6 +1763,7 @@ public abstract class Verb extends DDTBase {
     * 10/30/14    |Bey      |Initial Version
     * 06/06/15    |Bey      |Added recursion mechanism (newTest and copy)
     * 07/24/15    |Bey      |Fix issues with level propagation
+    * 01/01/17    |Bey      |Provide for default test id (items container name)
     * ============|=========|====================================
     */
 
@@ -1830,7 +1832,7 @@ public abstract class Verb extends DDTBase {
             runner.setLevel(level); // Recursion level propagated
 
             TestItem.TestItems testItems = new TestItem.TestItems();
-            testItems.setItems(TestItem.assembleTestItems(testItemStrings));
+            testItems.setItems(TestItem.assembleTestItems(testItemStrings, stringProviderSpecs.getItemsContainerName()));
             testItems.setParentItem(testItem);
             runner.setTestItems(testItems);
             runner.setParentStepNumber(testItem.getSessionStepNumber());

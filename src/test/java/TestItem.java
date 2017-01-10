@@ -46,6 +46,7 @@ import static org.apache.commons.lang.StringUtils.*;
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 11/02/16    |Bey      |Adjust ExtentTest report hasEnded to getStatus() == LogStatus.UNKNOWN
  * 12/30/16    |Bey      |Adjust ExtentTest report - Avoid returning when LogStatus.UNKNOWN
+ * 01/01/17    |Bey      |Default test id to test specs resource container (test name) with test number
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -285,12 +286,16 @@ public class TestItem extends DDTBase{
    /**
     *
     * @return An array of TestItem[] instances from a provider's list of String[][] array
+    * providerSpecs is a delimited string (e.g.: InputSpecs=File!DDTRoot.xlsx!GoogleCalc) potentially used as provider of test id when blank
     */
-   public static TestItem[]  assembleTestItems(String[][] dataStrings) {
+   public static TestItem[]  assembleTestItems(String[][] dataStrings, String defaultTestName) {
       int n = dataStrings.length;
+      String defaultTestId = defaultTestName + "#";
       TestItem[] testItems = new TestItem[n];
       for (int i = 0; i < n; i++) {
          String[] thisItem = dataStrings[i];
+         if (thisItem[0].trim().length() < 1)
+        	 thisItem[0] = defaultTestId;
          testItems[i] = new TestItem(thisItem[0], thisItem[1], thisItem[2], thisItem[3], thisItem[4], thisItem[5], thisItem[6], thisItem[7]);
       }
       return testItems;
@@ -357,7 +362,7 @@ public class TestItem extends DDTBase{
       description = value;
    }
    public String getDescription() {
-      return description;
+	  return description;
    }
 
    private void setExtentTest() {
@@ -369,7 +374,7 @@ public class TestItem extends DDTBase{
    }
 
 // ====================================== End Setter / Getter Section ================================
-
+   
    // Finalize the ExtentTest instance of this item...
    public void finalizeExtentTest() {
       ExtentTest test = getExtentTest();

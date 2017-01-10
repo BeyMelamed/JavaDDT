@@ -49,6 +49,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 08/24/15  |Bey            |Adjust handling of takeing images as per takeImagePolicy in DDTSettings (replacing takeImageOnFile boolean)
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * 10/20/16  |Bey            |Avoid issuing System.exit(0) as this prevent build when session passed
+ * 01/01/17  |Bey            |Enable empty test name default to the test name with step number(s)
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -182,7 +183,7 @@ public class DDTTestRunner {
                // A new test items aggregate
                TestItem.TestItems testItems = new TestItem.TestItems();
                // assemble TestItem[] array in the new aggregate
-               testItems.setItems(TestItem.assembleTestItems(testItemStrings));
+               testItems.setItems(TestItem.assembleTestItems(testItemStrings, stringProviderSpecs.getItemsContainerName()));
                // start a new test runner instance with the test items aggregate instance
                DDTTestRunner runner = new DDTTestRunner();
 
