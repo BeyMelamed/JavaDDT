@@ -1,5 +1,6 @@
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
+import org.openqa.selenium.interactions.Action;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -62,6 +63,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 10/17/16    |Bey      |Enable table cell DoubleClick
  * 01/01/17    |Bey      |NewTest verb: Provide for default test id (items container name)
+ * 01/14/17    |Bey      |DragAndDrop Implementation
  * ============|=========|====================================
  */
 
@@ -838,6 +840,114 @@ public abstract class Verb extends DDTBase {
             setException(e);
          }
 
+      }
+   }
+
+   /**
+    * Description
+    * DragAndDrop instances provide a generic "Drag And Drop" mechanism between two elements (fromElement and toElement).
+    * The context has the two elements separated by some (String) separator - the default is ";"
+    * The instance's DDTTestContext contains the necessary information in the form of "separator=..." where ... stands for some string value.
+    * The separator is used to split the instance's locType and locSpecs enabling the specification of the fromElement and toElement
+    * For example dragging from locator of id=theId and class=theClass with separator of "!!!"
+    *    locType = id...class
+    *    locSpecs = theId...theClass
+    * And the DDTTestContext (data element) will have separator=!!!
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 01/13/17    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class DragAndDrop extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this, true);
+
+         // Drag and Drop validations...
+
+         String theSeparator = getContext().getString("separator");
+         if ((theSeparator == null) || (isBlank(theSeparator))) {
+            theSeparator = ";";
+            addComment("Separator not specified, using ';'");
+         }
+
+         String[] locTypes = (getContext().getProperty("loctype")).toString().split(theSeparator);
+         String[] locSpecs = (getContext().getProperty("locspecs")).toString().split(theSeparator);
+
+         if (locTypes.length < 1 ) {
+            addError("Invalid TestItem - 'locTypes' is a single item - expecting two items ('from and to') = " + locTypes);
+         }
+
+         if (locSpecs.length < 1 ) {
+            addError("Invalid TestItem - 'locSpecs' is a single item - expecting two items ('from and to') = " + locSpecs);
+         }
+
+         if (this.hasErrors())
+            return;
+
+         try {
+
+            // We will use this as the basis for finding the 'from' and 'to' elements
+            TestItem tmpItem = (TestItem) this.getContext().getProperty("testItem");
+            tmpItem.setLocSpecs(locSpecs[0]);
+            tmpItem.setLocType(locTypes[0]);
+
+            FindElement fromVerb = new FindElement();
+
+            fromVerb.basicDoIt(tmpItem);
+            if (fromVerb.hasErrors())
+               addError("'From Action' Errors: " + fromVerb.getErrors());
+            else
+               addComment("'From Action' - Element Found!");
+
+            FindElement toVerb = new FindElement();
+            tmpItem.setLocSpecs(locSpecs[1]);
+            tmpItem.setLocType(locTypes[1]);
+
+            toVerb.basicDoIt(tmpItem);
+            if (toVerb.hasErrors())
+               addError("'To Action' Errors: " + toVerb.getErrors());
+            else
+               addComment("'To Action' - Element Found!");
+
+            if (hasErrors())
+               return;
+
+            // With both Elements (from and to) found, create the action
+
+            WebElement fromElement = fromVerb.getElement();
+            WebElement toElement = toVerb.getElement();
+            Actions builder = new Actions(Driver.getDriver());
+            builder.dragAndDrop(fromElement, toElement).build().perform();
+            /*
+            Action dragAndDrop = builder.moveToElement(fromElement)
+                    .clickAndHold(fromElement)
+                    .dragAndDrop(fromElement, toElement)
+                    //.clickAndHold(fromElement)
+                    //.moveToElement(toElement)
+                    .release(toElement)
+                    .build();
+            dragAndDrop.perform();
+
+               Create and perform the action action sequence of
+                clickAndHold the fromElement
+                moveToElement the toElement
+                release the toElement
+            */
+            String blurb = "Dragged from: " + fromElement.toString() + " to: " + toElement.toString();
+            addComment(blurb);
+         } catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!hasException())
+               setException(e);
+         }
       }
    }
 

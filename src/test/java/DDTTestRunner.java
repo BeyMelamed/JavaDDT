@@ -576,8 +576,8 @@ public class DDTTestRunner {
          getReporter().setLastReportStep(currentReportedSessionStep());      // Keeps incrementing - reported steps
       }
 
-      // Finzlize this extent report test item only if the reporting mode is not nested
-      if (!TestItem.isNestedReporting)
+      // Finalize this extent report test item only if the reporting mode is not nested
+      if (!TestItem.isNestedReporting && !testItem.isFinalReport())
          testItem.finalizeExtentTest();  // Finalize the test item (end it and flush the reporter.)
    }
    /**

@@ -47,6 +47,7 @@ import static org.apache.commons.lang.StringUtils.*;
  * 11/02/16    |Bey      |Adjust ExtentTest report hasEnded to getStatus() == LogStatus.UNKNOWN
  * 12/30/16    |Bey      |Adjust ExtentTest report - Avoid returning when LogStatus.UNKNOWN
  * 01/01/17    |Bey      |Default test id to test specs resource container (test name) with test number
+ * 01/15/17    |Bey      |Add isFinalReport to indicate whether this is the final reporting step
  * ============|=========|============================================================================================================
  */
 public class TestItem extends DDTBase{
@@ -577,6 +578,15 @@ public class TestItem extends DDTBase{
       if (isBlank(skipToken))
          return false;
       return !(Util.surroundedBy(",", skipTokens.toLowerCase(), ",").contains(skipToken.toLowerCase()));
+   }
+
+   /**
+    * @return A boolean indicating this step is marked as final.
+    * Used to indicate that this is the last test step
+    * This is used to avoid extra flushing of the extent report that
+    */
+   boolean isFinalReport() {
+      return getDataProperties().getBoolean("isFinal") && (getAction().toLowerCase().equals("generatereport"));
    }
 
 

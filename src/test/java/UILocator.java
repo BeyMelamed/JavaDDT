@@ -263,8 +263,8 @@ public abstract class UILocator extends DDTBase{
 
          By bySpecs;
          String searchValue;
-         searchValue = getLocSpecs();    //comma delimited list of locator specifications (id, name, xpath, etc.)
-         String how = getLocType();     // comma delimited list of 'By' specifications
+         searchValue = getLocSpecs();    // ` delimited list of locator specifications (id, name, xpath, etc.)
+         String how = getLocType();     // ` delimited list of 'By' specifications
          By[] chainedSpecs = new By[0];
 
          if (isBlank(how)) {
@@ -281,8 +281,8 @@ public abstract class UILocator extends DDTBase{
           * Implement a version of Chaining made of comma delimited 'how' and 'searchValue' fragments.
           */
 
-         String[] hows = how.split(",");
-         String[] searchValues = searchValue.split(",");
+         String[] hows = how.split("`");
+         String[] searchValues = searchValue.split("`");
          chainedSpecs = new By[hows.length];
 
          try {

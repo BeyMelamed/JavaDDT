@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
  * 02/13/14  |Bey            |Initial Version
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * 11/04/16  |Bey            |Implement EDGE Browser Name
+ * 01/14/16  |Bey            |Improve error handling
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
@@ -161,6 +162,7 @@ public class Driver extends Thread {
             DesiredCapabilities capabilities;
             Hashtable<String, Object> desiredCapabilities;
             Set<Map.Entry<String, Object>> entries;
+            Throwable theError = null;
 
             try {
                 switch (useThisDriver) {
@@ -169,11 +171,13 @@ public class Driver extends Thread {
                         FirefoxProfile profile = new FirefoxProfile();
                         profile.setEnableNativeEvents(true);
                         profile.setAcceptUntrustedCertificates(true);
-
+                        String resourceFolder = DDTSettings.Settings().getResourcesFolder();
+                        System.setProperty("webdriver.gecko.driver", resourceFolder + "geckodriver.exe");
                         try {
                             aDriver = new FirefoxDriver();
                             currentDriver = BrowserName.FIREFOX;
                         } catch (Throwable e) {
+                            theError = e;
                             e.printStackTrace();
                             System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
                         }
@@ -254,16 +258,22 @@ public class Driver extends Thread {
                                     new URL(sauceURL),
                                     capabilities);
                         } catch (MalformedURLException e) {
+                            theError = e;
                             e.printStackTrace();
                         }
-                        currentDriver = BrowserName.SAUCELABS;
+                        if (!(theError instanceof Throwable) )
+                            currentDriver = BrowserName.SAUCELABS;
                         break;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                theError = e;
                 System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
             }
 
+            if (currentDriver == null || (theError instanceof Throwable)) {
+                System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
+            }
 
             long browserStartedTime = System.currentTimeMillis();
             browserStartTime = browserStartedTime - startBrowserTime;
