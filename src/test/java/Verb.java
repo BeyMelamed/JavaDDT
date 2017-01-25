@@ -1,6 +1,7 @@
+
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
-import org.openqa.selenium.interactions.Action;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -267,7 +268,7 @@ public abstract class Verb extends DDTBase {
       return id;
    }
 
-   private static void debug(Verb verb) {
+   public static void debug(Verb verb) {
       boolean shouldDebug = verb.getContext().getBoolean("debug");
       if (shouldDebug) {
          String pleaseNote = "This is a debugging spot for all of us, Verbs - Just keep debugging...";
@@ -346,7 +347,7 @@ public abstract class Verb extends DDTBase {
     *
     * @param verb
     */
-   private static void basicValidation(Verb verb, boolean requiresDriver) {
+   static void basicValidation(Verb verb, boolean requiresDriver) {
 
       if (!(verb.getContext() instanceof DDTTestContext)) {
          Verb.basicAddError(verb, "Action " + Util.sq(verb.myName()) + " requires non-empty test context data ");
@@ -367,11 +368,11 @@ public abstract class Verb extends DDTBase {
       }
    }
 
-   private static void basicAddError(Verb verb, String blurb) {
+   public static void basicAddError(Verb verb, String blurb) {
       verb.addError(verb.myName() + " Error: " + blurb);
    }
 
-   private static void basicAddComment(Verb verb, String blurb) {
+   public static void basicAddComment(Verb verb, String blurb) {
       verb.addComment(verb.myName() + ": " + blurb);
    }
 
@@ -795,6 +796,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 10/31/14    |Bey      |Initial Version
+    * 01/20/17    |Bey      |Support creation of web driver without URL
     * ============|=========|====================================
     */
 
@@ -821,8 +823,8 @@ public abstract class Verb extends DDTBase {
          Driver.set(browserType);
          String url = this.getContext().getString("url");
          if (isBlank(url)) {
-            Verb.basicAddError(this, "URL must be a non-empty string.");
-            return;
+            Verb.basicAddComment(this, "URL Not Provided!");
+            //return;
          }
 
          try {
@@ -831,7 +833,7 @@ public abstract class Verb extends DDTBase {
                Verb.basicAddError(this, "Unable to navigate to page: " + Util.sq(url) + " Please check URL.");
                return;
             }
-            Verb.basicAddComment(this, "Web Driver created for URL " + Util.sq(url));
+            Verb.basicAddComment(this, url.isEmpty() ? "Web Driver Created" : "Web Driver created for URL " + Util.sq(url));
 
          } catch (Exception e) {
             setException(e);
@@ -923,30 +925,115 @@ public abstract class Verb extends DDTBase {
             // With both Elements (from and to) found, create the action
 
             WebElement fromElement = fromVerb.getElement();
+            fromElement.click();
             WebElement toElement = toVerb.getElement();
             Actions builder = new Actions(Driver.getDriver());
             builder.dragAndDrop(fromElement, toElement).build().perform();
-            /*
-            Action dragAndDrop = builder.moveToElement(fromElement)
-                    .clickAndHold(fromElement)
-                    .dragAndDrop(fromElement, toElement)
-                    //.clickAndHold(fromElement)
-                    //.moveToElement(toElement)
-                    .release(toElement)
-                    .build();
-            dragAndDrop.perform();
-
-               Create and perform the action action sequence of
-                clickAndHold the fromElement
-                moveToElement the toElement
-                release the toElement
-            */
             String blurb = "Dragged from: " + fromElement.toString() + " to: " + toElement.toString();
             addComment(blurb);
          } catch (Exception e) {
             // Do not overwrite previous exceptions!
             if (!hasException())
                setException(e);
+         }
+      }
+   }
+
+   /**
+    * Description
+    * EnsurePageLoaded instances ensures the expected WebDriver page is loaded
+    * The instance's DDTTestContext contains the necessary information
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 11/02/14    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class EnsurePageLoaded extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      /**
+       * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param original  - the original FindElement verb
+       * @return
+       */
+      public static EnsurePageLoaded copy(Verb original) {
+         EnsurePageLoaded copy = new EnsurePageLoaded();
+         copy.setContext(original.getContext());
+         return copy;
+      }
+
+      /**
+       * EnsurePageLoaded is used for ensuring a page is loaded
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param verb the parent for which to ensure driver is loaded
+       * @throws VerbException
+       */
+      public static void ensurePageLoaded(Verb verb) throws VerbException{
+         EnsurePageLoaded copy = new EnsurePageLoaded();
+         copy.setContext((verb.getContext()));
+         copy.doIt();
+      }
+
+      public void doIt() throws VerbException{
+
+         debug(this);
+
+         basicValidation(this, this.isUIVerb());
+         if (this.hasErrors())
+            return;
+
+         String searchTitle;
+         // Get the function to use in verification
+         String functionName = getContext().getString("QryFunction");
+         // Get the expected value from the data properties structure.
+         String expectedValue = getContext().getString("value"); // User expects this value - it may serve for comparison with GetTitle or other property
+         boolean loaded;
+         if (functionName.equalsIgnoreCase("getTitle"))
+            searchTitle = expectedValue;
+         else
+            searchTitle = getContext().getString("pagetitle");
+
+         if (isBlank(searchTitle)) {
+            Verb.basicAddError(this, "No value provided for page title search for ensuring page was loaded");
+            return;
+         }
+
+         Long waitInSeconds = getContext().getStringAsLong("WaitTime");
+         if (0L == waitInSeconds)
+            waitInSeconds = DDTSettings.Settings().getWaitTime();
+         int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
+         if (waitIntervalMillis ==0)
+            waitIntervalMillis = DDTSettings.Settings().getWaitInterval();
+
+         WebDriver driver = Driver.getDriver();
+
+         try {
+            if (driver instanceof WebDriver) {
+               String actualTitle = driver.getTitle();
+               loaded = (actualTitle.toLowerCase().contains(searchTitle.toLowerCase()));
+               if (!loaded)
+                  Verb.basicAddError(this, "Page Title (" + actualTitle + ") does not contain '" + searchTitle + "'");
+            }
+            else {
+               // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
+               loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
+                       titleContains(searchTitle));
+
+               if (loaded) {
+                  Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
+               } else {
+                  Verb.basicAddError(this, "Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
+               }
+            }
+         }
+         catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!this.hasException())
+               throw new VerbException(this, "Failed ensuring web page loaded.");
          }
       }
    }
@@ -1510,105 +1597,6 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
-    * EnsurePageLoaded instances ensures the expected WebDriver page is loaded
-    * The instance's DDTTestContext contains the necessary information
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 11/02/14    |Bey      |Initial Version
-    * ============|=========|====================================
-    */
-
-   public static class EnsurePageLoaded extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      /**
-       * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
-       * In such cases a clone (provided by this method) is used to handle the recursion
-       * @param original  - the original FindElement verb
-       * @return
-       */
-      public static EnsurePageLoaded copy(Verb original) {
-         EnsurePageLoaded copy = new EnsurePageLoaded();
-         copy.setContext(original.getContext());
-         return copy;
-      }
-
-      /**
-       * EnsurePageLoaded is used for ensuring a page is loaded
-       * In such cases a clone (provided by this method) is used to handle the recursion
-       * @param verb the parent for which to ensure driver is loaded
-       * @throws VerbException
-       */
-      public static void ensurePageLoaded(Verb verb) throws VerbException{
-         EnsurePageLoaded copy = new EnsurePageLoaded();
-         copy.setContext((verb.getContext()));
-         copy.doIt();
-      }
-
-      public void doIt() throws VerbException{
-
-         debug(this);
-
-         basicValidation(this, this.isUIVerb());
-         if (this.hasErrors())
-            return;
-
-         String searchTitle;
-         // Get the function to use in verification
-         String functionName = getContext().getString("QryFunction");
-         // Get the expected value from the data properties structure.
-         String expectedValue = getContext().getString("value"); // User expects this value - it may serve for comparison with GetTitle or other property
-         boolean loaded;
-         if (functionName.equalsIgnoreCase("getTitle"))
-            searchTitle = expectedValue;
-         else
-            searchTitle = getContext().getString("pagetitle");
-
-         if (isBlank(searchTitle)) {
-            Verb.basicAddError(this, "No value provided for page title search for ensuring page was loaded");
-            return;
-         }
-
-         Long waitInSeconds = getContext().getStringAsLong("WaitTime");
-         if (0L == waitInSeconds)
-            waitInSeconds = DDTSettings.Settings().getWaitTime();
-         int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
-         if (waitIntervalMillis ==0)
-            waitIntervalMillis = DDTSettings.Settings().getWaitInterval();
-
-         WebDriver driver = Driver.getDriver();
-
-         try {
-            if (driver instanceof WebDriver) {
-               String actualTitle = driver.getTitle();
-               loaded = (actualTitle.toLowerCase().contains(searchTitle.toLowerCase()));
-               if (!loaded)
-                  Verb.basicAddError(this, "Page Title (" + actualTitle + ") does not contain '" + searchTitle + "'");
-            }
-            else {
-               // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
-               loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
-                     titleContains(searchTitle));
-
-               if (loaded) {
-                  Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
-               } else {
-                  Verb.basicAddError(this, "Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
-               }
-            }
-         }
-         catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!this.hasException())
-               throw new VerbException(this, "Failed ensuring web page loaded.");
-         }
-      }
-   }
-
-   /**
-    * Description
     * GenerateReport instances generate the DDTTestRunner's report
     * The instance's DDTTestContext contains the necessary information
     * History
@@ -1852,7 +1840,8 @@ public abstract class Verb extends DDTBase {
                case "back" : driver.navigate().back();
                case "forward" : driver.navigate().forward();
                case "refresh" : driver.navigate().refresh();
-               default:      driver.navigate().to(url);
+               default:      if (!url.isEmpty())
+                              driver.navigate().to(url);
             }
             Verb.basicAddComment(this, "Navigated to " + Util.sq(url));
          }
@@ -2489,7 +2478,7 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
-    * SaveWebPageProperty saves the value of some property in a web page to the variables hashtable of the JavaDDT
+    * SaveWebDriverProperty saves the value of some property in a web page to the variables hashtable of the JavaDDT
     * The test item instance's test context has the details of the property to save and the key to the hashtable.
     * History
     * When        |Who      |What
@@ -2726,104 +2715,6 @@ public abstract class Verb extends DDTBase {
 
       }
 
-   }
-
-   /**
-    * Description
-    * TypeKeys Emulates data typing into some control
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 11/02/14    |Bey      |Initial Version
-    * 09/18/16    |Bey      |Added Encryption / Decryption logic
-    * ============|=========|====================================
-    */
-
-   public static class TypeKeys extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      public void doIt() throws VerbException {
-
-         debug(this);
-
-         basicValidation(this, this.isUIVerb());
-         if (this.hasErrors())
-            return;
-
-         String keys = getContext().getString("value");  // The value to enter
-         String origKeys = keys;
-         boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
-         boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
-         boolean decrypt = getContext().getStringAsBoolean("decrypt");
-         boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
-         boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
-
-         boolean clipboardSpecified = isNotBlank(getContext().getString("clipboard"));
-         String clipboardAction = clipboardSpecified ? getContext().getString("clipboard") : "";
-
-         if (clipboardSpecified) {
-            switch (clipboardAction.toLowerCase()) {
-               case "copy" : KeyboardEmulator.copyToClipboard(); break;
-               case "paste" : KeyboardEmulator.pasteFromClipboard();  break;
-               default: {
-                  Verb.basicAddComment(this, "Faulty setup: Invalid clipboard choice: " + Util.sq(clipboardAction));
-               }
-            }
-            return;
-         }
-
-         boolean tabOut;
-         if (!tabOutSpecified)
-            tabOut = DDTSettings.Settings().getTabOut();
-         else
-            tabOut = getContext().getStringAsBoolean("tabout");
-
-         try {
-            if (encrypt)
-               keys = Util.encrypt(keys);
-
-            if (decrypt)
-               keys = Util.decrypt(keys);
-
-            if (tabOut)
-               keys += "\t";
-
-            if (enter)
-               keys += "\n";
-
-            if (isNotBlank(getContext().getString("LocSpecs"))) {
-               // Recursive Find - notice the case of this call findElement is a static call!
-               FindElement.findElement(this);
-               if (hasErrors())
-                  return;
-               if ((getElement() instanceof WebElement))
-                  if (getElement().isEnabled()) {
-                     if (!append)
-                        getElement().clear();
-                     getElement().sendKeys(keys);
-                     Verb.basicAddComment(this, "Keys: " + Util.sq(origKeys));
-                  }
-                  else Verb.basicAddError(this, "Element not enabled - Action failed");
-               else Verb.basicAddError(this, "Element not found - Action failed");
-            }
-            else
-            {
-               // Special keys ... CTRLA, CTRLV
-               String typedKeys = KeyboardEmulator.type(keys, enter);
-               if (keys.equals(typedKeys)) {
-                  Verb.basicAddComment(this, "Typed: " + Util.sq(typedKeys));
-               }
-               else
-                  Verb.basicAddError(this, "Typed: " + Util.sq(typedKeys) + " instead of " + Util.sq(keys));
-            }
-         }
-         catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!hasException())
-               setException(e);
-         }
-      }
    }
 
    /**
@@ -3181,6 +3072,115 @@ public abstract class Verb extends DDTBase {
 
    /**
     * Description
+    * TypeKeys Emulates data typing into some control
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 11/02/14    |Bey      |Initial Version
+    * 09/18/16    |Bey      |Added Encryption / Decryption logic
+    * 01/23/17    |Bey      |Added multiple tabs option 'ntabs"
+    * ============|=========|====================================
+    */
+
+   public static class TypeKeys extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this, this.isUIVerb());
+         if (this.hasErrors())
+            return;
+
+         String keys = getContext().getString("value");  // The value to enter
+         String origKeys = keys;
+         boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
+         boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
+         boolean decrypt = getContext().getStringAsBoolean("decrypt");
+         boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
+         boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
+
+         boolean clipboardSpecified = isNotBlank(getContext().getString("clipboard"));
+         String clipboardAction = clipboardSpecified ? getContext().getString("clipboard") : "";
+
+         if (clipboardSpecified) {
+            switch (clipboardAction.toLowerCase()) {
+               case "copy" : KeyboardEmulator.copyToClipboard(); break;
+               case "paste" : KeyboardEmulator.pasteFromClipboard();  break;
+               default: {
+                  Verb.basicAddComment(this, "Faulty setup: Invalid clipboard choice: " + Util.sq(clipboardAction));
+               }
+            }
+            return;
+         }
+
+         boolean tabOut;
+         int nTabs = 0;
+         if (!tabOutSpecified) {
+            tabOut = DDTSettings.Settings().getTabOut();
+            nTabs = tabOut ? 1 : 0;
+         } else {
+            tabOut = getContext().getStringAsBoolean("tabout");
+            if (tabOut) {
+               // See if user wants to tab out more than once...
+               int nTabsSpecified = getContext().getInt("nTabs");
+            }
+         }
+
+         try {
+            if (encrypt)
+               keys = Util.encrypt(keys);
+
+            if (decrypt)
+               keys = Util.decrypt(keys);
+
+            if (tabOut) {
+               for (int i=0; i<nTabs;i++) {
+                  keys += "\t";
+               }
+            }
+
+            if (enter)
+               keys += "\n";
+
+            if (isNotBlank(getContext().getString("LocSpecs"))) {
+               // Recursive Find - notice the case of this call findElement is a static call!
+               FindElement.findElement(this);
+               if (hasErrors())
+                  return;
+               if ((getElement() instanceof WebElement))
+                  if (getElement().isEnabled()) {
+                     if (!append)
+                        getElement().clear();
+                     getElement().sendKeys(keys);
+                     Verb.basicAddComment(this, "Keys: " + Util.sq(origKeys) + " " + (nTabs < 1 ? "" : "(" + nTabs + " tabs)" ));
+                  }
+                  else Verb.basicAddError(this, "Element not enabled - Action failed");
+               else Verb.basicAddError(this, "Element not found - Action failed");
+            }
+            else
+            {
+               // No element specified - assume the cursor is at some input field and type keys
+               String typedKeys = KeyboardEmulator.type(keys, enter);
+               if (keys.equals(typedKeys)) {
+                  Verb.basicAddComment(this, "Typed: " + Util.sq(typedKeys) + " " + (nTabs < 1 ? "" : "(" + nTabs + " tabs)" ));
+               }
+               else
+                  Verb.basicAddError(this, "Typed: " + Util.sq(typedKeys) + " instead of " + Util.sq(keys));
+            }
+         }
+         catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!hasException())
+               setException(e);
+         }
+      }
+   }
+
+   /**
+    * Description
     * Verify implements verification outside of the context of a Web driver and UI
     * History
     * When        |Who      |What
@@ -3460,7 +3460,6 @@ public abstract class Verb extends DDTBase {
     */
 
    public static class VerifyWebDriver extends Verb {
-
 
       public boolean isUIVerb() { return true;}
 

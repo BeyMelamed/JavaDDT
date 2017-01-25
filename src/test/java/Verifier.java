@@ -1,6 +1,11 @@
 import org.apache.commons.lang.StringUtils;
+import org.junit.Assert;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
@@ -8,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.Currency;
 import java.util.Date;
 import java.util.Locale;
+import java.io.File;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -48,6 +54,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 06/12/15    |Bey      |VerifyString -  introduce Not Equal comparison
  * 09/23/16    |Bey      |Fixed 'between' bug & avoid reversal of specs definition errors
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
+ * 01/23/17    |Bey      |Added File Verifier.
  * ============|=========|====================================
  */
 public class Verifier extends DDTBase{
@@ -462,6 +469,16 @@ public class Verifier extends DDTBase{
                addError(verifier.getErrors());
                break;
             }
+            case "file" :
+            {
+                 FileVerifier verifier = new FileVerifier(getEv(), getAv(), getComp(), getOpt(), getCls(), getStripWhiteSpace());
+                 if (isBlank(verifier.getErrors()))
+                     verifier.verify();
+                 addComment(verifier.getComments());
+                 addError(verifier.getErrors());
+                 break;
+            }
+
 
             default: addError("Invalid numeric object class specified: " +Util.sq(getCls()) + ", options are: " + NumberVerifier.ValidFormats);
          } // Switch
@@ -1123,4 +1140,80 @@ public class Verifier extends DDTBase{
          }
       } // verify()
    }// Date Verifier class
+
+   /**
+    * Verifies the existence or absence of file (ActualValue) when the class (cls) of the instance is "file" (case insensitive)
+    * An instance is created when the cls (class) is "file"
+    * When md (CompareMode) is "exist" the file should exist
+    * When md (CompareMode) is "absent" the file should not exist
+    * When md (CompareMode) is blank - the verification passes (once the format of "value" passes)
+    * @throws Exception
+    */
+
+   public class FileVerifier extends Verifier {
+      private File theFile;
+      private Boolean shouldExist = false;
+      private Boolean shouldVerifyExistence = false;
+
+      private FileVerifier(String ev, String av, String md, String opt, String cls, boolean stripWhiteSpace) {
+         super(ev, av, md, opt, cls, false); // We NEVER want to strip White Space
+         setValuesFromStrings();
+      }
+
+      private void setValuesFromStrings() {
+         String blurb = "";
+
+         if (!getComp().isEmpty())
+            shouldVerifyExistence = true;
+
+         if (getComp().equalsIgnoreCase("exist") && shouldVerifyExistence)
+            shouldExist = true;
+
+         if (getAv().isEmpty())
+            blurb += "Invalid File Specification (cannot be blank) ";
+
+         if (!isBlank(blurb)) {
+            isSpecError = true;
+            addError(blurb + "File Verification aborted. ");
+         }
+      }
+
+      public void verify() throws Exception {
+          Path tmpPath;
+          // Determine whether the path exists on the system
+          try {
+              Path fp = Paths.get(getAv());
+              tmpPath = fp.toAbsolutePath();
+          } catch (Throwable ex) {
+              addError("Invalid File Path Specification: " + Util.sq(getAv()) + " --- " + ex.getMessage());
+              return;
+          }
+
+          // If no verification of existence is requested, return with an appropriate comment
+          if (!shouldVerifyExistence) {
+             addComment("File or Path Specified!");
+             return;
+         }
+
+         // Verify the existence of the file with respect to the expectation (absent, exist)
+         try {
+            File theFile = new File(DDTSettings.asValidOSPath(getAv(), true));
+            Assert.assertTrue(theFile.exists() && theFile.canRead());
+            addComment("Verified: " + theFile.toPath().toString() + " size: " + theFile.length());
+            if (!shouldExist)
+                addError("File " + getAv() + " Should not exist but it DOES exist!");
+         }
+         catch (Throwable ex) {
+             if (shouldExist)
+                 addError("File " + getAv() + " Should exist but it DOES NOT exist (or unreadable)!");
+         }
+
+         if (getErrors().isEmpty()) {
+             if (shouldExist)
+                 addComment("File " + getAv() + " Exists!");
+             else
+                 addComment("File " + getAv() + " Does Not Exist!");
+         }
+      }
+   }
 }

@@ -50,6 +50,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * 10/20/16  |Bey            |Avoid issuing System.exit(0) as this prevent build when session passed
  * 01/01/17  |Bey            |Enable empty test name default to the test name with step number(s)
+ * 01/20/17  |Bey            |Skip items with empty action
  * ==========|===============|========================================================
  */
 public class DDTTestRunner {
@@ -598,7 +599,7 @@ public class DDTTestRunner {
             stepNo++;
 
             // Skip empty rows in the data source
-            if ((testItem == null) || testItem.isEmpty())
+            if ((testItem == null) || testItem.isEmpty() || testItem.getAction().isEmpty())
                continue;
 
             incrementDone();

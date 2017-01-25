@@ -52,7 +52,8 @@ import java.util.concurrent.TimeUnit;
  * 02/13/14  |Bey            |Initial Version
  * 10/16/16  |Bey            |Adjust ddtSettings getters.
  * 11/04/16  |Bey            |Implement EDGE Browser Name
- * 01/14/16  |Bey            |Improve error handling
+ * 01/14/17  |Bey            |Improve error handling
+ * 01/20/17  |Bey            |Allow blank url - just get a driver
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
@@ -154,7 +155,6 @@ public class Driver extends Thread {
             String defaultBrowser = System.getProperty(BROWSER_PROPERTY_NAME, "FIREFOX");
             useThisDriver = asBrowserName(defaultBrowser);
         }
-
 
         if (aDriver == null) {
 
@@ -378,15 +378,16 @@ public class Driver extends Thread {
         get();
         aDriver.manage().timeouts().implicitlyWait(DDTSettings.Settings().getWaitTime(), TimeUnit.SECONDS);        
         
-        aDriver.get(aURL);
+        if (!(aURL.isEmpty()))
+            aDriver.get(aURL);
 
         if (maximize) {
             try {
                 aDriver.manage().window().maximize();
             } catch (UnsupportedCommandException e) {
-                System.out.println("Remote Driver does not support maximise");
+                System.out.println("This Driver does not support maximise");
             } catch (UnsupportedOperationException e) {
-                System.out.println("Opera driver does not support maximize yet");
+                System.out.println("This Driver does not support maximize yet");
             }
         }
         return aDriver;
@@ -403,7 +404,7 @@ public class Driver extends Thread {
                 aDriver.quit();
                 aDriver = null;
             } catch (Exception e) {
-                // I don't care about errors at this point
+                // We don't care about errors at this point
             }
 
         }
