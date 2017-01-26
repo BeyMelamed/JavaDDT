@@ -55,7 +55,8 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 07/24/15    |Bey      |Various improvements & bugs (desciption handling)
  * 07/26/15    |Bey      |Implement Extent Reports
  * 08/21/15    |Bey      |Improve handling of Extent Reports (multiple files per test session)
- * 10/16/16    |Bey      |Adjust ddtSettings getters.
+ * 01/16/17    |Bey      |Adjust ddtSettings getters.
+ * 01/25/17    |Bey      |Enable reaching email message body from file
  * ============|=========|====================================
  */
 public class DDTReporter {
@@ -443,7 +444,7 @@ public class DDTReporter {
          rangeClause += " - Actions excluded from reporting: " + settings.getDontReportActions().replace(",", ", ");
       }
 
-      String blurb = DDTSettings.Settings().getReportTextMessage();
+      String blurb = DDTSettings.Settings().getEmailMessageText();
       if (blurb.isEmpty())
          blurb = "Attached is a summary of test results titled: ";
       else

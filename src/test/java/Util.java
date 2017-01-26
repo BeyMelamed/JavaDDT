@@ -7,6 +7,8 @@ import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Stream;
+
 import static java.util.Map.Entry;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -45,6 +47,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 10/18/16    |Bey      |Handle encryption exception in encrypt().
  * 11/18/16    |Bey      |Update encryption handling
+ * 01/25/17    |Bey      |Fix bug in file reader - add "\n" for each line
  * ============|=========|====================================
  */
 public class Util {
@@ -618,15 +621,15 @@ public class Util {
             if (f.exists()) {
                FileReader fr = new FileReader(fileName);
                BufferedReader br = new BufferedReader(fr);
-               String s ="";
+               String s = "";
                while((s = br.readLine()) != null) {
-                  result += s;
+                  result += s + System.lineSeparator() ;
                }
                fr.close();
             }
          }
          catch (Exception e) {
-            // do nothing - an empty string will be returned.
+            result = ""; // do nothing - an empty string will be returned.
          }
       }
       return result;

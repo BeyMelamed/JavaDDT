@@ -45,7 +45,8 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 09/23/16    |Bey      |Resolve issue with line breaks not appearing in email message body
  * 10/14/16    |Bey      |Enable encryption of email sender password
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
- * 10/16/20    |Bey      |Modify Email Defaults.
+ * 01/16/17    |Bey      |Modify Email Defaults.
+ * 01/25/17    |Bey      |Enable usage of email message in its own file - used when emailing report to recpients.
  * ============|=========|====================================
  */
 public class DDTSettings {
@@ -85,6 +86,7 @@ public class DDTSettings {
    private final String EmailHost = "smtp.gmail.com";
    private final String EmailPort = "587";
    private final boolean EmailAuthenticationRequired = true;
+   private final String EmailMsgFile = ResourcesFolder+"EmailMsg.txt";
    private final boolean IsLocal = true;
    private final String TakeImagePolicy = "OnFail";
    private final boolean ReportEachTableCell = false;
@@ -141,6 +143,7 @@ public class DDTSettings {
    private String emailRecipients;
    private String emailHost;
    private String emailPort;
+   private String emailMsgFile;
    private String attachments;
    private boolean emailAuthenticationRequired;
    private boolean emailPasswordEncrypted;
@@ -263,7 +266,7 @@ public class DDTSettings {
       if (isBlank(pathType))
          return result;  // let all hell break loose - one should know better
       switch (pathType.toLowerCase()) {
-         case "resource" : {result = Settings().getResourcesFolder() + fileName; break;}
+         case "resources" : {result = Settings().getResourcesFolder() + fileName; break;}
          case "report" : {result = Settings().getReportsFolder() + fileName; break;}
          case "image" : {result = Settings().getImagesFolder() + fileName; break;}
          case "data" : {result = Settings().getDataFolder() + fileName; break;}
@@ -1065,6 +1068,18 @@ public class DDTSettings {
       return emailPort;
    }
 
+   private void setEmailMsgFile(String value) {
+      emailMsgFile = value;
+   }
+
+   public String getEmailMsgFile() {
+      if (isBlank(emailMsgFile)) {
+         String s = getPropertyOrDefaultValue(EmailMsgFile, "EmailMsgFile", true);
+         setEmailMsgFile(s);
+      }
+      return emailMsgFile;
+   }
+
    private void setStatusToReport(String value) {
       statusToReport = value;
    }
@@ -1252,4 +1267,13 @@ public class DDTSettings {
       return isNestedReporting;
    }
 
+   public String getEmailMessageText() {
+      String defaultText = getReportTextMessage();
+      String emailMsgFileName = getEmailMsgFile(); // Raw File Name - now prefix
+      if (emailMsgFileName.length() > 0) {
+         emailMsgFileName = getResourcesFolder() + emailMsgFileName;
+         defaultText = Util.readFile(emailMsgFileName);
+      }
+      return defaultText;
+   }
 }
