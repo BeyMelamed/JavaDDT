@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
  * 11/04/16  |Bey            |Implement EDGE Browser Name
  * 01/14/17  |Bey            |Improve error handling
  * 01/20/17  |Bey            |Allow blank url - just get a driver
+ * 02/22/17  |Bey            |Improve error handling (get() method)
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
@@ -63,12 +64,23 @@ public class Driver extends Thread {
     public static final long DEFAULT_TIMEOUT_SECONDS = 100;
     private static boolean avoidRecursiveCall = false;
     public static final String BROWSER_PROPERTY_NAME = "Driver";
+    private static String error;
 
     public enum BrowserName {FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, EDGE, HTMLUNIT, HEADLESS}
 
     private static String driverName;
 
     public static BrowserName currentDriver;
+    
+    public static String getError() {
+    	if (error == null)
+    		setError("");
+    	return error;
+    }
+    
+    private static void setError(String value) {
+    	error = value;
+    }
 
     private static BrowserName useThisDriver = null;
 
@@ -110,6 +122,7 @@ public class Driver extends Thread {
 
     public static BrowserName asBrowserName(String browserName) {
         BrowserName result = null;
+        setError("");
         driverName = browserName.toUpperCase();
         switch (browserName.toUpperCase()) {
             case "FIREFOX":
@@ -137,6 +150,7 @@ public class Driver extends Thread {
                 result = BrowserName.HEADLESS;
                 break;
             default:
+            	setError("Unknown Browser in " + BROWSER_PROPERTY_NAME + ": " + browserName);
                 throw new RuntimeException("Unknown Browser in " + BROWSER_PROPERTY_NAME + ": " + browserName);
 
         }
@@ -149,7 +163,7 @@ public class Driver extends Thread {
      * @return driver
      */
     public static WebDriver get() {
-
+    	setError("");
         if (useThisDriver == null) {
 
             String defaultBrowser = System.getProperty(BROWSER_PROPERTY_NAME, "FIREFOX");
@@ -179,6 +193,7 @@ public class Driver extends Thread {
                         } catch (Throwable e) {
                             theError = e;
                             e.printStackTrace();
+                            setError("Failed setting up " + useThisDriver + " Web Driver.");
                             System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
                         }
                         break;
@@ -268,10 +283,11 @@ public class Driver extends Thread {
             } catch (Exception e) {
                 e.printStackTrace();
                 theError = e;
+                setError("Failed setting up " + useThisDriver + " Web Driver.");
                 System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
             }
 
-            if (currentDriver == null || (theError instanceof Throwable)) {
+            if (currentDriver == null || (theError instanceof Throwable) || !getError().isEmpty()) {
                 System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
             }
 
@@ -368,14 +384,15 @@ public class Driver extends Thread {
                 if (driverExe.exists()) {
                     System.setProperty(propertyKey, fileLocation);
                 } else {
-                    // expect an error on the follow through when we try to use the driver
+                    setError("Drive File (" + driverExe.getAbsolutePath() + ") Not Found"); // expect an error on the follow through when we try to use the driver
                 }
             }
         }
     }
 
     public static WebDriver get(String aURL, boolean maximize) {
-        get();
+        try {
+    	get();
         aDriver.manage().timeouts().implicitlyWait(DDTSettings.Settings().getWaitTime(), TimeUnit.SECONDS);        
         
         if (!(aURL.isEmpty()))
@@ -385,12 +402,20 @@ public class Driver extends Thread {
             try {
                 aDriver.manage().window().maximize();
             } catch (UnsupportedCommandException e) {
-                System.out.println("This Driver does not support maximise");
+                setError("This Driver does not support maximise");
+            	System.out.println("This Driver does not support maximise");
             } catch (UnsupportedOperationException e) {
+                setError("This Driver does not support maximise yet");
                 System.out.println("This Driver does not support maximize yet");
             }
         }
         return aDriver;
+        }
+        catch (Throwable t) {
+        	setError("Failure Using Web Driver: " + t.getMessage());
+        	System.out.println("Failure Using Web Driver: " + t.getMessage());
+        	return aDriver;
+        }
     }
 
     public static WebDriver get(String aURL) {
@@ -404,7 +429,8 @@ public class Driver extends Thread {
                 aDriver.quit();
                 aDriver = null;
             } catch (Exception e) {
-                // We don't care about errors at this point
+            	setError("Failure Using Web Driver: " + e.getMessage());
+            	System.out.println("Failure Using Web Driver: " + e.getMessage());
             }
 
         }

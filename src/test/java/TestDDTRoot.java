@@ -36,7 +36,7 @@ public class TestDDTRoot extends XSTCTester.TestCase {
          try {
             DDTTestRunner.getReporter().generateReport("Final Report", "");
          } catch (Exception e) {
-            e.printStackTrace();
+        	 e.printStackTrace();
          }
       }
       DDTTestRunner.endSession();

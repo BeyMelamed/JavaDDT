@@ -174,6 +174,7 @@ public abstract class UILocator extends DDTBase{
     * 07/24/15    |Bey      |Changed Locator Array Delimiter to '^' to handle commas in locator value,
     *                       |Fixed message text bug (cosmetic)
     * 08/23/15    |Bey      |Changed Locator Array Delimiter to '`' from '^' which did not split
+    * 03/30/17    |Bey      |Created Locator Type synonyms ("classname" / "class", "tagname" / "tag")
     * ============|=========|====================================
     */
    public static class WebUILocator extends UILocator {
@@ -310,7 +311,15 @@ public abstract class UILocator extends DDTBase{
                      bySpecs = new By.ByClassName(thisValue);
                      break;
                   }
+                  case "class": {
+                     bySpecs = new By.ByClassName(thisValue);
+                     break;
+                  }
                   case "tagname": {
+                     bySpecs = By.tagName(thisValue);
+                     break;
+                  }
+                  case "tag": {
                      bySpecs = By.tagName(thisValue);
                      break;
                   }
@@ -318,7 +327,15 @@ public abstract class UILocator extends DDTBase{
                      bySpecs = new By.ByLinkText(thisValue);
                      break;
                   }
+                  case "link": {
+                     bySpecs = new By.ByLinkText(thisValue);
+                     break;
+                  }
                   case "partiallinktext": {
+                     bySpecs = new By.ByPartialLinkText(thisValue);
+                     break;
+                  }
+                  case "partiallink": {
                      bySpecs = new By.ByPartialLinkText(thisValue);
                      break;
                   }

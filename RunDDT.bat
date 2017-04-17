@@ -1,3 +1,3 @@
 j:
-cd automation\javaddt
+cd j:\automation\javaddt
 mvn test

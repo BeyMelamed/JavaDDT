@@ -3,6 +3,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.interactions.HasInputDevices;
+import org.openqa.selenium.interactions.Mouse;
+import org.openqa.selenium.internal.Locatable;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -228,12 +231,16 @@ public abstract class Verb extends DDTBase {
          doIt();
       }
       catch (VerbException e) {
-         Verb.basicAddError(this, "Error encountered during 'doIt' method");
+         Verb.basicAddError(this, "Verb Exception Error encountered during 'doIt' method");
          setException(e);
       }
       catch (Exception e) {
-         Verb.basicAddError(this, "Error encountered during 'doIt' method");
+         Verb.basicAddError(this, "Exception Error encountered during 'doIt' method");
          setException(e);
+      }
+      catch (Throwable e) {
+          Verb.basicAddError(this, "Throwable Error encountered during 'doIt' method");
+          setException(e);    	  
       }
 
       if (hasComments()) {
@@ -665,6 +672,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 02/23/17    |Bey      |Add optional hover prior to clicking
     * ============|=========|====================================
     */
 
@@ -683,12 +691,20 @@ public abstract class Verb extends DDTBase {
          boolean doubleClick = getContext().getBoolean("double");
          String prefix = doubleClick ? "(Double) " : "";
 
+         boolean hover = getContext().getBoolean("hover");
+         prefix = hover ? (prefix + " (pre-hover) ") : prefix;
          try {
             FindElement.findElement(this);
             if (hasErrors())
                return;
             if ((getElement() instanceof WebElement)) {
-               if (getElement().isEnabled()) {
+            	if (hover) {
+                    TestItem tmpItem = (TestItem) this.getContext().getProperty("testItem");
+                    Hover hoverVerb = new Hover();
+                    hoverVerb.basicDoIt(tmpItem);
+            	}
+            		
+            	if (getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).perform();
                   getElement().click();
                   String blurb = "";
@@ -697,7 +713,7 @@ public abstract class Verb extends DDTBase {
                       getElement().click();
                      blurb = "Double ";
                   }
-                  Verb.basicAddComment(this, "Element " + prefix + blurb + "Clicked");
+                  Verb.basicAddComment(this, ("Element " + prefix + blurb + "Clicked").replaceAll("  ", " "));
                } else
                   Verb.basicAddError(this, "Element not enabled - action failed");
             } else Verb.basicAddError(this, "Failed to find Web Element - Element not clicked!");
@@ -1720,6 +1736,7 @@ public abstract class Verb extends DDTBase {
     * ============|=========|====================================
     * 07/14/15    |Bey      |Initial Version
     * 08/16/15    |Bey      |Introduce action.release() after wait
+    * 01/26/17    |Bey      |Improve error trapping & Try to improve mouse hovet (which still does not work...)
     * ============|=========|====================================
     */
 
@@ -1755,15 +1772,31 @@ public abstract class Verb extends DDTBase {
          FindElement.findElement(this);
          if (hasErrors())
             return;
-
-         if ((getElement() instanceof WebElement)) {
-            Actions action = new Actions(Driver.getDriver());
-            action.moveToElement(getElement()).build().perform();
+         WebElement element = getElement();
+         WebDriver driver = Driver.getDriver();
+         if ((element instanceof WebElement)) {
+/* *** Try this... - abstract it to a UI verb where {driver} and {webElement} are valid
+String javaScript = "var evObj = document.createEvent('MouseEvents');" +
+                    "evObj.initMouseEvent(\"mouseover\",true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);" +
+                    "arguments[0].dispatchEvent(evObj);";
+((JavascriptExecutor)driver).executeScript(javaScript, webElement);
+**/
+            Actions action = new Actions(driver);
+            // This doesn't work...
+            action.moveToElement(element).build().perform();
+            // This doesn't work either
+            action.moveToElement(element, element.getLocation().getX()+2, element.getLocation().getY()+2).build().perform();
+            // This doesn't work either
+            Locatable hoverItem = (Locatable) getElement();
+            Mouse mouse = ((HasInputDevices) driver).getMouse();
+            // For some reason, this does not work... The mouse does not move anywhere
+            mouse.mouseMove(hoverItem.getCoordinates(),2L, 2L);
+            System.out.println(hoverItem.getCoordinates().getAuxiliary().toString());
             try {
                Thread.sleep(longWaitTime);
                action.release();
             }
-            catch (InterruptedException t) {}
+            catch (InterruptedException t) {System.out.println(t.getMessage());}
          }
       }
    }
@@ -1837,9 +1870,9 @@ public abstract class Verb extends DDTBase {
          try {
             // Determine where user wants to navigate to...
             switch(url.toLowerCase()) {
-               case "back" : driver.navigate().back();
-               case "forward" : driver.navigate().forward();
-               case "refresh" : driver.navigate().refresh();
+               case "back" : driver.navigate().back(); break;
+               case "forward" : driver.navigate().forward(); break;
+               case "refresh" : driver.navigate().refresh(); break;
                default:      if (!url.isEmpty())
                               driver.navigate().to(url);
             }
@@ -2300,7 +2333,7 @@ public abstract class Verb extends DDTBase {
             return false;
          }
       }
-
+      
       /**
        * Gets a method from the DDTExternal class (for now, hard-coded!) with a parameter of class DDTTestContext (for now, hard coded)
        */
@@ -2417,6 +2450,7 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
+    * 02/23/17    |Bey      |Fixed bug in var setting...
     * ============|=========|====================================
     */
 
@@ -2459,6 +2493,8 @@ public abstract class Verb extends DDTBase {
                   Verb.basicAddError(this, weq.getErrors() + " - Action Failed");
                   return;
                }
+               
+               DDTTestRunner.addVariable(varName, actualValue);
 
                Verb.basicAddComment(this, "Query results (" + Util.sq(actualValue) + ") Saved as variable named " + Util.sq(getContext().getString("SaveAs")));
 
@@ -2938,17 +2974,6 @@ public abstract class Verb extends DDTBase {
 
          if (nTried > 0) {
             Verb.basicAddError(this, "Failed to switch to child window with title containing: " + Util.sq(name));
-         }
-      }
-
-      private void switchToDefaultSubWindow(WebDriver driver) {
-         String parentWindow = driver.getWindowHandle();
-         Set<String> handles = driver.getWindowHandles();
-         for (String windowHandle : handles) {
-            if (!windowHandle.equals(parentWindow)) {
-               driver.switchTo().window(windowHandle);
-               break;
-            }
          }
       }
 

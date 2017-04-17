@@ -7,7 +7,7 @@
 
     <groupId>com.DynaBytes.Automation</groupId>
     <artifactId>JavaDDT</artifactId>
-    <version>1.3.1</version>
+    <version>1.3.2</version>
     <packaging>jar</packaging>
     <dependencies>
         <!-- Junit >= 4.11 needs hamcrest 1.3 -->
