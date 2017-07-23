@@ -199,7 +199,7 @@ public class DDTTestContext extends Hashtable {
 
    public boolean getStringAsBoolean(String key) {
       String s = this.getString(key);
-      if (null == s)
+      if (isBlank(s))
          return false;
       if (",yes,true,1,-1,".contains("," + s.toLowerCase() + ","))
          return true;

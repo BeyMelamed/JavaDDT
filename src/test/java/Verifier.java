@@ -55,7 +55,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 09/23/16    |Bey      |Fixed 'between' bug & avoid reversal of specs definition errors
  * 10/16/16    |Bey      |Adjust ddtSettings getters.
  * 01/23/17    |Bey      |Added File Verifier.
- * ============|=========|====================================
+ * ============|=========|==================crypt==================
  */
 public class Verifier extends DDTBase{
 
@@ -172,25 +172,18 @@ public class Verifier extends DDTBase{
       // User may want to get a specific class for the verification (date, integer, amount, etc.)
 
       String cls =  testItem.getDataProperties().getString("class");
-      if (isBlank(cls))
-         cls = "";
 
       // User may have specified some comparison mode other than equal (the default)
       String md = testItem.getDataProperties().getString("comparemode");
-      if (isBlank(md))
-         md = "";
+
       if (isBlank(md))
          md = DDTSettings.Settings().getDefaultComparison();
 
       // User may have specified some option for the output (lowecase, ignorecase, etc.)
       String opt =  testItem.getDataProperties().getString("option");
-      if (isBlank(opt))
-         opt = "";
 
       // User typically specifies some expected value
       String ev = testItem.getDataProperties().getString("value");
-      if (isBlank(ev))
-         ev = "";
 
       // User can indicate whether or not to trim white spaces off of actual value and expected values prior to comparison
       // If the user did not specify anything (blank) then use the settings, else use the specified value
@@ -216,25 +209,18 @@ public class Verifier extends DDTBase{
       // User may want to get a specific class for the verification (date, integer, amount, etc.)
 
       String cls =  testContext.getString("class");
-      if (isBlank(cls))
-         cls = "";
 
       // User may have specified some comparison mode other than equal (the default)
       String md = testContext.getString("comparemode");
-      if (isBlank(md))
-         md = "";
+
       if (isBlank(md))
          md = DDTSettings.Settings().getDefaultComparison();
 
       // User may have specified some option for the output (lowecase, ignorecase, etc.)
       String opt =  testContext.getString("option");
-      if (isBlank(opt))
-         opt = "";
 
       // User typically specifies some expected value
       String ev = testContext.getString("value");
-      if (isBlank(ev))
-         ev = "";
 
       // User can indicate whether or not to trim white spaces off of actual value and expected values prior to comparison
       // If the user did not specify anything (blank) then use the settings, else use the specified value

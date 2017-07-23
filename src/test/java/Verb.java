@@ -1,4 +1,3 @@
-
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
@@ -99,6 +98,7 @@ public abstract class Verb extends DDTBase {
 
       java.lang.Class<?>[] subClasses = Verb.class.getDeclaredClasses();
       int nClasses = subClasses.length;
+
       System.out.println(nClasses -1 + " Verbs found in test harness.");  // We exclude the VerbException instance
       Verb inst;
       String name;
@@ -132,6 +132,7 @@ public abstract class Verb extends DDTBase {
             System.out.println("*** - Failed instantiating instance No. " + i+1 + " *** " + subClasses[i].toString() + " *** (InstantiationException)");
             continue;
          }
+
       }
 
       System.out.println(verbs.size() + " Verbs loaded into the 'Dictionary'");
@@ -891,7 +892,7 @@ public abstract class Verb extends DDTBase {
          // Drag and Drop validations...
 
          String theSeparator = getContext().getString("separator");
-         if ((theSeparator == null) || (isBlank(theSeparator))) {
+         if (isBlank(theSeparator)) {
             theSeparator = ";";
             addComment("Separator not specified, using ';'");
          }
@@ -1174,8 +1175,6 @@ public abstract class Verb extends DDTBase {
             // A range of rows to examine (may conflict with "row" specs)
 
             rowRange = getContext().getString("rowrange");
-            if (isBlank(rowRange))
-               rowRange = "";
 
             String[] rowRangeSpecs;
 
@@ -1484,9 +1483,8 @@ public abstract class Verb extends DDTBase {
       }
 
       /**
-       * findElement is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
-       * In such cases a clone (provided by this method) is used to handle the recursion
-       * @param verb the parent FindeElement for which to find element
+       * FindOption is used for finding a given option in the appropriate web element (that has a list of those.)
+       * @param verb the parent FindeElement used for finding the element containg the options
        * @throws VerbException
        */
       public static void findOption(Verb verb) throws VerbException{
@@ -1514,13 +1512,9 @@ public abstract class Verb extends DDTBase {
          // User can specify either ItemValue or ItemText - ItemText has priority
          // ItemText
          String textToSelectBy = getContext().getString("itemtext");
-         if (isBlank(textToSelectBy))
-            textToSelectBy = "";
 
          // ItemValue
          String valueToSelectBy = getContext().getString("itemvalue");
-         if (isBlank(valueToSelectBy))
-            valueToSelectBy = "";
 
          // User may want to get a specific (1 based as opposed to 0 based) item!
          int itemIndex = getContext().getStringAsInteger("itemno");
@@ -2600,12 +2594,8 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             }
 
             String x = getContext().getString("x");
-            if (isBlank(x))
-               x = "";
 
             String y = getContext().getString("y");
-            if (isBlank(y))
-               y = "";
 
             // Verify the scroll type definition is appropriate - X and Y components are present, are integer and are not 'max'
             if (!scrollType.toLowerCase().equals("scrollintoview")) {
@@ -2633,7 +2623,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
                   }
 
                   // Execute the scrollBy specified by the user
-                  //jsDriver.executeScript("javascript:window.scrollBy(" + x + "," + y + ");");
+                  //jsDriver.executeScript("javascript:window.scrollBy(" + x + "/," + y + ");");
                   getContext().setProperty("jscode", "window.scrollBy(" + x + "," + y + ")\\n");
                   RunJS.runJS(this);
                   Verb.basicAddComment(this, "Page Scrolled By X: "+ x + ", Y: " + y);
@@ -2715,12 +2705,8 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          // User can specify either ItemValue or ItemText - ItemText has priority
          String textToSelectBy = getContext().getString("itemtext");
-         if (isBlank(textToSelectBy))
-            textToSelectBy = "";
-
          String valueToSelectBy = getContext().getString("itemvalue");
-         if (isBlank(valueToSelectBy))
-            valueToSelectBy = "";
+
          // If both, textToSelectBy and valueToSelectBy are present, use textToSelectBy else, use valueToSelectBy if it is not blank.
          // All these shenanigans are meant to support selection of a blank value when needed.
          String selectionValue = (isBlank(valueToSelectBy)) ? textToSelectBy : (isBlank(textToSelectBy) ? valueToSelectBy :textToSelectBy);
@@ -2779,8 +2765,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          try {
             String option = getContext().getString("value");
-            if (isBlank(option))
-               option = "";
+
             if (option.toLowerCase().equals("maximize")) {
                driver.manage().window().maximize();
                Verb.basicAddComment(this, "Page Maximized");
@@ -2882,8 +2867,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          // If exists, itemName is used to qualify one of many
          String itemName = getContext().getString("value");
-         if (isBlank(itemName))
-            itemName = "";
          if (itemType == "frame")
             switchFrames(driver, itemName);
          else
@@ -3396,7 +3379,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
    public static class VerifyWebElement extends Verb {
 
       public boolean isUIVerb() { return true;}
-
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
        * In such cases a clone (provided by this method) is used to handle the recursion
