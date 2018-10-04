@@ -1,0 +1,40 @@
+Greetings,
+You are receiving this email message as it contains a sample test run of the (Java) framework I developed that might be relevant to QA Automation (or other) position(s) I am interested in / we discussed.
+
+I send you this sample run as I believe it is a relevant supplement to my resume and represents my skills more specifically and practically.
+The framework that generated the test session (and this report) is based on 'keyword' concept/model and NO CODING is needed to carry unlimited number of tests within the scope of the supported keyword 'lexicon'!
+
+Each step of a given test plan is represented in the input stream by a keyword (i.e: 'newtest', 'click', 'wait', 'verify' etc.) that corresponds to a 'verb' (class) in the framework's lexicon of actions.
+
+The input stream (example attached) is a collection of parameterized test steps / tasks each of which corresponds to an instance of the 'verb' class of the framework.
+
+For example, when the input is an Excel sheet, a row in some worksheet with 'Click' in the Action column will invoke the Click verb and result in a click on some control on some web page.
+
+The framework uses Selenium for activating and verifying web pages and can be readily expanded beyond the current scope.
+Expanding the framework can be readily achieved by a Java programmer via creation of Java class files that constitute entries in the framework's 'Lexicon' and subsequently can be utilized during a test session.
+
+The actual test session reported here is a Proof of Concept with shallow exploration of several web sites and some non-UI tests as specified in the (attached) DDTRoot.xlsx file.
+
+The input file - the (attached) DDTRoot.xlsx - reveals the ability to treat worksheets like functional / parameterized 'subroutines' that can be enabled / disabled for a particular run as needed.
+
+The attached ddttestresult... file is the report of this brief test session.
+Click it to view it in a browser.
+
+Feel free to forward this message to interested parties in your company or interested client(s) and thanks for your feedback...
+
+The text of this message is just one of the numerous configurable features of the framework and can be modified for each run without touching a line of code.
+
+This p.o.c is the Java implementation of a similar project I developed in Python,  and I am the designer, coder, tester and documentor of the project.
+
+BTW, at present, i am seeking employment in the vicinity of New York, NY or Westchester County, NY
+
+Sincerely,
+Avraham Melamed (Bey)
+Owner, DynaBytes, Inc.
+
+Contact me at:
+Email: beymelamed@gmail.com, BeyMelamed01@optimum.net
+LinkedIn: https://www.linkedin.com/in/beymelamed
+Skype ID: avraham.melamed
+Phone: (917)656-6516 (cell), (914)402-4350 (home)
+
