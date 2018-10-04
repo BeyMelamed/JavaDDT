@@ -36,9 +36,7 @@ import java.util.Properties;
  * Please note the dependency of the code on the various email settings for situations where the email host requires authentication vs when it is self authenticating
  * When      |Who            |What
  * ==========|===============|========================================================
- * 01/03/14  |Bey            |Initial Version
- * 09/23/16  |Bey            |Resolve issue with line breaks not appearing in message body
- * 10/16/16  |Bey            |Adjust ddtSettings getters.
+ * 1/3/14    |Bey            |Initial Version
  * ==========|===============|========================================================
  */
 public class Email {
@@ -46,18 +44,18 @@ public class Email {
    public static void sendMail(String subject, String messageBody, String fileName, List<String> failedTests) throws MessagingException {
 
       DDTSettings settings = DDTSettings.Settings();
-      final String sender = settings.getEmailSender();
-      boolean emailPasswordEncrypted = settings.getEmailPasswordEncrypted();
-      final String password = emailPasswordEncrypted ? Util.decrypt(settings.getEmailPassword()) :  settings.getEmailPassword();
-      String[] recipients = settings.getEmailRecipients().split(",");
-      String host = settings.getEmailHost();
-      String port = settings.getEmailPort();
-      boolean emailAuthenticationRequired = settings.getEmailAuthenticationRequired();
+      final String sender = settings.emailSender();
+      final String password = settings.emailPassword();
+      String[] recipients = settings.emailRecipients().split(",");
+      String host = settings.emailHost();
+      String port = settings.emailPort();
+      boolean emailAuthenticationRequired = settings.emailAuthenticationRequired();
       String trueOrFalse = emailAuthenticationRequired ? "true" : "false";
       Session session;
 
       // Use system properties and add some related to email protocol
       Properties props = System.getProperties();
+
       // Setup mail server
       props.setProperty("mail.smtp.host", host);
       props.setProperty("mail.smtp.port", port);
@@ -115,9 +113,7 @@ public class Email {
             sb = null;
          }
          // Fill the body of the message
-         // Replace {endOfLine} with email breaks...
-         String body = messageBody.replace(System.lineSeparator(), "<br>");
-         messageBodyPart.setContent(body + failedTestSection,"text/html");
+         messageBodyPart.setContent(messageBody.replace(System.lineSeparator(), "<br><br>") + "<br><br>" + failedTestSection,"text/html");
 
          // Create a multipart message
          Multipart multipart = new MimeMultipart();
@@ -135,12 +131,12 @@ public class Email {
          // If any other attachments are available (they should be specified with full path in the ddt.properties file in a folder accessible from here...)
          // This is a comma delimited list of file names...  where (optionally) the string "%res%" stands for the project's Resources folder  and %data% for the data folder
 
-         String attachments = settings.getAttachments();
+         String attachments = settings.attachments();
          if (!attachments.isEmpty())  {
             String[] fileNames = attachments.split(",");
             for (int i=0; i < fileNames.length; i++) {
                messageBodyPart = new MimeBodyPart();
-               source = new FileDataSource(fileNames[i].replace("%res%", settings.getResourcesFolder()).replace("%data%", settings.getDataFolder()));
+               source = new FileDataSource(fileNames[i].replace("%res%", settings.resourcesFolder()).replace("%data%", settings.dataFolder()));
                try {
                   source.getInputStream().read(new byte[1]);
                   source.getInputStream().close();
@@ -160,8 +156,7 @@ public class Email {
          // Send message
          Transport.send(message);
       }
-      catch (Throwable e) {
-         System.out.println("\nFailed Email Transmission: " + e.getMessage() + "\n");
+      catch (MessagingException e) {
          e.printStackTrace();
       }
 

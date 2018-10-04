@@ -1,10 +1,6 @@
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
-import org.openqa.selenium.Dimension;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.interactions.HasInputDevices;
-import org.openqa.selenium.interactions.Mouse;
-import org.openqa.selenium.internal.Locatable;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -63,10 +59,7 @@ import static org.apache.commons.lang3.StringUtils.split;
  * ============|=========|====================================
  * 10/29/14    |Bey      |Initial Version
  * 06/06/15    |Bey      |Introduce WaitUntil and BranchOnValue, verb names are now case-insensitive
- * 10/16/16    |Bey      |Adjust ddtSettings getters.
- * 10/17/16    |Bey      |Enable table cell DoubleClick
- * 01/01/17    |Bey      |NewTest verb: Provide for default test id (items container name)
- * 01/14/17    |Bey      |DragAndDrop Implementation
+ * 09/29/18    |Bey      |Modify call to Utils.readFile (add boolean params indicating stripping of new line markers.)
  * ============|=========|====================================
  */
 
@@ -98,7 +91,6 @@ public abstract class Verb extends DDTBase {
 
       java.lang.Class<?>[] subClasses = Verb.class.getDeclaredClasses();
       int nClasses = subClasses.length;
-
       System.out.println(nClasses -1 + " Verbs found in test harness.");  // We exclude the VerbException instance
       Verb inst;
       String name;
@@ -132,7 +124,6 @@ public abstract class Verb extends DDTBase {
             System.out.println("*** - Failed instantiating instance No. " + i+1 + " *** " + subClasses[i].toString() + " *** (InstantiationException)");
             continue;
          }
-
       }
 
       System.out.println(verbs.size() + " Verbs loaded into the 'Dictionary'");
@@ -232,16 +223,12 @@ public abstract class Verb extends DDTBase {
          doIt();
       }
       catch (VerbException e) {
-         Verb.basicAddError(this, "Verb Exception Error encountered during 'doIt' method");
+         Verb.basicAddError(this, "Error encountered during 'doIt' method");
          setException(e);
       }
       catch (Exception e) {
-         Verb.basicAddError(this, "Exception Error encountered during 'doIt' method");
+         Verb.basicAddError(this, "Error encountered during 'doIt' method");
          setException(e);
-      }
-      catch (Throwable e) {
-          Verb.basicAddError(this, "Throwable Error encountered during 'doIt' method");
-          setException(e);    	  
       }
 
       if (hasComments()) {
@@ -276,7 +263,7 @@ public abstract class Verb extends DDTBase {
       return id;
    }
 
-   public static void debug(Verb verb) {
+   private static void debug(Verb verb) {
       boolean shouldDebug = verb.getContext().getBoolean("debug");
       if (shouldDebug) {
          String pleaseNote = "This is a debugging spot for all of us, Verbs - Just keep debugging...";
@@ -355,7 +342,7 @@ public abstract class Verb extends DDTBase {
     *
     * @param verb
     */
-   static void basicValidation(Verb verb, boolean requiresDriver) {
+   private static void basicValidation(Verb verb, boolean requiresDriver) {
 
       if (!(verb.getContext() instanceof DDTTestContext)) {
          Verb.basicAddError(verb, "Action " + Util.sq(verb.myName()) + " requires non-empty test context data ");
@@ -376,11 +363,11 @@ public abstract class Verb extends DDTBase {
       }
    }
 
-   public static void basicAddError(Verb verb, String blurb) {
+   private static void basicAddError(Verb verb, String blurb) {
       verb.addError(verb.myName() + " Error: " + blurb);
    }
 
-   public static void basicAddComment(Verb verb, String blurb) {
+   private static void basicAddComment(Verb verb, String blurb) {
       verb.addComment(verb.myName() + ": " + blurb);
    }
 
@@ -400,7 +387,7 @@ public abstract class Verb extends DDTBase {
    /**
     * Description
     * BranchOnValue is used in scenarios where one needs to branch to various portions of a given test harness based on several different values in a given web element.
-    * An example is a carouselle like web page that rotates values in a particular element
+    * Example is a carouselle like web page that rotates values in a particular element
     * The logic requires presence of a WebDriver instance.
     *
     * History
@@ -673,7 +660,6 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
-    * 02/23/17    |Bey      |Add optional hover prior to clicking
     * ============|=========|====================================
     */
 
@@ -692,29 +678,19 @@ public abstract class Verb extends DDTBase {
          boolean doubleClick = getContext().getBoolean("double");
          String prefix = doubleClick ? "(Double) " : "";
 
-         boolean hover = getContext().getBoolean("hover");
-         prefix = hover ? (prefix + " (pre-hover) ") : prefix;
          try {
             FindElement.findElement(this);
             if (hasErrors())
                return;
             if ((getElement() instanceof WebElement)) {
-            	if (hover) {
-                    TestItem tmpItem = (TestItem) this.getContext().getProperty("testItem");
-                    Hover hoverVerb = new Hover();
-                    hoverVerb.basicDoIt(tmpItem);
-            	}
-            		
-            	if (getElement().isEnabled()) {
+               if (getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).perform();
                   getElement().click();
-                  String blurb = "";
                   if (doubleClick) {
                       Thread.sleep(100);
                       getElement().click();
-                     blurb = "Double ";
                   }
-                  Verb.basicAddComment(this, ("Element " + prefix + blurb + "Clicked").replaceAll("  ", " "));
+                  Verb.basicAddComment(this, "Element " + prefix + "Clicked");
                } else
                   Verb.basicAddError(this, "Element not enabled - action failed");
             } else Verb.basicAddError(this, "Failed to find Web Element - Element not clicked!");
@@ -758,7 +734,6 @@ public abstract class Verb extends DDTBase {
                // Need to find the element with the tag
                String desiredTag = getContext().getString("tag");
                boolean foundElement = true;
-               boolean doubleClick = getContext().getBoolean("double");
                if (!StringUtils.isBlank(desiredTag) && !desiredTag.equalsIgnoreCase(getElement().getTagName())) {
                   // Find the element to click within the cell.
                   // It must be an element with the desired tag AND get verified for the appropriate expected value.
@@ -788,13 +763,7 @@ public abstract class Verb extends DDTBase {
                if (foundElement && getElement().isEnabled()) {
                   new Actions(Driver.getDriver()).moveToElement(getElement()).build().perform();
                   getElement().click();
-                  String blurb = "";
-                  if (doubleClick) {
-                     Thread.sleep(100);
-                     getElement().click();
-                     blurb = "Double ";
-                  }
-                  Verb.basicAddComment(this, "Cell " + blurb + "Clicked");
+                  Verb.basicAddComment(this, "Cell Clicked");
                } else
                   Verb.basicAddError(this, "(Cell) Element not enabled or cell's sub element not found - Action failed");
             } else Verb.basicAddError(this, "Failed to find (cell) Web Element - Action failed");
@@ -813,7 +782,6 @@ public abstract class Verb extends DDTBase {
     * When        |Who      |What
     * ============|=========|====================================
     * 10/31/14    |Bey      |Initial Version
-    * 01/20/17    |Bey      |Support creation of web driver without URL
     * ============|=========|====================================
     */
 
@@ -833,15 +801,15 @@ public abstract class Verb extends DDTBase {
          if (isBlank(browserName))
             browserName = (String) DDTTestRunner.getVarsMap().get("browser");
 
-         if (isBlank(browserName)) browserName = DDTSettings.Settings().getBrowserName();
+         if (isBlank(browserName)) browserName = DDTSettings.Settings().browserName();
 
          Driver.BrowserName browserType = Driver.asBrowserName(browserName);
          if (browserType == null) browserType = Driver.BrowserName.FIREFOX;
          Driver.set(browserType);
          String url = this.getContext().getString("url");
          if (isBlank(url)) {
-            Verb.basicAddComment(this, "URL Not Provided!");
-            //return;
+            Verb.basicAddError(this, "URL must be a non-empty string.");
+            return;
          }
 
          try {
@@ -850,7 +818,7 @@ public abstract class Verb extends DDTBase {
                Verb.basicAddError(this, "Unable to navigate to page: " + Util.sq(url) + " Please check URL.");
                return;
             }
-            Verb.basicAddComment(this, url.isEmpty() ? "Web Driver Created" : "Web Driver created for URL " + Util.sq(url));
+            Verb.basicAddComment(this, "Web Driver created for URL " + Util.sq(url));
 
          } catch (Exception e) {
             setException(e);
@@ -859,199 +827,6 @@ public abstract class Verb extends DDTBase {
             setException(e);
          }
 
-      }
-   }
-
-   /**
-    * Description
-    * DragAndDrop instances provide a generic "Drag And Drop" mechanism between two elements (fromElement and toElement).
-    * The context has the two elements separated by some (String) separator - the default is ";"
-    * The instance's DDTTestContext contains the necessary information in the form of "separator=..." where ... stands for some string value.
-    * The separator is used to split the instance's locType and locSpecs enabling the specification of the fromElement and toElement
-    * For example dragging from locator of id=theId and class=theClass with separator of "!!!"
-    *    locType = id...class
-    *    locSpecs = theId...theClass
-    * And the DDTTestContext (data element) will have separator=!!!
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 01/13/17    |Bey      |Initial Version
-    * ============|=========|====================================
-    */
-
-   public static class DragAndDrop extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      public void doIt() throws VerbException {
-
-         debug(this);
-
-         basicValidation(this, true);
-
-         // Drag and Drop validations...
-
-         String theSeparator = getContext().getString("separator");
-         if (isBlank(theSeparator)) {
-            theSeparator = ";";
-            addComment("Separator not specified, using ';'");
-         }
-
-         String[] locTypes = (getContext().getProperty("loctype")).toString().split(theSeparator);
-         String[] locSpecs = (getContext().getProperty("locspecs")).toString().split(theSeparator);
-
-         if (locTypes.length < 1 ) {
-            addError("Invalid TestItem - 'locTypes' is a single item - expecting two items ('from and to') = " + locTypes);
-         }
-
-         if (locSpecs.length < 1 ) {
-            addError("Invalid TestItem - 'locSpecs' is a single item - expecting two items ('from and to') = " + locSpecs);
-         }
-
-         if (this.hasErrors())
-            return;
-
-         try {
-
-            // We will use this as the basis for finding the 'from' and 'to' elements
-            TestItem tmpItem = (TestItem) this.getContext().getProperty("testItem");
-            tmpItem.setLocSpecs(locSpecs[0]);
-            tmpItem.setLocType(locTypes[0]);
-
-            FindElement fromVerb = new FindElement();
-
-            fromVerb.basicDoIt(tmpItem);
-            if (fromVerb.hasErrors())
-               addError("'From Action' Errors: " + fromVerb.getErrors());
-            else
-               addComment("'From Action' - Element Found!");
-
-            FindElement toVerb = new FindElement();
-            tmpItem.setLocSpecs(locSpecs[1]);
-            tmpItem.setLocType(locTypes[1]);
-
-            toVerb.basicDoIt(tmpItem);
-            if (toVerb.hasErrors())
-               addError("'To Action' Errors: " + toVerb.getErrors());
-            else
-               addComment("'To Action' - Element Found!");
-
-            if (hasErrors())
-               return;
-
-            // With both Elements (from and to) found, create the action
-
-            WebElement fromElement = fromVerb.getElement();
-            fromElement.click();
-            WebElement toElement = toVerb.getElement();
-            Actions builder = new Actions(Driver.getDriver());
-            builder.dragAndDrop(fromElement, toElement).build().perform();
-            String blurb = "Dragged from: " + fromElement.toString() + " to: " + toElement.toString();
-            addComment(blurb);
-         } catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!hasException())
-               setException(e);
-         }
-      }
-   }
-
-   /**
-    * Description
-    * EnsurePageLoaded instances ensures the expected WebDriver page is loaded
-    * The instance's DDTTestContext contains the necessary information
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 11/02/14    |Bey      |Initial Version
-    * ============|=========|====================================
-    */
-
-   public static class EnsurePageLoaded extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      /**
-       * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
-       * In such cases a clone (provided by this method) is used to handle the recursion
-       * @param original  - the original FindElement verb
-       * @return
-       */
-      public static EnsurePageLoaded copy(Verb original) {
-         EnsurePageLoaded copy = new EnsurePageLoaded();
-         copy.setContext(original.getContext());
-         return copy;
-      }
-
-      /**
-       * EnsurePageLoaded is used for ensuring a page is loaded
-       * In such cases a clone (provided by this method) is used to handle the recursion
-       * @param verb the parent for which to ensure driver is loaded
-       * @throws VerbException
-       */
-      public static void ensurePageLoaded(Verb verb) throws VerbException{
-         EnsurePageLoaded copy = new EnsurePageLoaded();
-         copy.setContext((verb.getContext()));
-         copy.doIt();
-      }
-
-      public void doIt() throws VerbException{
-
-         debug(this);
-
-         basicValidation(this, this.isUIVerb());
-         if (this.hasErrors())
-            return;
-
-         String searchTitle;
-         // Get the function to use in verification
-         String functionName = getContext().getString("QryFunction");
-         // Get the expected value from the data properties structure.
-         String expectedValue = getContext().getString("value"); // User expects this value - it may serve for comparison with GetTitle or other property
-         boolean loaded;
-         if (functionName.equalsIgnoreCase("getTitle"))
-            searchTitle = expectedValue;
-         else
-            searchTitle = getContext().getString("pagetitle");
-
-         if (isBlank(searchTitle)) {
-            Verb.basicAddError(this, "No value provided for page title search for ensuring page was loaded");
-            return;
-         }
-
-         Long waitInSeconds = getContext().getStringAsLong("WaitTime");
-         if (0L == waitInSeconds)
-            waitInSeconds = DDTSettings.Settings().getWaitTime();
-         int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
-         if (waitIntervalMillis ==0)
-            waitIntervalMillis = DDTSettings.Settings().getWaitInterval();
-
-         WebDriver driver = Driver.getDriver();
-
-         try {
-            if (driver instanceof WebDriver) {
-               String actualTitle = driver.getTitle();
-               loaded = (actualTitle.toLowerCase().contains(searchTitle.toLowerCase()));
-               if (!loaded)
-                  Verb.basicAddError(this, "Page Title (" + actualTitle + ") does not contain '" + searchTitle + "'");
-            }
-            else {
-               // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
-               loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
-                       titleContains(searchTitle));
-
-               if (loaded) {
-                  Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
-               } else {
-                  Verb.basicAddError(this, "Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
-               }
-            }
-         }
-         catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!this.hasException())
-               throw new VerbException(this, "Failed ensuring web page loaded.");
-         }
       }
    }
 
@@ -1153,7 +928,7 @@ public abstract class Verb extends DDTBase {
             }
             phase++;
 
-            boolean reportEachTableCell = DDTSettings.Settings().getReportEachTableCell();
+            boolean reportEachTableCell = DDTSettings.Settings().reportEachTableCell();
             // Get a template verifier
             Verifier verifier = Verifier.getVerifier(getContext());
 
@@ -1175,6 +950,8 @@ public abstract class Verb extends DDTBase {
             // A range of rows to examine (may conflict with "row" specs)
 
             rowRange = getContext().getString("rowrange");
+            if (isBlank(rowRange))
+               rowRange = "";
 
             String[] rowRangeSpecs;
 
@@ -1483,8 +1260,9 @@ public abstract class Verb extends DDTBase {
       }
 
       /**
-       * FindOption is used for finding a given option in the appropriate web element (that has a list of those.)
-       * @param verb the parent FindeElement used for finding the element containg the options
+       * findElement is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param verb the parent FindeElement for which to find element
        * @throws VerbException
        */
       public static void findOption(Verb verb) throws VerbException{
@@ -1512,9 +1290,13 @@ public abstract class Verb extends DDTBase {
          // User can specify either ItemValue or ItemText - ItemText has priority
          // ItemText
          String textToSelectBy = getContext().getString("itemtext");
+         if (isBlank(textToSelectBy))
+            textToSelectBy = "";
 
          // ItemValue
          String valueToSelectBy = getContext().getString("itemvalue");
+         if (isBlank(valueToSelectBy))
+            valueToSelectBy = "";
 
          // User may want to get a specific (1 based as opposed to 0 based) item!
          int itemIndex = getContext().getStringAsInteger("itemno");
@@ -1602,6 +1384,105 @@ public abstract class Verb extends DDTBase {
                setException(e);
          }
 
+      }
+   }
+
+   /**
+    * Description
+    * EnsurePageLoaded instances ensures the expected WebDriver page is loaded
+    * The instance's DDTTestContext contains the necessary information
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 11/02/14    |Bey      |Initial Version
+    * ============|=========|====================================
+    */
+
+   public static class EnsurePageLoaded extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      /**
+       * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param original  - the original FindElement verb
+       * @return
+       */
+      public static EnsurePageLoaded copy(Verb original) {
+         EnsurePageLoaded copy = new EnsurePageLoaded();
+         copy.setContext(original.getContext());
+         return copy;
+      }
+
+      /**
+       * EnsurePageLoaded is used for ensuring a page is loaded
+       * In such cases a clone (provided by this method) is used to handle the recursion
+       * @param verb the parent for which to ensure driver is loaded
+       * @throws VerbException
+       */
+      public static void ensurePageLoaded(Verb verb) throws VerbException{
+         EnsurePageLoaded copy = new EnsurePageLoaded();
+         copy.setContext((verb.getContext()));
+         copy.doIt();
+      }
+
+      public void doIt() throws VerbException{
+
+         debug(this);
+
+         basicValidation(this, this.isUIVerb());
+         if (this.hasErrors())
+            return;
+
+         String searchTitle;
+         // Get the function to use in verification
+         String functionName = getContext().getString("QryFunction");
+         // Get the expected value from the data properties structure.
+         String expectedValue = getContext().getString("value"); // User expects this value - it may serve for comparison with GetTitle or other property
+         boolean loaded;
+         if (functionName.equalsIgnoreCase("getTitle"))
+            searchTitle = expectedValue;
+         else
+            searchTitle = getContext().getString("pagetitle");
+
+         if (isBlank(searchTitle)) {
+            Verb.basicAddError(this, "No value provided for page title search for ensuring page was loaded");
+            return;
+         }
+
+         Long waitInSeconds = getContext().getStringAsLong("WaitTime");
+         if (0L == waitInSeconds)
+            waitInSeconds = DDTSettings.Settings().waitTime();
+         int waitIntervalMillis = getContext().getStringAsInteger("WaitInterval");
+         if (waitIntervalMillis ==0)
+            waitIntervalMillis = DDTSettings.Settings().waitInterval();
+
+         WebDriver driver = Driver.getDriver();
+
+         try {
+            if (driver instanceof WebDriver) {
+               String actualTitle = driver.getTitle();
+               loaded = (actualTitle.toLowerCase().contains(searchTitle.toLowerCase()));
+               if (!loaded)
+                  Verb.basicAddError(this, "Page Title (" + actualTitle + ") does not contain '" + searchTitle + "'");
+            }
+            else {
+               // we always wait for at least one second (may be less if element satisfies the expected conditions sooner)
+               loaded = new WebDriverWait(driver, waitInSeconds, waitIntervalMillis).until(ExpectedConditions.
+                     titleContains(searchTitle));
+
+               if (loaded) {
+                  Verb.basicAddComment(this, "Page with title containing " + Util.sq(searchTitle) + " Loaded");
+               } else {
+                  Verb.basicAddError(this, "Page with title containing " + Util.sq(searchTitle) + " Not Loaded (? Timeout expired ?");
+               }
+            }
+         }
+         catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!this.hasException())
+               throw new VerbException(this, "Failed ensuring web page loaded.");
+         }
       }
    }
 
@@ -1730,7 +1611,6 @@ public abstract class Verb extends DDTBase {
     * ============|=========|====================================
     * 07/14/15    |Bey      |Initial Version
     * 08/16/15    |Bey      |Introduce action.release() after wait
-    * 01/26/17    |Bey      |Improve error trapping & Try to improve mouse hovet (which still does not work...)
     * ============|=========|====================================
     */
 
@@ -1766,31 +1646,15 @@ public abstract class Verb extends DDTBase {
          FindElement.findElement(this);
          if (hasErrors())
             return;
-         WebElement element = getElement();
-         WebDriver driver = Driver.getDriver();
-         if ((element instanceof WebElement)) {
-/* *** Try this... - abstract it to a UI verb where {driver} and {webElement} are valid
-String javaScript = "var evObj = document.createEvent('MouseEvents');" +
-                    "evObj.initMouseEvent(\"mouseover\",true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);" +
-                    "arguments[0].dispatchEvent(evObj);";
-((JavascriptExecutor)driver).executeScript(javaScript, webElement);
-**/
-            Actions action = new Actions(driver);
-            // This doesn't work...
-            action.moveToElement(element).build().perform();
-            // This doesn't work either
-            action.moveToElement(element, element.getLocation().getX()+2, element.getLocation().getY()+2).build().perform();
-            // This doesn't work either
-            Locatable hoverItem = (Locatable) getElement();
-            Mouse mouse = ((HasInputDevices) driver).getMouse();
-            // For some reason, this does not work... The mouse does not move anywhere
-            mouse.mouseMove(hoverItem.getCoordinates(),2L, 2L);
-            System.out.println(hoverItem.getCoordinates().getAuxiliary().toString());
+
+         if ((getElement() instanceof WebElement)) {
+            Actions action = new Actions(Driver.getDriver());
+            action.moveToElement(getElement()).build().perform();
             try {
                Thread.sleep(longWaitTime);
                action.release();
             }
-            catch (InterruptedException t) {System.out.println(t.getMessage());}
+            catch (InterruptedException t) {}
          }
       }
    }
@@ -1864,11 +1728,10 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
          try {
             // Determine where user wants to navigate to...
             switch(url.toLowerCase()) {
-               case "back" : driver.navigate().back(); break;
-               case "forward" : driver.navigate().forward(); break;
-               case "refresh" : driver.navigate().refresh(); break;
-               default:      if (!url.isEmpty())
-                              driver.navigate().to(url);
+               case "back" : driver.navigate().back();
+               case "forward" : driver.navigate().forward();
+               case "refresh" : driver.navigate().refresh();
+               default:      driver.navigate().to(url);
             }
             Verb.basicAddComment(this, "Navigated to " + Util.sq(url));
          }
@@ -1889,7 +1752,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
     * 10/30/14    |Bey      |Initial Version
     * 06/06/15    |Bey      |Added recursion mechanism (newTest and copy)
     * 07/24/15    |Bey      |Fix issues with level propagation
-    * 01/01/17    |Bey      |Provide for default test id (items container name)
     * ============|=========|====================================
     */
 
@@ -1947,7 +1809,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             }
 
             // With valid stringProviderSpecs, attempt to get the strings making up the new test and err out if not successful
-            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().getDataFolder());
+            testItemStrings = TestStringsProvider.provideTestStrings(stringProviderSpecs, DDTSettings.Settings().dataFolder());
             if (testItemStrings.length < 1) {
                Verb.basicAddError(this, "Failed to get test item strings from Test Strings Provider.");
                return;
@@ -1958,7 +1820,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             runner.setLevel(level); // Recursion level propagated
 
             TestItem.TestItems testItems = new TestItem.TestItems();
-            testItems.setItems(TestItem.assembleTestItems(testItemStrings, stringProviderSpecs.getItemsContainerName()));
+            testItems.setItems(TestItem.assembleTestItems(testItemStrings));
             testItems.setParentItem(testItem);
             runner.setTestItems(testItems);
             runner.setParentStepNumber(testItem.getSessionStepNumber());
@@ -2123,10 +1985,10 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          // Enable short-hand reference to the scripts folder - facilitate organization of script files.
          if (file.toLowerCase().startsWith("%script%"))
-            file = DDTSettings.Settings().getScriptsFolder()+ file.substring(8);
+            file = DDTSettings.Settings().scriptsFolder()+ file.substring(8);
          if (!file.contains("\\") && !file.contains("/")) {
             // User implies invoke a file in the project's Scripts folder
-            file = DDTSettings.Settings().getScriptsFolder() + file;
+            file = DDTSettings.Settings().scriptsFolder() + file;
          }
 
          // @TODO Figure out how to handle Linux / Unix executables more elegantly (the code below works with fully qualified path as in "/bin/sh" instead of "sh" for system commands
@@ -2327,7 +2189,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             return false;
          }
       }
-      
+
       /**
        * Gets a method from the DDTExternal class (for now, hard-coded!) with a parameter of class DDTTestContext (for now, hard coded)
        */
@@ -2407,7 +2269,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
          String fileName = getContext().getString("filename");
          String jsCode = "";
          if (!isBlank(fileName)) {
-            jsCode = Util.readFile(fileName);
+            jsCode = Util.readFile(fileName, true);
             if (isBlank(jsCode)) {
                Verb.basicAddError(this, "Invalid or empty Java Script file: " + Util.sq(fileName) + " - JavaScript not executed.");
                return;
@@ -2444,7 +2306,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
     * When        |Who      |What
     * ============|=========|====================================
     * 11/02/14    |Bey      |Initial Version
-    * 02/23/17    |Bey      |Fixed bug in var setting...
     * ============|=========|====================================
     */
 
@@ -2487,8 +2348,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
                   Verb.basicAddError(this, weq.getErrors() + " - Action Failed");
                   return;
                }
-               
-               DDTTestRunner.addVariable(varName, actualValue);
 
                Verb.basicAddComment(this, "Query results (" + Util.sq(actualValue) + ") Saved as variable named " + Util.sq(getContext().getString("SaveAs")));
 
@@ -2508,7 +2367,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
    /**
     * Description
-    * SaveWebDriverProperty saves the value of some property in a web page to the variables hashtable of the JavaDDT
+    * SaveWebPageProperty saves the value of some property in a web page to the variables hashtable of the JavaDDT
     * The test item instance's test context has the details of the property to save and the key to the hashtable.
     * History
     * When        |Who      |What
@@ -2594,8 +2453,12 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             }
 
             String x = getContext().getString("x");
+            if (isBlank(x))
+               x = "";
 
             String y = getContext().getString("y");
+            if (isBlank(y))
+               y = "";
 
             // Verify the scroll type definition is appropriate - X and Y components are present, are integer and are not 'max'
             if (!scrollType.toLowerCase().equals("scrollintoview")) {
@@ -2623,7 +2486,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
                   }
 
                   // Execute the scrollBy specified by the user
-                  //jsDriver.executeScript("javascript:window.scrollBy(" + x + "/," + y + ");");
+                  //jsDriver.executeScript("javascript:window.scrollBy(" + x + "," + y + ");");
                   getContext().setProperty("jscode", "window.scrollBy(" + x + "," + y + ")\\n");
                   RunJS.runJS(this);
                   Verb.basicAddComment(this, "Page Scrolled By X: "+ x + ", Y: " + y);
@@ -2705,8 +2568,12 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          // User can specify either ItemValue or ItemText - ItemText has priority
          String textToSelectBy = getContext().getString("itemtext");
-         String valueToSelectBy = getContext().getString("itemvalue");
+         if (isBlank(textToSelectBy))
+            textToSelectBy = "";
 
+         String valueToSelectBy = getContext().getString("itemvalue");
+         if (isBlank(valueToSelectBy))
+            valueToSelectBy = "";
          // If both, textToSelectBy and valueToSelectBy are present, use textToSelectBy else, use valueToSelectBy if it is not blank.
          // All these shenanigans are meant to support selection of a blank value when needed.
          String selectionValue = (isBlank(valueToSelectBy)) ? textToSelectBy : (isBlank(textToSelectBy) ? valueToSelectBy :textToSelectBy);
@@ -2741,6 +2608,104 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
    /**
     * Description
+    * TypeKeys Emulates data typing into some control
+    * History
+    * When        |Who      |What
+    * ============|=========|====================================
+    * 11/02/14    |Bey      |Initial Version
+    * 09/18/16    |Bey      |Added Encryption / Decryption logic
+    * ============|=========|====================================
+    */
+
+   public static class TypeKeys extends Verb {
+
+      public boolean isUIVerb() { return true;}
+
+      public void doIt() throws VerbException {
+
+         debug(this);
+
+         basicValidation(this, this.isUIVerb());
+         if (this.hasErrors())
+            return;
+
+         String keys = getContext().getString("value");  // The value to enter
+         String origKeys = keys;
+         boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
+         boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
+         boolean decrypt = getContext().getStringAsBoolean("decrypt");
+         boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
+         boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
+
+         boolean clipboardSpecified = isNotBlank(getContext().getString("clipboard"));
+         String clipboardAction = clipboardSpecified ? getContext().getString("clipboard") : "";
+
+         if (clipboardSpecified) {
+            switch (clipboardAction.toLowerCase()) {
+               case "copy" : KeyboardEmulator.copyToClipboard(); break;
+               case "paste" : KeyboardEmulator.pasteFromClipboard();  break;
+               default: {
+                  Verb.basicAddComment(this, "Faulty setup: Invalid clipboard choice: " + Util.sq(clipboardAction));
+               }
+            }
+            return;
+         }
+
+         boolean tabOut;
+         if (!tabOutSpecified)
+            tabOut = DDTSettings.Settings().tabOut();
+         else
+            tabOut = getContext().getStringAsBoolean("tabout");
+
+         try {
+            if (encrypt)
+               keys = Util.encrypt(keys);
+
+            if (decrypt)
+               keys = Util.decrypt(keys);
+
+            if (tabOut)
+               keys += "\t";
+
+            if (enter)
+               keys += "\n";
+
+            if (isNotBlank(getContext().getString("LocSpecs"))) {
+               // Recursive Find - notice the case of this call findElement is a static call!
+               FindElement.findElement(this);
+               if (hasErrors())
+                  return;
+               if ((getElement() instanceof WebElement))
+                  if (getElement().isEnabled()) {
+                     if (!append)
+                        getElement().clear();
+                     getElement().sendKeys(keys);
+                     Verb.basicAddComment(this, "Keys: " + Util.sq(origKeys));
+                  }
+                  else Verb.basicAddError(this, "Element not enabled - Action failed");
+               else Verb.basicAddError(this, "Element not found - Action failed");
+            }
+            else
+            {
+               // Special keys ... CTRLA, CTRLV
+               String typedKeys = KeyboardEmulator.type(keys, enter);
+               if (keys.equals(typedKeys)) {
+                  Verb.basicAddComment(this, "Typed: " + Util.sq(typedKeys));
+               }
+               else
+                  Verb.basicAddError(this, "Typed: " + Util.sq(typedKeys) + " instead of " + Util.sq(keys));
+            }
+         }
+         catch (Exception e) {
+            // Do not overwrite previous exceptions!
+            if (!hasException())
+               setException(e);
+         }
+      }
+   }
+
+   /**
+    * Description
     * SetPageSize is used to resize or maximize a web page
     * History
     * When        |Who      |What
@@ -2765,7 +2730,8 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          try {
             String option = getContext().getString("value");
-
+            if (isBlank(option))
+               option = "";
             if (option.toLowerCase().equals("maximize")) {
                driver.manage().window().maximize();
                Verb.basicAddComment(this, "Page Maximized");
@@ -2867,6 +2833,8 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          // If exists, itemName is used to qualify one of many
          String itemName = getContext().getString("value");
+         if (isBlank(itemName))
+            itemName = "";
          if (itemType == "frame")
             switchFrames(driver, itemName);
          else
@@ -2957,6 +2925,17 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
 
          if (nTried > 0) {
             Verb.basicAddError(this, "Failed to switch to child window with title containing: " + Util.sq(name));
+         }
+      }
+
+      private void switchToDefaultSubWindow(WebDriver driver) {
+         String parentWindow = driver.getWindowHandle();
+         Set<String> handles = driver.getWindowHandles();
+         for (String windowHandle : handles) {
+            if (!windowHandle.equals(parentWindow)) {
+               driver.switchTo().window(windowHandle);
+               break;
+            }
          }
       }
 
@@ -3069,115 +3048,6 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
             }
             else Verb.basicAddComment(this,"Failed to find Web Element - Action Failed");
 
-         }
-         catch (Exception e) {
-            // Do not overwrite previous exceptions!
-            if (!hasException())
-               setException(e);
-         }
-      }
-   }
-
-   /**
-    * Description
-    * TypeKeys Emulates data typing into some control
-    * History
-    * When        |Who      |What
-    * ============|=========|====================================
-    * 11/02/14    |Bey      |Initial Version
-    * 09/18/16    |Bey      |Added Encryption / Decryption logic
-    * 01/23/17    |Bey      |Added multiple tabs option 'ntabs"
-    * ============|=========|====================================
-    */
-
-   public static class TypeKeys extends Verb {
-
-      public boolean isUIVerb() { return true;}
-
-      public void doIt() throws VerbException {
-
-         debug(this);
-
-         basicValidation(this, this.isUIVerb());
-         if (this.hasErrors())
-            return;
-
-         String keys = getContext().getString("value");  // The value to enter
-         String origKeys = keys;
-         boolean append = getContext().getStringAsBoolean("append"); // Should data be appended? (default is no)
-         boolean encrypt = getContext().getStringAsBoolean("encrypt"); // Should data be encrypted? (default is no)
-         boolean decrypt = getContext().getStringAsBoolean("decrypt");
-         boolean tabOutSpecified = !isBlank(getContext().getString("tabout"));
-         boolean enter = getContext().getStringAsBoolean("enter"); // Should {newLine} be appended? (default is no)
-
-         boolean clipboardSpecified = isNotBlank(getContext().getString("clipboard"));
-         String clipboardAction = clipboardSpecified ? getContext().getString("clipboard") : "";
-
-         if (clipboardSpecified) {
-            switch (clipboardAction.toLowerCase()) {
-               case "copy" : KeyboardEmulator.copyToClipboard(); break;
-               case "paste" : KeyboardEmulator.pasteFromClipboard();  break;
-               default: {
-                  Verb.basicAddComment(this, "Faulty setup: Invalid clipboard choice: " + Util.sq(clipboardAction));
-               }
-            }
-            return;
-         }
-
-         boolean tabOut;
-         int nTabs = 0;
-         if (!tabOutSpecified) {
-            tabOut = DDTSettings.Settings().getTabOut();
-            nTabs = tabOut ? 1 : 0;
-         } else {
-            tabOut = getContext().getStringAsBoolean("tabout");
-            if (tabOut) {
-               // See if user wants to tab out more than once...
-               int nTabsSpecified = getContext().getInt("nTabs");
-            }
-         }
-
-         try {
-            if (encrypt)
-               keys = Util.encrypt(keys);
-
-            if (decrypt)
-               keys = Util.decrypt(keys);
-
-            if (tabOut) {
-               for (int i=0; i<nTabs;i++) {
-                  keys += "\t";
-               }
-            }
-
-            if (enter)
-               keys += "\n";
-
-            if (isNotBlank(getContext().getString("LocSpecs"))) {
-               // Recursive Find - notice the case of this call findElement is a static call!
-               FindElement.findElement(this);
-               if (hasErrors())
-                  return;
-               if ((getElement() instanceof WebElement))
-                  if (getElement().isEnabled()) {
-                     if (!append)
-                        getElement().clear();
-                     getElement().sendKeys(keys);
-                     Verb.basicAddComment(this, "Keys: " + Util.sq(origKeys) + " " + (nTabs < 1 ? "" : "(" + nTabs + " tabs)" ));
-                  }
-                  else Verb.basicAddError(this, "Element not enabled - Action failed");
-               else Verb.basicAddError(this, "Element not found - Action failed");
-            }
-            else
-            {
-               // No element specified - assume the cursor is at some input field and type keys
-               String typedKeys = KeyboardEmulator.type(keys, enter);
-               if (keys.equals(typedKeys)) {
-                  Verb.basicAddComment(this, "Typed: " + Util.sq(typedKeys) + " " + (nTabs < 1 ? "" : "(" + nTabs + " tabs)" ));
-               }
-               else
-                  Verb.basicAddError(this, "Typed: " + Util.sq(typedKeys) + " instead of " + Util.sq(keys));
-            }
          }
          catch (Exception e) {
             // Do not overwrite previous exceptions!
@@ -3379,6 +3249,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
    public static class VerifyWebElement extends Verb {
 
       public boolean isUIVerb() { return true;}
+
       /**
        * copy is used mainly for handling the recursive nature of this product where finding elements often happens within parent elements.
        * In such cases a clone (provided by this method) is used to handle the recursion
@@ -3467,6 +3338,7 @@ String javaScript = "var evObj = document.createEvent('MouseEvents');" +
     */
 
    public static class VerifyWebDriver extends Verb {
+
 
       public boolean isUIVerb() { return true;}
 

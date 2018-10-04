@@ -1,5 +1,6 @@
 
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.util.encoders.Base64;
 import org.json.simple.JSONObject;
 import org.openqa.selenium.*;
 import org.openqa.selenium.remote.CapabilityType;
@@ -7,8 +8,6 @@ import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Stream;
-
 import static java.util.Map.Entry;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -44,10 +43,6 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * 12/31/13    |Bey      |Initial Version
  * 12/26/14    |Bey      |Cleanup - remove unused methods & imports
  * 09/18/16    |Bey      |Added Encryption / Decryption support
- * 10/16/16    |Bey      |Adjust ddtSettings getters.
- * 10/18/16    |Bey      |Handle encryption exception in encrypt().
- * 11/18/16    |Bey      |Update encryption handling
- * 01/25/17    |Bey      |Fix bug in file reader - add "\n" for each line
  * ============|=========|====================================
  */
 public class Util {
@@ -335,7 +330,7 @@ public class Util {
     */
    public static DDTTestContext  parseDelimitedString(String delimStr) {
 
-      DDTTestContext ht = new DDTTestContext(delimStr, DDTSettings.Settings().getItemDelim(), DDTSettings.Settings().getValidDelims());
+      DDTTestContext ht = new DDTTestContext(delimStr, DDTSettings.Settings().itemDelim(), DDTSettings.Settings().validDelims());
 
       return ht;
    }
@@ -461,7 +456,7 @@ public class Util {
       // create screenshot using a casted driver
       TakesScreenshot snapper = (TakesScreenshot)theDriver;
 
-      if (DDTSettings.Settings().getIsLocal())  {
+      if (DDTSettings.Settings().isLocal())  {
          File tempImageFile = snapper.getScreenshotAs(OutputType.FILE);
          if (tempImageFile.length() < (1L)) {
             return "ERROR: Failed to take screen shot on remote driver";
@@ -488,7 +483,8 @@ public class Util {
             return "ERROR: Failed to take screen shot on remote driver";
          }
 
-         byte[] imgBytes = (byte[]) Base64.getDecoder().decode(tempImageFile);
+         Base64 decoder = new Base64();
+         byte[] imgBytes = (byte[]) decoder.decode(tempImageFile);
 
          File tmpFile = new File(imagesFolder, DDTSettings.asValidOSPath(actualFileName, true));
 
@@ -497,7 +493,6 @@ public class Util {
             osf = new FileOutputStream(tmpFile);
             osf.write(imgBytes);
             osf.flush();
-            osf.close();
          } catch (Exception e) {
             return "ERROR: Failed to create File Output Stream " + e.getCause();
          }
@@ -575,7 +570,7 @@ public class Util {
     * @return an array of File objects
     */
    public static String[] setupReportingSessionFolders(String[] folderNames) {
-      String reportsFolder = DDTSettings.Settings().getReportsFolder();
+      String reportsFolder = DDTSettings.Settings().reportsFolder();
       String dailyFolder = new SimpleDateFormat("yyyyMMdd").format(new Date());
       String baseFolder = reportsFolder + dailyFolder; //
       int sessionNumber = 1;
@@ -613,7 +608,7 @@ public class Util {
     * @param fileName
     * @return The (String) contents of file named fileName
     */
-   public static String readFile(String fileName) {
+   public static String readFile(String fileName, boolean removeLineMarkers) {
       String result = "";
       if (!isBlank(fileName)) {
          try {
@@ -621,15 +616,18 @@ public class Util {
             if (f.exists()) {
                FileReader fr = new FileReader(fileName);
                BufferedReader br = new BufferedReader(fr);
-               String s = "";
+               String s ="";
                while((s = br.readLine()) != null) {
-                  result += s + System.lineSeparator() ;
+                  result += s;
+                  if (!removeLineMarkers) {
+                     result += "\n\r";
+                  }
                }
                fr.close();
             }
          }
          catch (Exception e) {
-            result = ""; // do nothing - an empty string will be returned.
+            // do nothing - an empty string will be returned.
          }
       }
       return result;
@@ -639,14 +637,8 @@ public class Util {
     * @param text - an unencrypted text to be encrypted (Base64 logic)
     * @return an encrypted string - using Base64 logic)
     */
-   public static String encrypt(String text) {
-      String result = "";
-      try {
-         result = new String(Base64.getEncoder().encode(text.getBytes()));
-      }
-      catch (Throwable exception) {
-         System.out.println("Failed to encrypt " + text);
-      }
+   public static String encrypt(String text) throws NoSuchAlgorithmException {
+      String result = new String( Base64.encode(text.getBytes()));
       return result;
    }
 
@@ -655,7 +647,7 @@ public class Util {
     * @return a decrypted string - using Base64 logic)
     */
    public static String decrypt(String text) {
-      String result = new String(Base64.getDecoder().decode(text.getBytes()));
+      String result = new String(Base64.decode(text.getBytes()));
       return result;
    }
 

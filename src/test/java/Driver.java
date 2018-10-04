@@ -2,7 +2,6 @@ import com.opera.core.systems.OperaDriver;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.UnsupportedCommandException;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.edge.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -20,7 +19,6 @@ import java.net.URL;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by BeyMelamed on 2/13/14 - Modeled after Alan Richardson's original code and adopted for JavaDDT.
@@ -50,37 +48,21 @@ import java.util.concurrent.TimeUnit;
  * When      |Who            |What
  * ==========|===============|========================================================
  * 02/13/14  |Bey            |Initial Version
- * 10/16/16  |Bey            |Adjust ddtSettings getters.
- * 11/04/16  |Bey            |Implement EDGE Browser Name
- * 01/14/17  |Bey            |Improve error handling
- * 01/20/17  |Bey            |Allow blank url - just get a driver
- * 02/22/17  |Bey            |Improve error handling (get() method)
  * ==========|===============|========================================================
  */
 public class Driver extends Thread {
     private static WebDriver aDriver = null;
     private static long browserStartTime = 0L;
     private static long savedTimecount = 0L;
-    public static final long DEFAULT_TIMEOUT_SECONDS = 100;
+    public static final long DEFAULT_TIMEOUT_SECONDS = 10;
     private static boolean avoidRecursiveCall = false;
     public static final String BROWSER_PROPERTY_NAME = "Driver";
-    private static String error;
 
-    public enum BrowserName {FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, EDGE, HTMLUNIT, HEADLESS}
+    public enum BrowserName {FIREFOX, GOOGLECHROME, SAUCELABS, OPERA, IE, HTMLUNIT, HEADLESS}
 
     private static String driverName;
 
     public static BrowserName currentDriver;
-    
-    public static String getError() {
-    	if (error == null)
-    		setError("");
-    	return error;
-    }
-    
-    private static void setError(String value) {
-    	error = value;
-    }
 
     private static BrowserName useThisDriver = null;
 
@@ -122,7 +104,6 @@ public class Driver extends Thread {
 
     public static BrowserName asBrowserName(String browserName) {
         BrowserName result = null;
-        setError("");
         driverName = browserName.toUpperCase();
         switch (browserName.toUpperCase()) {
             case "FIREFOX":
@@ -133,9 +114,6 @@ public class Driver extends Thread {
                 break;
             case "IE":
                 result = BrowserName.IE;
-                break;
-            case "EDGE":
-                result = BrowserName.EDGE;
                 break;
             case "OPERA":
                 result = BrowserName.OPERA;
@@ -150,7 +128,6 @@ public class Driver extends Thread {
                 result = BrowserName.HEADLESS;
                 break;
             default:
-            	setError("Unknown Browser in " + BROWSER_PROPERTY_NAME + ": " + browserName);
                 throw new RuntimeException("Unknown Browser in " + BROWSER_PROPERTY_NAME + ": " + browserName);
 
         }
@@ -163,12 +140,13 @@ public class Driver extends Thread {
      * @return driver
      */
     public static WebDriver get() {
-    	setError("");
+
         if (useThisDriver == null) {
 
             String defaultBrowser = System.getProperty(BROWSER_PROPERTY_NAME, "FIREFOX");
             useThisDriver = asBrowserName(defaultBrowser);
         }
+
 
         if (aDriver == null) {
 
@@ -176,24 +154,20 @@ public class Driver extends Thread {
             DesiredCapabilities capabilities;
             Hashtable<String, Object> desiredCapabilities;
             Set<Map.Entry<String, Object>> entries;
-            Throwable theError = null;
 
             try {
                 switch (useThisDriver) {
                     case FIREFOX:
-                        //System.setProperty("webdriver.firefox.bin", "C:\\Program Files (x86)\\Mozilla Firefox\\Firefox.exe");
+                        System.setProperty("webdriver.firefox.bin", "C:\\WebDrivers\\Firefox.exe");
                         FirefoxProfile profile = new FirefoxProfile();
                         profile.setEnableNativeEvents(true);
                         profile.setAcceptUntrustedCertificates(true);
-                        String resourceFolder = DDTSettings.Settings().getResourcesFolder();
-                        System.setProperty("webdriver.gecko.driver", resourceFolder + "geckodriver.exe");
+
                         try {
                             aDriver = new FirefoxDriver();
                             currentDriver = BrowserName.FIREFOX;
                         } catch (Throwable e) {
-                            theError = e;
                             e.printStackTrace();
-                            setError("Failed setting up " + useThisDriver + " Web Driver.");
                             System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
                         }
                         break;
@@ -226,7 +200,7 @@ public class Driver extends Thread {
                         }
                         capabilities.setCapability(
                                 PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY,
-                                DDTSettings.Settings().getResourcesFolder() + "phantomjs.exe");
+                                DDTSettings.Settings().resourcesFolder() + "phantomjs.exe");
 
                         // Launch driver (will take care and ownership of the phantomjs process)
                         aDriver = new PhantomJSDriver(capabilities);
@@ -239,14 +213,6 @@ public class Driver extends Thread {
 
                         aDriver = new InternetExplorerDriver();
                         currentDriver = BrowserName.IE;
-                        break;
-
-                    case EDGE:
-                        System.setProperty(DDTSettings.Settings().getEdgePropertyKey(), DDTSettings.Settings().getEdgeDriverFileName());
-                    	setDriverPropertyIfNecessary(BrowserName.EDGE);
-
-                        aDriver = new EdgeDriver();
-                        currentDriver = BrowserName.EDGE;
                         break;
 
                     case GOOGLECHROME:
@@ -273,23 +239,16 @@ public class Driver extends Thread {
                                     new URL(sauceURL),
                                     capabilities);
                         } catch (MalformedURLException e) {
-                            theError = e;
                             e.printStackTrace();
                         }
-                        if (!(theError instanceof Throwable) )
-                            currentDriver = BrowserName.SAUCELABS;
+                        currentDriver = BrowserName.SAUCELABS;
                         break;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                theError = e;
-                setError("Failed setting up " + useThisDriver + " Web Driver.");
                 System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
             }
 
-            if (currentDriver == null || (theError instanceof Throwable) || !getError().isEmpty()) {
-                System.out.println("Failed setting up " + useThisDriver + " Web Driver.");
-            }
 
             long browserStartedTime = System.currentTimeMillis();
             browserStartTime = browserStartedTime - startBrowserTime;
@@ -346,15 +305,15 @@ public class Driver extends Thread {
         String propertyKey;
         switch (browserName) {
             case IE: {
-                propertyKey = DDTSettings.Settings().getIEPropertyKey();
+                propertyKey = DDTSettings.Settings().iePropertyKey();
                 break;
             }
             case GOOGLECHROME: {
-                propertyKey = DDTSettings.Settings().getChromePropertyKey();
+                propertyKey = DDTSettings.Settings().chromePropertyKey();
                 break;
             }
             default: {
-                propertyKey = DDTSettings.Settings().getChromePropertyKey();
+                propertyKey = DDTSettings.Settings().chromePropertyKey();
             }
         }
 
@@ -363,15 +322,15 @@ public class Driver extends Thread {
 
             switch (browserName) {
                 case IE: {
-                    fileLocation = DDTSettings.Settings().getIEDriverFileName();
+                    fileLocation = DDTSettings.Settings().ieDriverFileName();
                     break;
                 }
                 case GOOGLECHROME: {
-                    fileLocation = DDTSettings.Settings().getChromeDriverFileName();
+                    fileLocation = DDTSettings.Settings().chromeDriverFileName();
                     break;
                 }
                 default: {
-                    fileLocation = DDTSettings.Settings().getChromeDriverFileName();
+                    fileLocation = DDTSettings.Settings().chromeDriverFileName();
                 }
             }
 
@@ -384,38 +343,26 @@ public class Driver extends Thread {
                 if (driverExe.exists()) {
                     System.setProperty(propertyKey, fileLocation);
                 } else {
-                    setError("Drive File (" + driverExe.getAbsolutePath() + ") Not Found"); // expect an error on the follow through when we try to use the driver
+                    // expect an error on the follow through when we try to use the driver
                 }
             }
         }
     }
 
     public static WebDriver get(String aURL, boolean maximize) {
-        try {
-    	get();
-        aDriver.manage().timeouts().implicitlyWait(DDTSettings.Settings().getWaitTime(), TimeUnit.SECONDS);        
-        
-        if (!(aURL.isEmpty()))
-            aDriver.get(aURL);
+        get();
+        aDriver.get(aURL);
 
         if (maximize) {
             try {
                 aDriver.manage().window().maximize();
             } catch (UnsupportedCommandException e) {
-                setError("This Driver does not support maximise");
-            	System.out.println("This Driver does not support maximise");
+                System.out.println("Remote Driver does not support maximise");
             } catch (UnsupportedOperationException e) {
-                setError("This Driver does not support maximise yet");
-                System.out.println("This Driver does not support maximize yet");
+                System.out.println("Opera driver does not support maximize yet");
             }
         }
         return aDriver;
-        }
-        catch (Throwable t) {
-        	setError("Failure Using Web Driver: " + t.getMessage());
-        	System.out.println("Failure Using Web Driver: " + t.getMessage());
-        	return aDriver;
-        }
     }
 
     public static WebDriver get(String aURL) {
@@ -429,8 +376,7 @@ public class Driver extends Thread {
                 aDriver.quit();
                 aDriver = null;
             } catch (Exception e) {
-            	setError("Failure Using Web Driver: " + e.getMessage());
-            	System.out.println("Failure Using Web Driver: " + e.getMessage());
+                // I don't care about errors at this point
             }
 
         }

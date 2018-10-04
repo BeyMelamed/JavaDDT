@@ -42,11 +42,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 12/19/15    |Bey      |Change ProjectFolder derivation to the current project folder
  * 06/28/16    |Bey      |Add email and report "blurb" variable ReportTextMessage
  * 06/28/16    |Bey      |Add an optional list of attachments (in addition to extent report)
- * 09/23/16    |Bey      |Resolve issue with line breaks not appearing in email message body
- * 10/14/16    |Bey      |Enable encryption of email sender password
- * 10/16/16    |Bey      |Adjust ddtSettings getters.
- * 01/16/17    |Bey      |Modify Email Defaults.
- * 01/25/17    |Bey      |Enable usage of email message in its own file - used when emailing report to recpients.
+ * 09/29/18    |Bey      |Add email message file and related options
  * ============|=========|====================================
  */
 public class DDTSettings {
@@ -69,24 +65,20 @@ public class DDTSettings {
    private final String ValidDelims = ";~|!@#$%^&*()_+";
    private final String InputSpecs = "File!DDTRoot.xlsx!Root";
    private final String IEDriverFileName = ResourcesFolder+"IEDriverServer.exe";
-   private final String EdgeDriverFileName = ResourcesFolder+"MicrosoftWebDriver.exe";
    private final String ChromeDriverFileName = ResourcesFolder+"ChromeDriver.exe";
    private final String ChromePropertyKey = "webdriver.chrome.driver";
    private final String IEPropertyKey = "webdriver.ie.driver";
-   private final String EdgePropertyKey = "webdriver.edge.driver";
-   private final String BrowserName = "CHROME"; // FIREFOX, IE, CHROME, EDGE, HTMLUNIT, etc.
+   private final String BrowserName = "IE"; // FIREFOX, IE, CHROME
    private final long WaitTime = 1; // in seconds
    private final int WaitInterval = 100; // in millis
    private final int DefaultPause = 0; // in millis
    private final String ProjectName = "Selenium Based DDT Automation";
-   private final String EmailSender = "retsetddt@gmail.com";
-   private final String EmailPassword = "S2lzaGtlczAx";
-   private final boolean EmailPasswordEncrypted = true;
-   private final String EmailRecipients = "beymelamed@dyna-bytes.com";
+   private final String EmailSender = "retsettdd@gmail.com";
+   private final String EmailPassword = "Kishkes01";
+   private final String EmailRecipients = "beymelamed01@optimum.net";
    private final String EmailHost = "smtp.gmail.com";
    private final String EmailPort = "587";
    private final boolean EmailAuthenticationRequired = true;
-   private final String EmailMsgFile = ResourcesFolder+"EmailMsg.txt";
    private final boolean IsLocal = true;
    private final String TakeImagePolicy = "OnFail";
    private final boolean ReportEachTableCell = false;
@@ -119,7 +111,6 @@ public class DDTSettings {
    private String classLoadFolder;
    private String xslFileName;
    private String ieDriverFileName;
-   private String edgeDriverFileName;
    private String chromeDriverFileName;
    private String inputSpecs;
    private String validDelims;
@@ -127,7 +118,6 @@ public class DDTSettings {
    private String andDelim;
    private String orDelim;
    private String iePropertyKey;
-   private String edgePropertyKey;
    private String chromePropertyKey;
    private String browserName;
    private boolean isLocal; // if true (local) - drives the screen shots file output type (FILE or BYTE)
@@ -143,10 +133,8 @@ public class DDTSettings {
    private String emailRecipients;
    private String emailHost;
    private String emailPort;
-   private String emailMsgFile;
    private String attachments;
    private boolean emailAuthenticationRequired;
-   private boolean emailPasswordEncrypted;
    private String statusToReport;
    private String dontReportActions;
    private String reportElements;
@@ -162,6 +150,7 @@ public class DDTSettings {
    private String reportingStyle;
    private String reportFileName;
    private String reportTextMessage;
+   private String reportMessageFile;
    private String localeCode;
    private static DDTSettings ddtSettings;
    private boolean isNestedReporting;
@@ -178,7 +167,7 @@ public class DDTSettings {
    }
    // Load Properties from a file (path)
    private static Properties readProperties(String path) {
-       if (isNotEmpty(path)) {
+      if (isNotEmpty(path)) {
          Properties p = new Properties();
          InputStream is = null;
          File f = new File(asValidOSPath(path, true));
@@ -188,22 +177,30 @@ public class DDTSettings {
             return p;
          }
          catch (FileNotFoundException e) {
-            System.out.println("*** Properties file (" + path + ") Not Found *** " + e.getMessage());
+            System.out.println("*** Properties file (" + path + ") Not Found ***");
             return null;
          }
          catch (IOException e)  {
-            System.out.println("*** Properties file (" + path + ") Cannot Be Opened *** " + e.getMessage());
-            return null;
-         }
-         catch (Throwable e)  {
-            System.out.println("*** Properties file (" + path + ") Cannot Be Opened *** " + e.getMessage());
+            System.out.println("*** Properties file (" + path + ") Cannot Be Opened ***");
             return null;
          }
       }
-      else {
-         System.out.println("*** Properties file path is Empty ***");
+      else
          return null;
+   }
+
+   public static String getEmailMessageBody() {
+      String messageBody = Settings().reportTextMessage();
+      String messageTextFile = Settings().reportMessageFile();
+      if (length(messageTextFile) > 0) {
+         try {
+            messageBody = Util.readFile(messageTextFile, false);
+         }
+         catch (Exception e) {
+            System.out.println("*** Failed to Read file (" + messageTextFile + ") ***");
+         }
       }
+      return messageBody;
    }
 
    // Load the properties from which Settings() are to be derived.
@@ -252,7 +249,7 @@ public class DDTSettings {
    }
 
    public static boolean isReportableAction (String action) {
-      return !(Settings().getDontReportActions().toLowerCase().contains(action.toLowerCase()));
+      return !(Settings().dontReportActions().toLowerCase().contains(action.toLowerCase()));
    }
 
    public static boolean isWindowsOS() {
@@ -266,13 +263,13 @@ public class DDTSettings {
       if (isBlank(pathType))
          return result;  // let all hell break loose - one should know better
       switch (pathType.toLowerCase()) {
-         case "resources" : {result = Settings().getResourcesFolder() + fileName; break;}
-         case "report" : {result = Settings().getReportsFolder() + fileName; break;}
-         case "image" : {result = Settings().getImagesFolder() + fileName; break;}
-         case "data" : {result = Settings().getDataFolder() + fileName; break;}
-         case "script" : {result = Settings().getScriptsFolder() + fileName; break;}
-         case "load" : {result = Settings().getClassLoadFolder() + fileName; break;}
-         default : {result = Settings().getResourcesFolder() + fileName;}
+         case "resource" : {result = Settings().resourcesFolder() + fileName; break;}
+         case "report" : {result = Settings().reportsFolder() + fileName; break;}
+         case "image" : {result = Settings().imagesFolder() + fileName; break;}
+         case "data" : {result = Settings().dataFolder() + fileName; break;}
+         case "script" : {result = Settings().scriptsFolder() + fileName; break;}
+         case "load" : {result = Settings().classLoadFolder() + fileName; break;}
+         default : {result = Settings().resourcesFolder() + fileName;}
       }
       return result;
    }
@@ -297,18 +294,18 @@ public class DDTSettings {
       // Initialize various folders
       initializeFolders(ddtSettings);
       // Add global variables
-      DDTTestRunner.addVariable("$d", ddtSettings.getItemDelim()); // Preserved variable representing a primary delimiter (e.g. between tokens in the Data property of TestItem instance)
-      DDTTestRunner.addVariable("$and",ddtSettings.getAndDelim()); // Preserved variable representing "and" delimiter for various validations like comparison mode "between"
-      DDTTestRunner.addVariable("$or",ddtSettings.getOrDelim()); // Preserved variable representing "or" delimiter for various validations like  comparison mode "or", "in"
+      DDTTestRunner.addVariable("$d", ddtSettings.itemDelim()); // Preserved variable representing a primary delimiter (e.g. between tokens in the Data property of TestItem instance)
+      DDTTestRunner.addVariable("$and",ddtSettings.andDelim()); // Preserved variable representing "and" delimiter for various validations like comparison mode "between"
+      DDTTestRunner.addVariable("$or",ddtSettings.orDelim()); // Preserved variable representing "or" delimiter for various validations like  comparison mode "or", "in"
 
       // Set the default class load folder - the folder optionall contains inline test string provider classes
       // We do this to keep the class 'clean' off of referencing DDT classes.
-      DDTClassLoader.setDefaultLoadFolder(Settings().getClassLoadFolder());
+      DDTClassLoader.setDefaultLoadFolder(Settings().classLoadFolder());
 
       // Set the Default Wait Time and Default Poll Time for element location
       // Done here to ensure they are set to default upfront - this will also set the values on the UILocator class level.
-      Long tmp1 = ddtSettings.getWaitTime();
-      int tmp2 = ddtSettings.getWaitInterval();
+      Long tmp1 = ddtSettings.waitTime();
+      int tmp2 = ddtSettings.waitInterval();
    }
 
    /**
@@ -319,7 +316,7 @@ public class DDTSettings {
    }
 
    public String[] inputSpecsArray() {
-      return getInputSpecs().split(TestStringsProviderSpecs.SPLITTER);
+      return inputSpecs().split(TestStringsProviderSpecs.SPLITTER);
    }
 
    public String[] inputSpecsArrayWithDataFolder() {
@@ -328,7 +325,7 @@ public class DDTSettings {
       if (!specs.isSetupValid())
          return result;
 
-      specs.ensureFilePathIsValid(getDataFolder());
+      specs.ensureFilePathIsValid(dataFolder());
 
       String file = specs.getFileName();
       if (!isBlank(file))
@@ -356,7 +353,7 @@ public class DDTSettings {
     *
     * @return the input file name when the input type is "File"
     */
-   public String getInputFileName() {
+   public String inputFileName() {
       String result = "";
       try {
          if (inputType().equalsIgnoreCase("file"))
@@ -416,7 +413,7 @@ public class DDTSettings {
     * @return integer - the number of hours to add to the current datetime stamp (can be negative which means, subtract)
     */
    public int getTimeZoneAdjustmentInHours() {
-      String tza = getTimeZoneAdjustment().trim();
+      String tza = timeZoneAdjustment().trim();
       int result = 0;
       int factor = 1; //  Based on the leading sign of timeZoneAdjustment, set factor to +1 or -1 -  defaulting to +1
 
@@ -449,8 +446,8 @@ public class DDTSettings {
    }
 
    public Hashtable<String, Object> getDesiredCapabilities() {
-      String names = getDesiredCapabilityNames();
-      String values = getDesiredCapabilityValues();
+      String names = desiredCapabilityNames();
+      String values = desiredCapabilityValues();
       String[] desiredCapabilities = names.split(",");
       String[] desiredValues = values.split(",");
       int i = desiredCapabilities.length;
@@ -487,12 +484,12 @@ public class DDTSettings {
     */
    public static void initializeFolders(DDTSettings settings) {
 
-      String s = settings.getImagesFolder();
-      s = settings.getResourcesFolder();
-      s = settings.getReportsFolder();
-      s = settings.getDataFolder();
-      s = settings.getScriptsFolder();
-      s = settings.getClassLoadFolder();
+      String s = settings.imagesFolder();
+      s = settings.resourcesFolder();
+      s = settings.reportsFolder();
+      s = settings.dataFolder();
+      s = settings.scriptsFolder();
+      s = settings.classLoadFolder();
    }
 
    /**
@@ -535,7 +532,7 @@ public class DDTSettings {
       ddtVersion = value;
    }
 
-   private String getDDTVersion() {
+   private String ddtVersion() {
       if (isBlank(ddtVersion)) {
          String s = getPropertyOrDefaultValue(DDTVersion, "DDTVersion", false);
          setDDTVersion(s);
@@ -563,7 +560,7 @@ public class DDTSettings {
       }
 
       if (version == null)
-         version = getDDTVersion();
+         version = ddtVersion();
 
       if (version == null) {
          // we could not compute the version so use a blank
@@ -578,7 +575,7 @@ public class DDTSettings {
       validDelims = value;
    }
 
-   public String getValidDelims() {
+   public String validDelims() {
       if (isBlank(validDelims)) {
          String s = getPropertyOrDefaultValue(ValidDelims, "ValidDelims", false);
          setValidDelims(s);
@@ -590,7 +587,7 @@ public class DDTSettings {
       projectName = value;
    }
 
-   public String getProjectName() {
+   public String projectName() {
       if (isBlank(projectName)) {
          String s = getPropertyOrDefaultValue(ProjectName, "ProjectName", false);
          setProjectName(s);
@@ -602,7 +599,7 @@ public class DDTSettings {
       localeCode = value;
    }
 
-   public String getLocaleCode() {
+   public String localeCode() {
       if (isBlank(localeCode)) {
          String s = getPropertyOrDefaultValue(LocaleCode, "LocaleCode", false);
          setLocaleCode(s);
@@ -614,7 +611,7 @@ public class DDTSettings {
       reportFileName = value;
    }
 
-   public String getReportFileName() {
+   public String reportFileName() {
       if (isBlank(reportFileName)) {
          String s = getPropertyOrDefaultValue(ReportFileName, "ReportFileName", false);
          setReportFileName(s);
@@ -627,7 +624,7 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$resourcesDir",resourcesFolder);
    }
 
-   public String getResourcesFolder() {
+   public String resourcesFolder() {
       if (isBlank(resourcesFolder)) {
          String s = getPropertyOrDefaultValue(ResourcesFolder, "ResourcesFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -641,7 +638,7 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$reportsDir",reportsFolder);
    }
 
-   public String getReportsFolder() {
+   public String reportsFolder() {
       if (isBlank(reportsFolder)) {
          String s = getPropertyOrDefaultValue(ReportsFolder, "ReportsFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -655,7 +652,7 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$imagesDir",imagesFolder);
    }
 
-   public String getImagesFolder() {
+   public String imagesFolder() {
       if (isBlank(imagesFolder)) {
          String s = getPropertyOrDefaultValue(ImagesFolder, "ImagesFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -669,7 +666,7 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$dataDir",dataFolder);
    }
 
-   public String getDataFolder() {
+   public String dataFolder() {
       if (isBlank(dataFolder)) {
          String s = getPropertyOrDefaultValue(DataFolder, "DataFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -683,7 +680,7 @@ public class DDTSettings {
       DDTTestRunner.addVariable("$scriptsDir",scriptsFolder);
    }
 
-   public String getScriptsFolder() {
+   public String scriptsFolder() {
       if (isBlank(scriptsFolder)) {
          String s = getPropertyOrDefaultValue(ScriptsFolder, "ScriptsFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -701,7 +698,7 @@ public class DDTSettings {
       attachments = value;
    }
 
-   public String getAttachments() {
+   public String attachments() {
       if (isBlank(attachments)) {
          String s = getPropertyOrDefaultValue(Attachments, "Attachments", true);
          setAttachments(s);
@@ -709,7 +706,7 @@ public class DDTSettings {
       return attachments;
    }
 
-   public String getClassLoadFolder() {
+   public String classLoadFolder() {
       if (isBlank(classLoadFolder)) {
          String s = getPropertyOrDefaultValue(ClassLoadFolder, "ClassLoadFolder", false);
          s = ensureEndsWithFileSeparator(s.replace("%proj%", ProjectFolder));
@@ -722,7 +719,7 @@ public class DDTSettings {
       xslFileName = DDTSettings.asValidOSPath(value, true);
    }
 
-   public String getXslFileName() {
+   public String xslFileName() {
       if (isBlank(xslFileName)) {
          String s = getPropertyOrDefaultValue(XslFileName, "XslFileName", false);
          setXslFileName(s);
@@ -730,25 +727,6 @@ public class DDTSettings {
       return xslFileName;
    }
 
-   public String getEdgeDriverFileName() {
-	      if (isBlank(edgeDriverFileName)) {
-	         String s = getPropertyOrDefaultValue(EdgeDriverFileName, "EdgeDriverFileName", false);
-	         s = s.replace("%proj%", ProjectFolder);
-	         setEdgeDriverFileName(s);
-	      }
-	      return  asValidOSPath(edgeDriverFileName, true);
-	}
-
-	private void setEdgeDriverFileName(String value) {
-	       String tmp = value;
-
-	       if (!isWindowsOS()) {
-	           tmp = tmp.toLowerCase().replace(".exe", "");
-	       }
-
-	       edgeDriverFileName = DDTSettings.asValidOSPath(tmp, true);
-	}
-   
    private void setIEDriverFileName(String value) {
        String tmp = value;
 
@@ -759,7 +737,7 @@ public class DDTSettings {
        ieDriverFileName = DDTSettings.asValidOSPath(tmp, true);
    }
 
-   public String getIEDriverFileName() {
+   public String ieDriverFileName() {
       if (isBlank(ieDriverFileName)) {
          String s = getPropertyOrDefaultValue(IEDriverFileName, "IEDriverFileName", false);
          s = s.replace("%proj%", ProjectFolder);
@@ -776,7 +754,7 @@ public class DDTSettings {
       chromeDriverFileName = asValidOSPath(tmp, true);
    }
 
-   public String getChromeDriverFileName() {
+   public String chromeDriverFileName() {
       if (isBlank(chromeDriverFileName)) {
          String s = getPropertyOrDefaultValue(ChromeDriverFileName, "ChromeDriverFileName", false);
          s = s.replace("%proj%", ProjectFolder);
@@ -789,7 +767,7 @@ public class DDTSettings {
       inputSpecs = value;
    }
 
-   public String getInputSpecs() {
+   public String inputSpecs() {
       if (isBlank(inputSpecs)) {
          String s = getPropertyOrDefaultValue(InputSpecs, "InputSpecs", false);
          setInputSpecs(s);
@@ -801,7 +779,7 @@ public class DDTSettings {
       itemDelim = value;
    }
 
-   public String getItemDelim() {
+   public String itemDelim() {
       if (isBlank(itemDelim)) {
          String s = getPropertyOrDefaultValue(ItemDelim, "ItemDelim", false);
          if (s.toLowerCase().startsWith("char(")) {
@@ -824,7 +802,7 @@ public class DDTSettings {
       andDelim = value;
    }
 
-   public String getAndDelim() {
+   public String andDelim() {
       if (isBlank(andDelim))  {
          String s = getPropertyOrDefaultValue(AndDelim, "AndDelim", false);
          setAndDelim(s);
@@ -832,8 +810,8 @@ public class DDTSettings {
       return andDelim;
    }
 
-   public String getAndToken () {
-      String result = getAndDelim();
+   public String andToken () {
+      String result = andDelim();
       result = capitalize(result.replace(".", ""));
       return " " + result + " ";
    }
@@ -842,7 +820,7 @@ public class DDTSettings {
       orDelim = value;
    }
 
-   public String getOrDelim() {
+   public String orDelim() {
       if (isBlank(orDelim))  {
          String s = getPropertyOrDefaultValue(OrDelim, "OrDelim", false);
          setOrDelim(s);
@@ -850,8 +828,8 @@ public class DDTSettings {
       return orDelim;
    }
 
-   public String getOrToken () {
-      String result = getOrDelim();
+   public String orToken () {
+      String result = orDelim();
       result = capitalize(result.replace(".", ""));
       return " " + result + " ";
    }
@@ -860,7 +838,7 @@ public class DDTSettings {
       chromePropertyKey = value;
    }
 
-   public String getChromePropertyKey() {
+   public String chromePropertyKey() {
       if (isBlank(chromePropertyKey)) {
          String s = getPropertyOrDefaultValue(ChromePropertyKey, "ChromePropertyKey", false);
          setChromePropertyKey(s);
@@ -872,7 +850,7 @@ public class DDTSettings {
       iePropertyKey = value;
    }
 
-   public String getIEPropertyKey() {
+   public String iePropertyKey() {
       if (isBlank(iePropertyKey)) {
          String s = getPropertyOrDefaultValue(IEPropertyKey, "IEPropertyKey", false);
          setIEPropertyKey(s);
@@ -880,23 +858,11 @@ public class DDTSettings {
       return iePropertyKey;
    }
 
-   private void setEdgePropertyKey(String value) {
-	  edgePropertyKey = value;
-   }
-
-   public String getEdgePropertyKey() {
-      if (isBlank(edgePropertyKey)) {
-         String s = getPropertyOrDefaultValue(EdgePropertyKey, "EdgePropertyKey", false);
-         setEdgePropertyKey(s);
-      }
-      return edgePropertyKey;
-   }
-
    private void setBrowserName(String value) {
       browserName = value;
    }
 
-   public String getBrowserName() {
+   public String browserName() {
       if (isBlank(browserName)) {
          String s = getPropertyOrDefaultValue(BrowserName, "BrowserName", false);
          setBrowserName(s);
@@ -908,7 +874,7 @@ public class DDTSettings {
       isLocal = value;
    }
 
-   public boolean getIsLocal() {
+   public boolean isLocal() {
       // no lazy initialization as a boolean can never be null - it is a primitive
       String s = getPropertyOrDefaultValue(Util.booleanString(IsLocal), "IsLocal", false);
       setIsLocal(Util.asBoolean(s));
@@ -919,29 +885,18 @@ public class DDTSettings {
       emailAuthenticationRequired = value;
    }
 
-   public boolean getEmailAuthenticationRequired() {
+   public boolean emailAuthenticationRequired() {
       // no lazy initialization as a boolean can never be null - it is a primitive
       String s = getPropertyOrDefaultValue(Util.booleanString(EmailAuthenticationRequired), "EmailAuthenticationRequired", false);
       setEmailAuthenticationRequired(Util.asBoolean(s));
       return emailAuthenticationRequired;
    }
 
-   private void setEmailPasswordEncrypted(boolean value) {
-      emailPasswordEncrypted = value;
-   }
-
-   public boolean getEmailPasswordEncrypted() {
-      // no lazy initialization as a boolean can never be null - it is a primitive
-      String s = getPropertyOrDefaultValue(Util.booleanString(EmailPasswordEncrypted), "EmailPasswordEncrypted", false);
-      setEmailPasswordEncrypted(Util.asBoolean(s));
-      return emailPasswordEncrypted;
-   }
-
    private void setTakeImagePolicy(String value) {
       takeImagePolicy = value;
    }
 
-   public String getTakeImagePolicy() {
+   public String takeImagePolicy() {
       String s = getPropertyOrDefaultValue(TakeImagePolicy, "TakeImagePolicy", true);
 
       setTakeImagePolicy(s);
@@ -952,7 +907,7 @@ public class DDTSettings {
       reportEachTableCell = value;
    }
 
-   public boolean getReportEachTableCell() {
+   public boolean reportEachTableCell() {
       // no lazy initialization as a boolean can never be null - it is a primitive
       String s = getPropertyOrDefaultValue(Util.booleanString(ReportEachTableCell), "ReportEachTableCell", false);
       setReportEachTableCell(Util.asBoolean(s));
@@ -963,7 +918,7 @@ public class DDTSettings {
       tabOut = value;
    }
 
-   public boolean getTabOut() {
+   public boolean tabOut() {
       // no lazy initialization as a boolean can never be null - it is a primitive
       String s = getPropertyOrDefaultValue(Util.booleanString(TabOut), "TabOut", false);
       setTabOut(Util.asBoolean(s));
@@ -975,7 +930,7 @@ public class DDTSettings {
       UILocator.setWaitTimeSec(waitTime);
    }
 
-   public Long getWaitTime() {
+   public Long waitTime() {
       if (waitTime < 0L) /* not initialized yet */ {
          String s = getPropertyOrDefaultValue(Long.toString(WaitTime), "WaitTime", false);
          setWaitTime(Long.valueOf(s));
@@ -988,7 +943,7 @@ public class DDTSettings {
       UILocator.setWaitPollTime(waitInterval);
    }
 
-   public int getWaitInterval() {
+   public int waitInterval() {
       if (waitInterval < 0) /* not initialized yet */ {
          String s = getPropertyOrDefaultValue(Integer.toString(WaitInterval), "WaitInterval", false);
          setWaitInterval(Integer.valueOf(s));
@@ -1000,7 +955,7 @@ public class DDTSettings {
       defaultPause = value;
    }
 
-   public int getDefaultPause() {
+   public int defaultPause() {
       if (defaultPause < 0) /* not initialized yet */ {
          String s = getPropertyOrDefaultValue(Integer.toString(DefaultPause), "DefaultPause", false);
          setDefaultPause(Integer.valueOf(s));
@@ -1012,7 +967,7 @@ public class DDTSettings {
       emailRecipients = value;
    }
 
-   public String getEmailRecipients() {
+   public String emailRecipients() {
       if (isBlank(emailRecipients)) {
          String s = getPropertyOrDefaultValue(EmailRecipients, "EmailRecipients", true);
          setEmailRecipients(s);
@@ -1024,7 +979,7 @@ public class DDTSettings {
       emailSender = value;
    }
 
-   public String getEmailSender() {
+   public String emailSender() {
       if (isBlank(emailSender)) {
          String s = getPropertyOrDefaultValue(EmailSender, "EmailSender", false);
          setEmailSender(s);
@@ -1036,7 +991,7 @@ public class DDTSettings {
       emailPassword = value;
    }
 
-   public String getEmailPassword() {
+   public String emailPassword() {
       if (isBlank(emailPassword)) {
          String s = getPropertyOrDefaultValue(EmailPassword, "EmailPassword", false);
          setEmailPassword(s);
@@ -1048,7 +1003,7 @@ public class DDTSettings {
       emailHost = value;
    }
 
-   public String getEmailHost() {
+   public String emailHost() {
       if (isBlank(emailHost)) {
          String s = getPropertyOrDefaultValue(EmailHost, "EmailHost", false);
          setEmailHost(s);
@@ -1060,7 +1015,7 @@ public class DDTSettings {
       emailPort = value;
    }
 
-   public String getEmailPort() {
+   public String emailPort() {
       if (isBlank(emailPort)) {
          String s = getPropertyOrDefaultValue(EmailPort, "EmailPort", false);
          setEmailPort(s);
@@ -1068,23 +1023,11 @@ public class DDTSettings {
       return emailPort;
    }
 
-   private void setEmailMsgFile(String value) {
-      emailMsgFile = value;
-   }
-
-   public String getEmailMsgFile() {
-      if (isBlank(emailMsgFile)) {
-         String s = getPropertyOrDefaultValue(EmailMsgFile, "EmailMsgFile", true);
-         setEmailMsgFile(s);
-      }
-      return emailMsgFile;
-   }
-
    private void setStatusToReport(String value) {
       statusToReport = value;
    }
 
-   public String getStatusToReport() {
+   public String statusToReport() {
       if (isBlank(statusToReport)) {
          String s = getPropertyOrDefaultValue(StatusToReport, "StatusToReport", false);
          setStatusToReport(s);
@@ -1096,7 +1039,7 @@ public class DDTSettings {
       dontReportActions = value;
    }
 
-   public String getDontReportActions() {
+   public String dontReportActions() {
       if (isBlank(dontReportActions)) {
          String s = getPropertyOrDefaultValue(DontReportActions, "DontReportActions", false);
          setDontReportActions(s);
@@ -1108,7 +1051,7 @@ public class DDTSettings {
       reportElements = value;
    }
 
-   public String getReportElements() {
+   public String reportElements() {
       if (isBlank(reportElements)) {
          String s = getPropertyOrDefaultValue(ReportElements, "ReportElements", false);
          setReportElements(s);
@@ -1120,7 +1063,7 @@ public class DDTSettings {
       defaultComparison = value;
    }
 
-   public String getDefaultComparison() {
+   public String defaultComparison() {
       if (isBlank(defaultComparison)) {
          String s = getPropertyOrDefaultValue(DefaultComparison, "DefaultComparison", true);
          setDefaultComparison(s);
@@ -1132,7 +1075,7 @@ public class DDTSettings {
       testItemReportTemplate = value;
    }
 
-   public String getTestItemReportTemplate() {
+   public String testItemReportTemplate() {
       if (isBlank(testItemReportTemplate)) {
          String s = getPropertyOrDefaultValue(TestItemReportTemplate, "TestItemReportTemplate", true);
          setTestItemReportTemplate(s);
@@ -1144,7 +1087,7 @@ public class DDTSettings {
       testItemJSONTemplate = value;
    }
 
-   public String getTestItemJSONTemplate() {
+   public String testItemJSONTemplate() {
       if (isBlank(testItemJSONTemplate)) {
          String s = getPropertyOrDefaultValue(TestItemJSONTemplate, "TestItemJSONTemplate", true);
          setTestItemJSONTemplate(s);
@@ -1156,7 +1099,7 @@ public class DDTSettings {
       dateFormat = value;
    }
 
-   public String getDateFormat() {
+   public String dateFormat() {
       if (isBlank(dateFormat)) {
          String s = getPropertyOrDefaultValue(DateFormat, "DateFormat", true);
          setDateFormat(s);
@@ -1168,21 +1111,31 @@ public class DDTSettings {
       reportTextMessage = value;
    }
 
-   public String getReportTextMessage() {
+   public String reportTextMessage() {
       if (isBlank(reportTextMessage)) {
          String s = getPropertyOrDefaultValue(ReportTextMessage, "ReportTextMessage", true);
-         setReportTextMessage(s.replace("*crlf*", System.lineSeparator()));
+         setReportTextMessage(s);
       }
-      String value = reportTextMessage.replace("*crlf*", System.lineSeparator());
-      return value;
+      return reportTextMessage.replace("{crlf}", System.lineSeparator());
+   }
 
+   private void setReportMessageFile(String value) {
+      reportMessageFile = value;
+   }
+
+   public String reportMessageFile() {
+      if (isBlank(reportMessageFile)) {
+         String s = getPropertyOrDefaultValue(reportMessageFile, "ReportMessageFile", true);
+         setReportMessageFile(s);
+      }
+      return reportMessageFile.replace("%proj%", ProjectFolder).replace("%src%", DataFolder);
    }
 
    private void setTimeStampFormat(String value) {
       timeStampFormat = value;
    }
 
-   public String getTimeStampFormat() {
+   public String timeStampFormat() {
       if (isBlank(timeStampFormat)) {
          String s = getPropertyOrDefaultValue(TimeStampFormat, "TimeStampFormat", true);
          setTimeStampFormat(s);
@@ -1194,7 +1147,7 @@ public class DDTSettings {
       timeZoneAdjustment = value;
    }
 
-   public String getTimeZoneAdjustment() {
+   public String timeZoneAdjustment() {
       if (isBlank(timeZoneAdjustment)) {
          String s = getPropertyOrDefaultValue(TimeZoneAdjustment, "TimeZoneAdjustment", true);
          setTimeZoneAdjustment(s);
@@ -1206,7 +1159,7 @@ public class DDTSettings {
       desiredCapabilityNames = value;
    }
 
-   public String getDesiredCapabilityNames() {
+   public String desiredCapabilityNames() {
       if (isBlank(desiredCapabilityNames)) {
          String s = getPropertyOrDefaultValue(DesiredCapabilityNames, "DesiredCapabilityNames", true);
          setDesiredCapabilityNames(s);
@@ -1218,7 +1171,7 @@ public class DDTSettings {
       desiredCapabilityValues = value;
    }
 
-   public String getDesiredCapabilityValues() {
+   public String desiredCapabilityValues() {
       if (isBlank(desiredCapabilityValues)) {
          String s = getPropertyOrDefaultValue(DesiredCapabilityValues, "DesiredCapabilityValues", true);
          setDesiredCapabilityValues(s);
@@ -1234,7 +1187,7 @@ public class DDTSettings {
     * Used for (potential) improvement of (mostly string) verifications relieving users of counting spaces, and other white space characters...
     * @return
     */
-   public boolean getStripWhiteSpace() {
+   public boolean stripWhiteSpace() {
       // no lazy initialization as a boolean can never be null - it is a primitive
       String s = getPropertyOrDefaultValue(Util.booleanString(StripWhiteSpace), "StripWhiteSpace", false);
       setStripWhiteSpace(Util.asBoolean(s));
@@ -1245,7 +1198,7 @@ public class DDTSettings {
       reportingStyle = value;
    }
 
-   public String getReportingStyle() {
+   public String reportingStyle() {
       if (isBlank(reportingStyle)) {
          String s = getPropertyOrDefaultValue(ReportingStyle, "ReportingStyle", false);
          setReportingStyle(s);
@@ -1261,19 +1214,10 @@ public class DDTSettings {
     * Used for nested (Extent) reporting style
     * @return boolean
     */
-   public boolean getNestedReporting() {
+   public boolean nestedReporting() {
       String s = getPropertyOrDefaultValue(Util.booleanString(IsNestedReporting), "IsNestedReporting", false);
       setIsNestedReporting(Util.asBoolean(s));
       return isNestedReporting;
    }
 
-   public String getEmailMessageText() {
-      String defaultText = getReportTextMessage();
-      String emailMsgFileName = getEmailMsgFile(); // Raw File Name - now prefix
-      if (emailMsgFileName.length() > 0) {
-         emailMsgFileName = getResourcesFolder() + emailMsgFileName;
-         defaultText = Util.readFile(emailMsgFileName);
-      }
-      return defaultText;
-   }
 }

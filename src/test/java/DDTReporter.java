@@ -1,6 +1,6 @@
 import com.relevantcodes.extentreports.ExtentReports;
 import com.relevantcodes.extentreports.ExtentTest;
-//import mx4j.tools.adaptor.http.XSLTProcessor; ***
+import mx4j.tools.adaptor.http.XSLTProcessor;
 
 import javax.mail.MessagingException;
 import javax.xml.stream.XMLOutputFactory;
@@ -55,8 +55,7 @@ import static org.apache.commons.lang3.StringUtils.*;
  * 07/24/15    |Bey      |Various improvements & bugs (desciption handling)
  * 07/26/15    |Bey      |Implement Extent Reports
  * 08/21/15    |Bey      |Improve handling of Extent Reports (multiple files per test session)
- * 01/16/17    |Bey      |Adjust ddtSettings getters.
- * 01/25/17    |Bey      |Enable reaching email message body from file
+ * 09/29/18    |Bey      |Use Email Message File (in addition to DDTSettings blurb
  * ============|=========|====================================
  */
 public class DDTReporter {
@@ -117,7 +116,7 @@ public class DDTReporter {
    private static String getExtendReportFileName() {
       String tmp = extentReportFileName;
       if (isBlank(tmp)) {
-         tmp = DDTSettings.Settings().getReportFileName();
+         tmp = DDTSettings.Settings().reportFileName();
          Date dt = new Date();
          String insert = "-" + new SimpleDateFormat("yyyy-MM-dd-HHmmss.SSS").format(new Date()); //String.valueOf(dt.getTime());
          tmp = tmp.replace(".", insert + ".");
@@ -128,13 +127,13 @@ public class DDTReporter {
 
    // Generate Extent Reporter Instance
    public static ExtentReports getExtentReportInstance() {
-      String reportStyle = DDTSettings.Settings().getReportingStyle();
+      String reportStyle = DDTSettings.Settings().reportingStyle();
       if (!reportStyle.equalsIgnoreCase("extent"))
          return null;
 
       if (extentReport == null) {
          String defaultFileName = getExtendReportFileName();
-         String defaultFolder = DDTSettings.Settings().getReportsFolder();
+         String defaultFolder = DDTSettings.Settings().reportsFolder();
          if (!defaultFolder.endsWith("\\") && !defaultFolder.endsWith("/"))
             defaultFolder += "\\";
          defaultFileName = defaultFolder + defaultFileName;
@@ -143,9 +142,9 @@ public class DDTReporter {
 
          // optional
          extentReport.config()
-               .documentTitle(DDTSettings.Settings().getProjectName())
+               .documentTitle(DDTSettings.Settings().projectName())
                .reportName("Regression")
-               .reportHeadline(DDTSettings.Settings().getProjectName() + " (" + DDTSettings.Settings().getVersion() + ")");
+               .reportHeadline(DDTSettings.Settings().projectName() + " (" + DDTSettings.Settings().getVersion() + ")");
 
          // optional
          extentReport
@@ -163,7 +162,7 @@ public class DDTReporter {
    }
 
    public static ExtentTest getExtentTestInstance(TestItem testItem) {
-      String reportStyle = DDTSettings.Settings().getReportingStyle();
+      String reportStyle = DDTSettings.Settings().reportingStyle();
       if (!reportStyle.equalsIgnoreCase("extent"))
          return null;
 
@@ -356,7 +355,7 @@ public class DDTReporter {
     * @param emailBody
     */
    public void generateReport(String description, String emailBody) {
-      String reportStyle = DDTSettings.Settings().getReportingStyle().toLowerCase();
+      String reportStyle = DDTSettings.Settings().reportingStyle().toLowerCase();
       switch (reportStyle) {
          case "default":
             generateDefaultReport(description, emailBody);
@@ -380,7 +379,7 @@ public class DDTReporter {
       String[] summaryItems = generateReportSummary(description);
 
 
-      if (isBlank(settings.getEmailRecipients())) {
+      if (isBlank(settings.emailRecipients())) {
          System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");
       } else {
 
@@ -417,7 +416,7 @@ public class DDTReporter {
 
       String durationBlurb = " (Session duration: " + sessionDurationString() + ", Reported tests duration: " + durationString() + ")";
 
-      String projectName = settings.getProjectName();
+      String projectName = settings.projectName();
       if (isBlank(projectName))
          projectName = "Selenium Based DDT Automation Project";
       String moduleName = description;
@@ -440,20 +439,21 @@ public class DDTReporter {
 
       // String summarizing the scope of this report section
       String rangeClause = " Reportable steps included in this report: " + firstReportStep() + " thru " + DDTTestRunner.nSessionDone();
-      if (lastReportStep() != firstReportStep() || isNotBlank(settings.getDontReportActions())) {
-         rangeClause += " - Actions excluded from reporting: " + settings.getDontReportActions().replace(",", ", ");
+      if (lastReportStep() != firstReportStep() || isNotBlank(settings.dontReportActions())) {
+         rangeClause += " - Actions excluded from reporting: " + settings.dontReportActions().replace(",", ", ");
       }
 
-      String blurb = DDTSettings.Settings().getEmailMessageText();
+      String blurb = DDTSettings.getEmailMessageBody();
+      // blurb = blurb.replace(System.lineSeparator(), "<b>");
       if (blurb.isEmpty())
          blurb = "Attached is a summary of test results titled: ";
       else
-         blurb += "\n";
+         blurb += System.lineSeparator();
       blurb += description;
 
       String summary = rangeClause;
 
-      summary += " - Item status included: " + settings.getStatusToReport() + " (un-reported action steps not counted.)";
+      summary += " - Item status included: " + settings.statusToReport() + " (un-reported action steps not counted.)";
       summary = summary.replaceAll(", , ", ", ");
 
       result[_BLURB] = blurb;
@@ -515,7 +515,7 @@ public class DDTReporter {
          return;
       }
 
-      if (isBlank(settings.getEmailRecipients())) {
+      if (isBlank(settings.emailRecipients())) {
          System.out.println("Empty Email Recipients List - Test Results not emailed. Report Generated");
       } else {
 
@@ -528,7 +528,7 @@ public class DDTReporter {
 
    private void emailReportResults(String description, String emailBody, String[] summaryItems, String fileName) {
 
-      String folder = DDTSettings.Settings().getReportsFolder();
+      String folder = DDTSettings.Settings().reportsFolder();
       String fileSpecs = DDTSettings.asValidOSPath(folder + File.separator + fileName, true);
 
       String emailSubject = "Test Results for Project: " + summaryItems[_PROJECT];
@@ -549,8 +549,8 @@ public class DDTReporter {
       String extraEmailBody = (isBlank(emailBody) ? "<br>" + topBlurb : "<br>" + topBlurb + "<br>" + emailBody) + "</br>";
 
       String messageBody = "";
-      if (isNotEmpty(description))
-         messageBody = "<br>Report Title: " + Util.dq(description) + "<br>";
+      // if (isNotEmpty(description))
+      //   messageBody = "<br>Report Title: " + Util.dq(description) + "<br>";
 
       messageBody += extraEmailBody;  // extraBlurb = no reportable steps
 
@@ -559,7 +559,7 @@ public class DDTReporter {
 
       try {
          Email.sendMail(emailSubject, messageBody, fileSpecs.replace(".xml", ".html"), failedTestsSummary);
-         System.out.println("Report Generated.  Report Results Emailed to: " + settings.getEmailRecipients());
+         System.out.println("Report Generated.  Report Results Emailed to: " + settings.emailRecipients());
       } catch (MessagingException e) {
          System.out.println("Messaging Exception Encountered while emailing test results.\nResults not sent, Report generated.");
          e.printStackTrace();
@@ -568,7 +568,7 @@ public class DDTReporter {
    }
 
    private void generateAndTransformXMLOutput(String fileName, String[] reportItems) {
-      String folder = settings.getReportsFolder();
+      String folder = settings.reportsFolder();
 
       // Ensure the folder exists - if no exception is thrown, it does!
       File tmp = Util.setupReportFolder(DDTSettings.asValidOSPath(folder, true));
@@ -602,7 +602,7 @@ public class DDTReporter {
 
          for (DDTReportItem t : getDDTests()) {
             // Only report the statuses indicated for reporting in the settings.
-            if (!(settings.getStatusToReport().contains(t.getStatus())))
+            if (!(settings.statusToReport().contains(t.getStatus())))
                continue;
             String[] attributes = new String[]{"Id", "Name", "Status", "ErrDesc"};
             String xmlItem = Util.xmlize(t.getUserReport());
@@ -664,14 +664,13 @@ public class DDTReporter {
       try {
          String baseSpecs =  DDTSettings.asValidOSPath(fileSpecs, true);
          String htmlFileSpecs = baseSpecs.replace(".xml", ".html");
-         String xslFileName = DDTSettings.asValidOSPath(settings.getXslFileName(), false);
-         String xslFileSpecs =  DDTSettings.asValidOSPath(settings.getResourcesFolder() + xslFileName, false);
+         String xslFileName = DDTSettings.asValidOSPath(settings.xslFileName(), false);
+         String xslFileSpecs =  DDTSettings.asValidOSPath(settings.resourcesFolder() + xslFileName, false);
          //String targetFolder = resultsFolder.endsWith(File.separator) ? resultsFolder : resultsFolder + File.separator;
 
          StringWriter sw = new StringWriter();
-         // *** Commented below...
-         //XSLTProcessor xsltProcessor = new XSLTProcessor();
-         //xsltProcessor.setFile(xslFileSpecs);
+         XSLTProcessor xsltProcessor = new XSLTProcessor();
+         xsltProcessor.setFile(xslFileSpecs);
 
          URL xmlURL =  new File(baseSpecs).toURI().toURL();
          //String xmlSystemId = xmlURL.toExternalForm();
